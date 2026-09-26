@@ -22,14 +22,14 @@
 
 <br>
 
-- [Features](#features)
-- [Run locally](#run-locally)
-- [API key](#api-key)
-- [Tests](#tests)
-- [How it works](#how-it-works)
-- [Project structure](#project-structure)
-- [Current limitations](#current-limitations)
-- [Next steps](#next-steps)
+- [Features](#-features)
+- [Run locally](#-run-locally)
+- [API key](#-api-key)
+- [Tests](#-tests)
+- [How it works](#-how-it-works)
+- [Project structure](#-project-structure)
+- [Current limitations](#-current-limitations)
+- [Next steps](#-next-steps)
 
 </details>
 
