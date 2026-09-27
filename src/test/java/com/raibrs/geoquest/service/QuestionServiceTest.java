@@ -17,6 +17,7 @@ class QuestionServiceTest {
 
     private final QuestionService questionService = new QuestionService(new Random(0));
 
+    // Ensures a round uses distinct countries and keeps each expected capital as the valid answer.
     @Test
     void createsCapitalQuestionsWithoutRepeatingCountries() {
         List<Country> countries = List.of(
@@ -39,6 +40,7 @@ class QuestionServiceTest {
         assertFalse(questions.stream().anyMatch(question -> question.isCorrectAnswer("Rio de Janeiro")));
     }
 
+    // Prevents impossible round configurations from reaching the game session.
     @Test
     void rejectsAnInvalidQuestionCount() {
         List<Country> countries = List.of(new Country("Brazil", "Brasília"));

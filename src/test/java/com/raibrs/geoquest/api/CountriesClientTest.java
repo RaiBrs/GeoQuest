@@ -7,6 +7,7 @@ class CountriesClientTest {
 
     private final CountriesClient client = new CountriesClient("test-key");
 
+    // Protects the API contract by rejecting limits outside the supported range before a request is sent.
     @Test
     void rejectsALimitOutsideTheApiRange() {
         assertThrows(IllegalArgumentException.class, () -> client.fetchCountries(0));

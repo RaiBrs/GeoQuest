@@ -12,6 +12,7 @@ class CountryJsonParserTest {
 
     private final CountryJsonParser parser = new CountryJsonParser();
 
+    // Ensures countries without a usable capital are excluded from the game question pool.
     @Test
     void parsesCountriesWithOneCapital() {
         String responseBody = """
@@ -39,11 +40,13 @@ class CountryJsonParserTest {
         assertEquals("Brasília", country.getCapital());
     }
 
+    // Prevents malformed API payloads from being mistaken for valid country data.
     @Test
     void rejectsAnInvalidJsonResponse() {
         assertThrows(IllegalArgumentException.class, () -> parser.parse("not json"));
     }
 
+    // Prevents an empty API response from reaching the question creation flow.
     @Test
     void rejectsAnEmptyResponse() {
         assertThrows(IllegalArgumentException.class, () -> parser.parse(""));

@@ -22,9 +22,18 @@ public class ConsoleUi {
     public String askQuestion(Question question) {
         output.println();
         output.println(question.getText());
-        output.print("Your answer: ");
 
-        return readLine();
+        while (true) {
+            output.print("Your answer: ");
+            String answer = readLine().strip();
+
+            // A blank line is not an attempt and must not end the player's round.
+            if (!answer.isEmpty()) {
+                return answer;
+            }
+
+            output.println("Please enter an answer.");
+        }
     }
 
     public void showCorrectAnswer(int score) {

@@ -6,8 +6,9 @@ public class Question {
     private final String correctAnswer;
 
     public Question(String text, String correctAnswer) {
-        this.text = text;
-        this.correctAnswer = correctAnswer;
+        // A question must always be displayable and answerable by the game.
+        this.text = requireNonBlank(text, "Question text");
+        this.correctAnswer = requireNonBlank(correctAnswer, "Correct answer");
     }
 
     public String getText() {
@@ -19,6 +20,14 @@ public class Question {
     }
 
     public boolean isCorrectAnswer(String answer) {
-        return answer != null && correctAnswer.equalsIgnoreCase(answer.trim());
+        return answer != null && correctAnswer.equalsIgnoreCase(answer.strip());
+    }
+
+    private static String requireNonBlank(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(fieldName + " must not be blank.");
+        }
+
+        return value.strip();
     }
 }

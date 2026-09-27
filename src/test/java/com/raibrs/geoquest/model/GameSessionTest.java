@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GameSessionTest {
 
+    // Ensures a correct answer advances exactly one question and increments the score once.
     @Test
     void advancesTheQuestionAndScoreAfterACorrectAnswer() {
         Question firstQuestion = new Question("First?", "One");
@@ -30,6 +31,7 @@ class GameSessionTest {
         assertFalse(session.hasNextQuestion());
     }
 
+    // Protects callers from reading a question after the session has finished.
     @Test
     void rejectsReadingPastTheLastQuestion() {
         GameSession session = new GameSession(List.of(new Question("First?", "One")));
@@ -39,6 +41,7 @@ class GameSessionTest {
         assertThrows(IllegalStateException.class, session::getCurrentQuestion);
     }
 
+    // Prevents a round from starting without any question to ask.
     @Test
     void rejectsAnEmptyQuestionList() {
         assertThrows(IllegalArgumentException.class, () -> new GameSession(List.of()));
