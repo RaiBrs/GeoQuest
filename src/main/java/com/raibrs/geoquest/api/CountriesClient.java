@@ -5,17 +5,22 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 
 public class CountriesClient {
 
     private static final String BASE_URL = "https://api.restcountries.com/countries/v5";
     private static final int MAX_COUNTRIES_PER_REQUEST = 100;
+    private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(5);
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
 
     private final HttpClient httpClient;
     private final String apiKey;
 
     public CountriesClient(String apiKey) {
-        this.httpClient = HttpClient.newHttpClient();
+        this.httpClient = HttpClient.newBuilder()
+                .connectTimeout(CONNECT_TIMEOUT)
+                .build();
         this.apiKey = apiKey;
     }
 
@@ -30,6 +35,7 @@ public class CountriesClient {
                 // Ask only for the fields we need to keep the response small.
                 .uri(URI.create(BASE_URL + "?response_fields=names.common,capitals&limit=" + limit))
                 .header("Authorization", "Bearer " + apiKey)
+                .timeout(REQUEST_TIMEOUT)
                 .GET()
                 .build();
 

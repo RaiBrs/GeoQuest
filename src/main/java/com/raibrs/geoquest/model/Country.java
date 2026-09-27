@@ -5,8 +5,9 @@ public class Country {
     private final String capital;
 
     public Country(String name, String capital) {
-        this.name = name;
-        this.capital = capital;
+        // Normalize data at the boundary so every Country instance is usable by the game.
+        this.name = requireNonBlank(name, "Country name");
+        this.capital = requireNonBlank(capital, "Country capital");
     }
 
     public String getName() {
@@ -20,5 +21,13 @@ public class Country {
     @Override
     public String toString() {
         return "Country{name=" + name + ", capital=" + capital + "}";
+    }
+
+    private static String requireNonBlank(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(fieldName + " must not be blank.");
+        }
+
+        return value.strip();
     }
 }
