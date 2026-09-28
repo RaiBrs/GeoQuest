@@ -129,9 +129,6 @@ src/
 
 ## 🧭 Next steps
 
-- Validate domain objects more strictly.
-- Add timeout and stronger error handling to the HTTP client.
-- Expand parser tests for malformed API responses.
 - Add more question types and multiple-choice questions.
 - Add a ranking feature with local storage.
 - Add Portuguese translations with `ResourceBundle`.
