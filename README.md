@@ -40,7 +40,9 @@
 - 🎯 Five questions per round
 - 📈 Track the score as the player answers correctly
 - 🛑 End the round after the first wrong answer
-- 🔁 Ask whether the player wants to try again
+- 🏆 Persist a local Top 10 ranking in `data/ranking.json`
+- 👤 Keep one best result per player, ignoring capitalization in player names
+- 📋 Provide a menu to play, view the ranking, log out, or exit
 - 🧪 JUnit tests for the API, parser, service, session, and terminal UI
 
 ## 🚀 Run locally
@@ -71,6 +73,16 @@ The API key is required by REST Countries v5. Never commit it to Git or place it
 
 The client makes one request per round and requests only the country name and capital fields.
 
+## 🏆 Local ranking
+
+After choosing a player name, the application keeps that identity until the player selects
+**Logout**. Each completed round updates the local ranking at `data/ranking.json`.
+
+- The ranking displays the Top 10 results.
+- A player has only one entry; a later better score replaces the previous one.
+- Tied scores are ordered by the most recent round.
+- `data/` is ignored by Git because it contains local game data.
+
 ## 🧪 Tests
 
 Tests use JUnit 6 and are organized by package under `src/test/java`.
@@ -93,6 +105,10 @@ QuestionService shuffles and creates five questions
 ConsoleUi reads the answer
     ↓
 GameSession updates the score
+    ↓
+RankingService keeps the player's best result
+    ↓
+ConsoleUi displays the updated ranking or menu
 ```
 
 ## 📁 Project structure
@@ -109,9 +125,13 @@ src/
 │           ├── model/
 │           │   ├── Country.java             # Country and capital data
 │           │   ├── GameSession.java         # Current question and score
-│           │   └── Question.java            # Question and answer rule
+│           │   ├── Question.java            # Question and answer rule
+│           │   └── RankingEntry.java        # One persisted player result
+│           ├── repository/
+│           │   └── RankingRepository.java   # Ranking JSON file access
 │           ├── service/
-│           │   └── QuestionService.java     # Question creation and shuffling
+│           │   ├── QuestionService.java     # Question creation and shuffling
+│           │   └── RankingService.java      # Ranking rules and ordering
 │           └── ui/
 │               └── ConsoleUi.java           # Terminal input and output
 └── test/
@@ -123,15 +143,14 @@ src/
 
 - Only capital questions are available.
 - A wrong answer ends the current round.
-- The score is kept only during the current session.
 - The API currently requires a valid key and network access.
-- The application does not yet have persistent ranking storage.
+- A player name is remembered only while the application is running.
 
 ## 🧭 Next steps
 
 - Add more question types and multiple-choice questions.
-- Add a ranking feature with local storage.
 - Add Portuguese translations with `ResourceBundle`.
+- Allow a logged-in player to delete their ranking entry.
 
 ---
 
