@@ -17,27 +17,26 @@ class QuestionServiceTest {
 
     private final QuestionService questionService = new QuestionService(new Random(0));
 
-    // Ensures a round uses distinct countries and keeps each expected capital as the valid answer.
+    // Ensures a round gives every displayed alternative a unique capital to avoid answer hints.
     @Test
-    void createsCapitalQuestionsWithoutRepeatingCountries() {
-        List<Country> countries = List.of(
-                new Country("Brazil", "Brasília"),
-                new Country("Japan", "Tokyo"),
-                new Country("Chile", "Santiago"));
+    void createsCapitalQuestionsWithoutRepeatingAlternatives() {
+        List<Country> countries = countriesWithDistinctCapitals(40);
 
-        List<Question> questions = questionService.createCapitalQuestions(countries, 3);
+        List<Question> questions = questionService.createCapitalQuestions(countries, 10);
         Set<String> questionTexts = questions.stream()
                 .map(Question::getText)
                 .collect(java.util.stream.Collectors.toSet());
+        Set<String> alternatives = questions.stream()
+                .flatMap(question -> question.getAlternatives().stream())
+                .collect(java.util.stream.Collectors.toSet());
 
-        assertEquals(3, questions.size());
-        assertEquals(Set.of(
-                "What is the capital of Brazil?",
-                "What is the capital of Japan?",
-                "What is the capital of Chile?"), questionTexts);
-        assertTrue(questions.stream().anyMatch(question -> question.isCorrectAnswer("brasília")));
-        assertTrue(questions.stream().anyMatch(question -> question.isCorrectAnswer("  Tokyo  ")));
-        assertFalse(questions.stream().anyMatch(question -> question.isCorrectAnswer("Rio de Janeiro")));
+        assertEquals(10, questions.size());
+        assertEquals(10, questionTexts.size());
+        assertEquals(40, alternatives.size());
+        assertTrue(questions.stream().allMatch(question -> question.getAlternatives().size() == 4));
+        assertTrue(questions.stream().allMatch(question -> question.getAlternatives().contains(
+                question.getCorrectAnswer())));
+        assertFalse(questions.stream().anyMatch(question -> question.isCorrectAnswer("Not a capital")));
     }
 
     // Prevents impossible round configurations from reaching the game session.
@@ -51,5 +50,17 @@ class QuestionServiceTest {
                 () -> questionService.createCapitalQuestions(countries, 0));
         assertThrows(IllegalArgumentException.class,
                 () -> questionService.createCapitalQuestions(countries, 2));
+        assertThrows(IllegalArgumentException.class,
+                () -> questionService.createCapitalQuestions(countriesWithDistinctCapitals(7), 2));
+    }
+
+    private List<Country> countriesWithDistinctCapitals(int count) {
+        java.util.ArrayList<Country> countries = new java.util.ArrayList<>();
+
+        for (int index = 1; index <= count; index++) {
+            countries.add(new Country("Country " + index, "Capital " + index));
+        }
+
+        return countries;
     }
 }

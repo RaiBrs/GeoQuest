@@ -17,7 +17,7 @@ import java.util.List;
 
 public class App {
 
-    private static final int QUESTIONS_PER_ROUND = 5;
+    private static final int QUESTIONS_PER_ROUND = 10;
     private static final int COUNTRIES_PER_REQUEST = 100;
     // A relative path keeps the ranking beside the application when it is run locally.
     private static final Path RANKING_FILE = Path.of("data", "ranking.json");
@@ -48,6 +48,7 @@ public class App {
                     case PLAY -> playAndSaveRound(
                             ui, client, parser, questionService, rankingService, playerName);
                     case VIEW_RANKING -> ui.showRanking(rankingService.getTopRanking());
+                    case DELETE_RANKING -> deleteRankingEntry(ui, rankingService, playerName);
                     // Changing identity is explicit, so menu actions reuse the current player name.
                     case LOGOUT -> playerName = ui.askPlayerName();
                     case EXIT -> isRunning = false;
@@ -63,6 +64,25 @@ public class App {
         }
 
         ui.showGoodbye();
+    }
+
+    private static void deleteRankingEntry(
+            ConsoleUi ui,
+            RankingService rankingService,
+            String playerName
+    ) throws IOException {
+        if (!ui.askToConfirmRankingDeletion()) {
+            ui.showRankingDeletionCancelled();
+            return;
+        }
+
+        // The current session name is the only identity allowed to delete a ranking entry.
+        if (rankingService.deleteResultFor(playerName)) {
+            ui.showRankingEntryDeleted();
+            return;
+        }
+
+        ui.showNoRankingEntryToDelete();
     }
 
     private static void playAndSaveRound(
