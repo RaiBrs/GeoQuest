@@ -73,4 +73,18 @@ public class RankingService {
     private List<RankingEntry> limitForDisplay(List<RankingEntry> entries) {
         return entries.stream().limit(MAX_DISPLAYED_ENTRIES).toList();
     }
+
+    public boolean deleteResultFor(String playerName) throws IOException {
+        List<RankingEntry> entries = new ArrayList<>(repository.load());
+
+        // Removing every match also repairs any duplicate player data saved by an older version.
+        boolean removed = entries.removeIf(entry ->
+                entry.getPlayerName().equalsIgnoreCase(playerName));
+
+        if (removed) {
+            repository.save(entries);
+        }
+
+        return removed;
+    }
 }

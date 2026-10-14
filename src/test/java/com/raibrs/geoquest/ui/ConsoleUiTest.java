@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Scanner;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ConsoleUiTest {
@@ -25,21 +26,58 @@ class ConsoleUiTest {
         ConsoleUi.MainMenuOption option = ui.askMainMenuOption();
 
         assertEquals(ConsoleUi.MainMenuOption.VIEW_RANKING, option);
-        assertTrue(outputBytes.toString().contains("Please choose an option from 1 to 4."));
+        assertTrue(outputBytes.toString().contains("Please choose an option from 1 to 5."));
     }
 
-    // Ensures blank answers are retried instead of ending the current round as incorrect.
+    // Ensures the menu exposes the action that deletes only the current player's ranking entry.
     @Test
-    void asksAgainUntilThePlayerProvidesANonBlankAnswer() {
+    void returnsTheDeleteRankingOption() {
+        ConsoleUi ui = new ConsoleUi(
+                new Scanner("3\n"),
+                new PrintStream(new ByteArrayOutputStream()));
+
+        assertEquals(ConsoleUi.MainMenuOption.DELETE_RANKING, ui.askMainMenuOption());
+    }
+
+    // Ensures accidental input cannot confirm a permanent ranking deletion.
+    @Test
+    void asksAgainUntilThePlayerConfirmsRankingDeletion() {
         ByteArrayOutputStream outputBytes = new ByteArrayOutputStream();
         ConsoleUi ui = new ConsoleUi(
-                new Scanner("\n   \nTokyo\n"),
+                new Scanner("maybe\ny\n"),
                 new PrintStream(outputBytes));
 
-        String answer = ui.askQuestion(new Question("What is the capital of Japan?", "Tokyo"));
+        boolean confirmed = ui.askToConfirmRankingDeletion();
+
+        assertTrue(confirmed);
+        assertTrue(outputBytes.toString().contains("Please enter y or n."));
+    }
+
+    // Ensures a negative confirmation returns false so the application can cancel deletion.
+    @Test
+    void allowsThePlayerToCancelRankingDeletion() {
+        ConsoleUi ui = new ConsoleUi(
+                new Scanner("n\n"),
+                new PrintStream(new ByteArrayOutputStream()));
+
+        assertFalse(ui.askToConfirmRankingDeletion());
+    }
+
+    // Ensures invalid letters are retried and the selected letter maps to its alternative text.
+    @Test
+    void asksAgainUntilThePlayerProvidesAValidMultipleChoiceAnswer() {
+        ByteArrayOutputStream outputBytes = new ByteArrayOutputStream();
+        ConsoleUi ui = new ConsoleUi(
+                new Scanner("\n   \nE\nb\n"),
+                new PrintStream(outputBytes));
+
+        String answer = ui.askQuestion(new Question("What is the capital of Japan?", "Tokyo", List.of(
+                "Seoul", "Tokyo", "Beijing", "Bangkok")));
 
         assertEquals("Tokyo", answer);
-        assertTrue(outputBytes.toString().contains("Please enter an answer."));
+        assertTrue(outputBytes.toString().contains("A. Seoul"));
+        assertTrue(outputBytes.toString().contains("B. Tokyo"));
+        assertTrue(outputBytes.toString().contains("Please enter a letter from A to D."));
     }
 
     // Ensures blank player names are retried and valid names are normalized before ranking use.

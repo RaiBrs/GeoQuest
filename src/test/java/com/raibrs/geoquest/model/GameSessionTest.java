@@ -11,11 +11,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GameSessionTest {
 
+    private static final List<String> ALTERNATIVES = List.of("One", "Two", "Three", "Four");
+
     // Ensures a correct answer advances exactly one question and increments the score once.
     @Test
     void advancesTheQuestionAndScoreAfterACorrectAnswer() {
-        Question firstQuestion = new Question("First?", "One");
-        Question secondQuestion = new Question("Second?", "Two");
+        Question firstQuestion = new Question("First?", "One", ALTERNATIVES);
+        Question secondQuestion = new Question("Second?", "Two", ALTERNATIVES);
         GameSession session = new GameSession(List.of(firstQuestion, secondQuestion));
 
         assertEquals(firstQuestion, session.getCurrentQuestion());
@@ -34,7 +36,7 @@ class GameSessionTest {
     // Protects callers from reading a question after the session has finished.
     @Test
     void rejectsReadingPastTheLastQuestion() {
-        GameSession session = new GameSession(List.of(new Question("First?", "One")));
+        GameSession session = new GameSession(List.of(new Question("First?", "One", ALTERNATIVES)));
 
         session.registerCorrectAnswer();
 

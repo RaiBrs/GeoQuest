@@ -37,12 +37,14 @@
 
 - 🌍 Fetch countries from the REST Countries API
 - 🏛️ Ask capital-city questions using real API data
-- 🎯 Five questions per round
+- 🎯 Ten multiple-choice questions per round
+- 🔀 Show each capital only once per round to keep alternatives varied
 - 📈 Track the score as the player answers correctly
 - 🛑 End the round after the first wrong answer
 - 🏆 Persist a local Top 10 ranking in `data/ranking.json`
 - 👤 Keep one best result per player, ignoring capitalization in player names
 - 📋 Provide a menu to play, view the ranking, log out, or exit
+- 🗑️ Allow the logged-in player to delete their own ranking entry after confirmation
 - 🧪 JUnit tests for the API, parser, service, session, and terminal UI
 
 ## 🚀 Run locally
@@ -148,9 +150,8 @@ src/
 
 ## 🧭 Next steps
 
-- Add more question types and multiple-choice questions.
+- Add more question types beyond capital-city questions.
 - Add Portuguese translations with `ResourceBundle`.
-- Allow a logged-in player to delete their ranking entry.
 
 ---
 
