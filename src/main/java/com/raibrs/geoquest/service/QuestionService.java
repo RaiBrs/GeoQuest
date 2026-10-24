@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
+import java.util.TreeSet;
 
 public class QuestionService {
 
@@ -29,7 +31,7 @@ public class QuestionService {
         if (questionCount < 1 || questionCount > countries.size()) {
             throw new IllegalArgumentException("Question count must fit the available countries.");
         }
-        if (countDistinctCapitals(countries) < questionCount * ALTERNATIVES_PER_QUESTION) {
+        if (distinctCapitals(countries).size() < questionCount * ALTERNATIVES_PER_QUESTION) {
             throw new IllegalArgumentException(
                     "At least four distinct capitals per question are required.");
         }
@@ -51,12 +53,10 @@ public class QuestionService {
 
     private List<Country> selectQuestionCountries(List<Country> countries, int questionCount) {
         List<Country> questionCountries = new ArrayList<>();
+        Set<String> selectedCapitals = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
 
         for (Country country : countries) {
-            boolean capitalWasSelected = questionCountries.stream()
-                    .anyMatch(selected -> selected.getCapital().equalsIgnoreCase(country.getCapital()));
-
-            if (!capitalWasSelected) {
+            if (selectedCapitals.add(country.getCapital())) {
                 questionCountries.add(country);
             }
             if (questionCountries.size() == questionCount) {
@@ -72,16 +72,11 @@ public class QuestionService {
             List<Country> questionCountries
     ) {
         List<String> unusedDistractors = new ArrayList<>();
+        Set<String> usedCapitals = distinctCapitals(questionCountries);
 
         for (Country candidate : countries) {
             // Correct answers are excluded so each capital is displayed at most once per round.
-            boolean isCorrectAnswerInRound = questionCountries.stream()
-                    .anyMatch(questionCountry -> questionCountry.getCapital()
-                            .equalsIgnoreCase(candidate.getCapital()));
-            boolean wasAlreadyAdded = unusedDistractors.stream()
-                    .anyMatch(capital -> capital.equalsIgnoreCase(candidate.getCapital()));
-
-            if (!isCorrectAnswerInRound && !wasAlreadyAdded) {
+            if (usedCapitals.add(candidate.getCapital())) {
                 unusedDistractors.add(candidate.getCapital());
             }
         }
@@ -104,15 +99,13 @@ public class QuestionService {
         return new Question(text, country.getCapital(), alternatives);
     }
 
-    private int countDistinctCapitals(List<Country> countries) {
-        List<String> capitals = new ArrayList<>();
+    private Set<String> distinctCapitals(List<Country> countries) {
+        Set<String> capitals = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
 
         for (Country country : countries) {
-            if (capitals.stream().noneMatch(capital -> capital.equalsIgnoreCase(country.getCapital()))) {
-                capitals.add(country.getCapital());
-            }
+            capitals.add(country.getCapital());
         }
 
-        return capitals.size();
+        return capitals;
     }
 }

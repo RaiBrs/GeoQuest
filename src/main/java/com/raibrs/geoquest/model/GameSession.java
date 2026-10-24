@@ -6,7 +6,6 @@ public class GameSession {
 
     private final List<Question> questions;
     private int currentQuestionIndex;
-    private int score;
 
     public GameSession(List<Question> questions) {
         if (questions == null || questions.isEmpty()) {
@@ -34,12 +33,11 @@ public class GameSession {
             throw new IllegalStateException("There are no questions left in this session.");
         }
 
-        score++;
         currentQuestionIndex++;
     }
 
     public int getScore() {
-        return score;
+        return currentQuestionIndex;
     }
 
     public int getTotalQuestions() {
