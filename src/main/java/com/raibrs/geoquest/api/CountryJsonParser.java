@@ -16,39 +16,74 @@ public class CountryJsonParser {
     }
 
     public List<Country> parse(String responseBody) {
+        return parseCountries(readData(responseBody).path("objects"));
+    }
+
+    public CountryPage parsePage(String responseBody) {
+        JsonNode data = readData(responseBody);
+        JsonNode countries = data.path("objects");
+        List<Country> parsedCountries = parseCountries(countries);
+        JsonNode more = data.path("meta").path("more");
+
+        if (!more.isBoolean()) {
+            throw new IllegalArgumentException("REST Countries response has invalid pagination metadata.");
+        }
+        if (more.booleanValue() && countries.isEmpty()) {
+            throw new IllegalArgumentException("REST Countries pagination did not advance.");
+        }
+
+        // Offsets count raw records, including countries discarded for invalid capital data.
+        return new CountryPage(List.copyOf(parsedCountries), countries.size(), more.booleanValue());
+    }
+
+    public record CountryPage(List<Country> countries, int receivedCount, boolean hasMore) {
+    }
+
+    private JsonNode readData(String responseBody) {
         if (responseBody == null || responseBody.isBlank()) {
             throw new IllegalArgumentException("REST Countries response is empty.");
         }
 
         try {
-            JsonNode countries = objectMapper.readTree(responseBody)
-                    .path("data")
-                    .path("objects");
-
-            if (!countries.isArray()) {
-                throw new IllegalArgumentException(
-                        "REST Countries response does not contain a country list.");
-            }
-
-            List<Country> parsedCountries = new ArrayList<>();
-            for (JsonNode countryNode : countries) {
-                String name = countryNode.path("names").path("common").asText();
-                JsonNode capitals = countryNode.path("capitals");
-
-                // Countries without a capital cannot produce a valid question.
-                if (name.isBlank() || capitals.isEmpty()) {
-                    continue;
-                }
-
-                String capital = capitals.get(0).path("name").asText();
-                if (!capital.isBlank()) {
-                    parsedCountries.add(new Country(name, capital));
-                }
-            }
-
-            return parsedCountries;
+            return objectMapper.readTree(responseBody).path("data");
         } catch (JsonProcessingException exception) {
             throw new IllegalArgumentException("Could not parse the REST Countries response.", exception);
         }
+    }
+
+    private List<Country> parseCountries(JsonNode countries) {
+        if (!countries.isArray()) {
+            throw new IllegalArgumentException(
+                    "REST Countries response does not contain a country list.");
+        }
+
+        List<Country> parsedCountries = new ArrayList<>();
+        for (JsonNode countryNode : countries) {
+            JsonNode nameNode = countryNode.path("names").path("common");
+            JsonNode capitalsNode = countryNode.path("capitals");
+
+            if (!nameNode.isTextual()
+                    || !capitalsNode.isArray()
+                    || capitalsNode.isEmpty()) {
+                continue;
+            }
+
+            JsonNode capitalNameNode = capitalsNode.get(0).path("name");
+
+            if (!capitalNameNode.isTextual()) {
+                continue;
+            }
+
+            String name = nameNode.asText();
+            String capital = capitalNameNode.asText();
+
+            if (name.isBlank() || capital.isBlank()) {
+                continue;
+            }
+
+            parsedCountries.add(new Country(name, capital));
+        }
+
+        return parsedCountries;
     }
 }

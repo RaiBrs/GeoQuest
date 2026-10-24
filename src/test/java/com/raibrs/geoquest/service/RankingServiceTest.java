@@ -7,12 +7,14 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Files;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -115,5 +117,36 @@ class RankingServiceTest {
 
     private Clock fixedClock(String instant) {
         return Clock.fixed(Instant.parse(instant), ZoneOffset.UTC);
+    }
+
+    @Test
+    void updatesTheTimestampAndNameForTheSamePlayersTiedResult() throws IOException {
+        RankingRepository repository = new RankingRepository(temporaryDirectory.resolve("ranking.json"));
+        new RankingService(repository, fixedClock("2025-09-01T10:00:00Z"))
+                .registerResult("Rai", 4, 10);
+        Clock later = fixedClock("2025-09-01T12:00:00Z");
+
+        List<RankingEntry> ranking = new RankingService(repository, later).registerResult("RAI", 4, 10);
+
+        assertEquals(1, ranking.size());
+        assertEquals("RAI", ranking.getFirst().getPlayerName());
+        assertEquals(later.millis(), ranking.getFirst().getPlayedAtEpochMillis());
+        assertEquals(later.millis(), repository.load().getFirst().getPlayedAtEpochMillis());
+    }
+
+    @Test
+    void sortsAnUnorderedFileForDisplayWithoutRewritingIt() throws IOException {
+        Path rankingFile = temporaryDirectory.resolve("ranking.json");
+        RankingRepository repository = new RankingRepository(rankingFile);
+        repository.save(List.of(
+                new RankingEntry("Rai", 2, 10, 1L),
+                new RankingEntry("Ana", 8, 10, 2L),
+                new RankingEntry("Bia", 8, 10, 3L)));
+        byte[] original = Files.readAllBytes(rankingFile);
+
+        List<RankingEntry> ranking = new RankingService(repository).getTopRanking();
+
+        assertEquals(List.of("Bia", "Ana", "Rai"), ranking.stream().map(RankingEntry::getPlayerName).toList());
+        assertArrayEquals(original, Files.readAllBytes(rankingFile));
     }
 }

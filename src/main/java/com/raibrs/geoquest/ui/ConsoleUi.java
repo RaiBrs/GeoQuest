@@ -6,6 +6,7 @@ import com.raibrs.geoquest.model.RankingEntry;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.Locale;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 public class ConsoleUi {
@@ -25,7 +26,7 @@ public class ConsoleUi {
         this(new Scanner(System.in), System.out);
     }
 
-    ConsoleUi(Scanner scanner, PrintStream output) {
+    public ConsoleUi(Scanner scanner, PrintStream output) {
         this.scanner = scanner;
         this.output = output;
     }
@@ -158,7 +159,7 @@ public class ConsoleUi {
     private String readLine() {
         // Stop the application flow when the input stream closes instead of returning invalid data.
         if (!scanner.hasNextLine()) {
-            throw new IllegalStateException("Input is no longer available.");
+            throw new NoSuchElementException("Input is no longer available.");
         }
 
         return scanner.nextLine();

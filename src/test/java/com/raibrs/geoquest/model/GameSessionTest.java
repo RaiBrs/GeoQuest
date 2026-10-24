@@ -3,6 +3,7 @@ package com.raibrs.geoquest.model;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -47,5 +48,29 @@ class GameSessionTest {
     @Test
     void rejectsAnEmptyQuestionList() {
         assertThrows(IllegalArgumentException.class, () -> new GameSession(List.of()));
+    }
+
+    @Test
+    void rejectsScoringAfterTheSessionEndsWithoutChangingTheScore() {
+        GameSession session = new GameSession(List.of(new Question("First?", "One", ALTERNATIVES)));
+        session.registerCorrectAnswer();
+
+        assertThrows(IllegalStateException.class, session::registerCorrectAnswer);
+
+        assertEquals(1, session.getScore());
+        assertFalse(session.hasNextQuestion());
+    }
+
+    @Test
+    void preservesItsQuestionsWhenTheOriginalListChanges() {
+        Question question = new Question("First?", "One", ALTERNATIVES);
+        List<Question> original = new ArrayList<>(List.of(question));
+        GameSession session = new GameSession(original);
+
+        original.clear();
+
+        assertEquals(1, session.getTotalQuestions());
+        assertEquals(question, session.getCurrentQuestion());
+        assertTrue(session.hasNextQuestion());
     }
 }

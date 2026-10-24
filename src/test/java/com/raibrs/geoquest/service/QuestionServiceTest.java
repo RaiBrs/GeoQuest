@@ -5,6 +5,7 @@ import com.raibrs.geoquest.model.Question;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Random;
 import java.util.Set;
 
@@ -62,5 +63,26 @@ class QuestionServiceTest {
         }
 
         return countries;
+    }
+
+    @Test
+    void handlesRepeatedCapitalsIgnoringCaseWithoutMutatingTheInput() {
+        List<Country> countries = new ArrayList<>(countriesWithDistinctCapitals(40));
+        countries.add(new Country("Duplicate country", "capital 1"));
+        countries.add(new Country("Another duplicate", "CAPITAL 2"));
+        List<Country> original = List.copyOf(countries);
+
+        List<Question> questions = questionService.createCapitalQuestions(countries, 10);
+        List<String> alternatives = questions.stream()
+                .flatMap(question -> question.getAlternatives().stream()).toList();
+
+        assertEquals(10, questions.size());
+        assertEquals(40, alternatives.size());
+        for (int index = 0; index < alternatives.size(); index++) {
+            String capital = alternatives.get(index);
+            assertTrue(alternatives.subList(index + 1, alternatives.size()).stream()
+                    .noneMatch(capital::equalsIgnoreCase));
+        }
+        assertEquals(original, countries);
     }
 }

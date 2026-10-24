@@ -1,11 +1,16 @@
 package com.raibrs.geoquest.model;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class QuestionTest {
 
@@ -49,5 +54,22 @@ class QuestionTest {
 
     private List<String> alternatives() {
         return List.of("Tokyo", "Seoul", "Beijing", "Bangkok");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Tokyo", "tokyo", " TOKYO "})
+    void acceptsTheCorrectAnswerIgnoringCaseAndSurroundingWhitespace(String answer) {
+        Question question = new Question("Capital of Japan?", "Tokyo", alternatives());
+
+        assertTrue(question.isCorrectAnswer(answer));
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = {"", "   ", "Seoul"})
+    void rejectsIncorrectOrMissingAnswers(String answer) {
+        Question question = new Question("Capital of Japan?", "Tokyo", alternatives());
+
+        assertFalse(question.isCorrectAnswer(answer));
     }
 }

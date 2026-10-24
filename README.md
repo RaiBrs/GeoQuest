@@ -35,13 +35,13 @@
 
 ## ✨ Features
 
-- 🌍 Fetch countries from the REST Countries API
+- 🌍 Fetch the complete paginated country catalog from the REST Countries API
 - 🏛️ Ask capital-city questions using real API data
 - 🎯 Ten multiple-choice questions per round
 - 🔀 Show each capital only once per round to keep alternatives varied
 - 📈 Track the score as the player answers correctly
 - 🛑 End the round after the first wrong answer
-- 🏆 Persist a local Top 10 ranking in `data/ranking.json`
+- 🏆 Persist each player's best result in `data/ranking.json` and display the Top 10
 - 👤 Keep one best result per player, ignoring capitalization in player names
 - 📋 Provide a menu to play, view the ranking, log out, or exit
 - 🗑️ Allow the logged-in player to delete their own ranking entry after confirmation
@@ -73,21 +73,34 @@ mvn compile exec:java -Dexec.mainClass=com.raibrs.geoquest.App
 
 The API key is required by REST Countries v5. Never commit it to Git or place it directly in Java files.
 
-The client makes one request per round and requests only the country name and capital fields.
+On the first round, the client loads all catalog pages, requesting only country names and capitals
+in batches of 80 records. After the complete catalog is loaded, it is reused in memory until the
+application exits. Each round creates a new shuffled set of questions.
+
+If a page fails to load, the incomplete catalog is discarded. The application returns to the menu;
+choosing Play again starts a fresh attempt. There are no automatic retries.
 
 ## 🏆 Local ranking
 
 After choosing a player name, the application keeps that identity until the player selects
 **Logout**. Each completed round updates the local ranking at `data/ranking.json`.
+This path is relative to the working directory used to launch the application.
 
 - The ranking displays the Top 10 results.
 - A player has only one entry; a later better score replaces the previous one.
+- The file retains players outside the displayed Top 10.
 - Tied scores are ordered by the most recent round.
+- A tied result from the same player updates the saved timestamp.
+- Writes prepare a temporary file before requesting atomic replacement. If the filesystem
+  cannot perform the replacement, saving fails instead of falling back to a non-atomic write.
+- Invalid ranking files are reported and preserved for diagnosis.
 - `data/` is ignored by Git because it contains local game data.
 
 ## 🧪 Tests
 
 Tests use JUnit 6 and are organized by package under `src/test/java`.
+HTTP tests use a local server with a fake key; no real REST Countries requests are made.
+Persistence tests use temporary directories, and application-flow tests use scripted input.
 
 ```bash
 mvn test
@@ -96,13 +109,13 @@ mvn test
 ## 🎮 How it works
 
 ```text
-API request
+Paginated API requests (first round; cached after complete loading)
     ↓
 JSON parser
     ↓
 Country list
     ↓
-QuestionService shuffles and creates five questions
+QuestionService shuffles and creates ten questions
     ↓
 ConsoleUi reads the answer
     ↓
@@ -145,11 +158,17 @@ src/
 
 - Only capital questions are available.
 - A wrong answer ends the current round.
-- The API currently requires a valid key and network access.
+- Loading the country catalog requires a valid key and network access.
+- The in-memory country catalog is refreshed only when the application restarts.
 - A player name is remembered only while the application is running.
+
+Recoverable API and ranking-storage failures return to the menu. Closed input or an interrupted
+request ends the current application flow. Technical error details are written through Java's
+`System.Logger`; request headers and API keys are not logged by the application.
 
 ## 🧭 Next steps
 
+- Migrate ranking persistence from JSON files to PostgreSQL.
 - Add more question types beyond capital-city questions.
 - Add Portuguese translations with `ResourceBundle`.
 

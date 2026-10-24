@@ -1,7 +1,6 @@
 package com.raibrs.geoquest;
 
 import com.raibrs.geoquest.api.CountriesClient;
-import com.raibrs.geoquest.api.CountryJsonParser;
 import com.raibrs.geoquest.model.Country;
 import com.raibrs.geoquest.model.GameSession;
 import com.raibrs.geoquest.model.Question;
@@ -14,13 +13,28 @@ import com.raibrs.geoquest.ui.ConsoleUi;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 public class App {
 
     private static final int QUESTIONS_PER_ROUND = 10;
-    private static final int COUNTRIES_PER_REQUEST = 100;
-    // A relative path keeps the ranking beside the application when it is run locally.
+    private static final int COUNTRIES_PER_REQUEST = 80;
+    // Relative to the working directory from which the application is launched.
     private static final Path RANKING_FILE = Path.of("data", "ranking.json");
+    private static final System.Logger LOGGER = System.getLogger(App.class.getName());
+
+    private final ConsoleUi ui;
+    private final CountriesClient client;
+    private final QuestionService questionService;
+    private final RankingService rankingService;
+    private List<Country> countryCatalog;
+
+    App(ConsoleUi ui, CountriesClient client, QuestionService questionService, RankingService rankingService) {
+        this.ui = ui;
+        this.client = client;
+        this.questionService = questionService;
+        this.rankingService = rankingService;
+    }
 
     public static void main(String[] args) {
         ConsoleUi ui = new ConsoleUi();
@@ -32,45 +46,45 @@ public class App {
             return;
         }
 
-        CountriesClient client = new CountriesClient(apiKey);
-        CountryJsonParser parser = new CountryJsonParser();
-        QuestionService questionService = new QuestionService();
-        // One shared service preserves the ranking across every round of this game session.
-        RankingService rankingService = new RankingService(new RankingRepository(RANKING_FILE));
-
-        // The selected name remains in memory until the player explicitly chooses logout.
-        String playerName = ui.askPlayerName();
-        boolean isRunning = true;
-
-        while (isRunning) {
-            try {
-                switch (ui.askMainMenuOption()) {
-                    case PLAY -> playAndSaveRound(
-                            ui, client, parser, questionService, rankingService, playerName);
-                    case VIEW_RANKING -> ui.showRanking(rankingService.getTopRanking());
-                    case DELETE_RANKING -> deleteRankingEntry(ui, rankingService, playerName);
-                    // Changing identity is explicit, so menu actions reuse the current player name.
-                    case LOGOUT -> playerName = ui.askPlayerName();
-                    case EXIT -> isRunning = false;
-                }
-            } catch (IOException exception) {
-                // Local storage failures must not be reported as API connection failures.
-                ui.showError("Could not read or save the local ranking.");
-                return;
-            } catch (IllegalStateException exception) {
-                ui.showError(exception.getMessage());
-                return;
-            }
+        try {
+            CountriesClient client = new CountriesClient(apiKey);
+            RankingService rankingService = new RankingService(new RankingRepository(RANKING_FILE));
+            new App(ui, client, new QuestionService(), rankingService).run();
+        } catch (IllegalArgumentException exception) {
+            ui.showError(exception.getMessage());
         }
-
-        ui.showGoodbye();
     }
 
-    private static void deleteRankingEntry(
-            ConsoleUi ui,
-            RankingService rankingService,
-            String playerName
-    ) throws IOException {
+    void run() {
+        try {
+            String playerName = ui.askPlayerName();
+            boolean isRunning = true;
+
+            while (isRunning) {
+                try {
+                    switch (ui.askMainMenuOption()) {
+                        case PLAY -> playAndSaveRound(playerName);
+                        case VIEW_RANKING -> ui.showRanking(rankingService.getTopRanking());
+                        case DELETE_RANKING -> deleteRankingEntry(playerName);
+                        case LOGOUT -> playerName = ui.askPlayerName();
+                        case EXIT -> isRunning = false;
+                    }
+                } catch (IOException exception) {
+                    LOGGER.log(System.Logger.Level.WARNING, "Local ranking operation failed.", exception);
+                    ui.showError("Could not read or save the local ranking. Check the ranking file and permissions.");
+                }
+            }
+
+            ui.showGoodbye();
+        } catch (NoSuchElementException exception) {
+            ui.showError(exception.getMessage());
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            ui.showError("The request was interrupted.");
+        }
+    }
+
+    private void deleteRankingEntry(String playerName) throws IOException {
         if (!ui.askToConfirmRankingDeletion()) {
             ui.showRankingDeletionCancelled();
             return;
@@ -85,31 +99,26 @@ public class App {
         ui.showNoRankingEntryToDelete();
     }
 
-    private static void playAndSaveRound(
-            ConsoleUi ui,
-            CountriesClient client,
-            CountryJsonParser parser,
-            QuestionService questionService,
-            RankingService rankingService,
-            String playerName
-    ) throws IOException {
+    private void playAndSaveRound(String playerName) throws IOException, InterruptedException {
         GameSession session;
 
         try {
-            // A new session fetches and shuffles questions without changing the logged-in player.
-            String responseBody = client.fetchCountries(COUNTRIES_PER_REQUEST);
-            List<Country> countries = parser.parse(responseBody);
+            // Publish the cached catalog only after every page has been loaded successfully.
+            if (countryCatalog == null) {
+                countryCatalog = client.fetchAllCountries(COUNTRIES_PER_REQUEST);
+            }
             List<Question> questions = questionService
-                    .createCapitalQuestions(countries, QUESTIONS_PER_ROUND);
+                    .createCapitalQuestions(countryCatalog, QUESTIONS_PER_ROUND);
             session = new GameSession(questions);
         } catch (IOException exception) {
-            throw new IllegalStateException(
-                    "Could not reach the REST Countries API. Please try again later.", exception);
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("The request was interrupted.", exception);
+            LOGGER.log(System.Logger.Level.WARNING, "Country catalog request failed.", exception);
+            ui.showError("Could not load countries from the REST Countries API. Please try again later.");
+            return;
         } catch (IllegalArgumentException exception) {
-            throw new IllegalStateException(exception.getMessage(), exception);
+            LOGGER.log(System.Logger.Level.WARNING, "Country catalog cannot produce a round.", exception);
+            countryCatalog = null;
+            ui.showError("Country data cannot produce a round. Please try again later.");
+            return;
         }
 
         playRound(ui, session);
