@@ -68,7 +68,6 @@ public class Question {
             }
         }
 
-        // Copying protects a question from later changes to the list provided by its caller.
-        return List.copyOf(normalizedAlternatives);
+        return normalizedAlternatives;
     }
 }
