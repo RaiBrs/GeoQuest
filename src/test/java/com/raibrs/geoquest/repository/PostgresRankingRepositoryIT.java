@@ -1,6 +1,7 @@
 package com.raibrs.geoquest.repository;
 
 import com.raibrs.geoquest.model.RankingEntry;
+import com.raibrs.geoquest.config.DatabaseCheck;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -8,6 +9,8 @@ import org.junit.jupiter.api.Test;
 import org.postgresql.ds.PGSimpleDataSource;
 
 import java.nio.charset.StandardCharsets;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,14 +48,15 @@ class PostgresRankingRepositoryIT {
             schemaCreated = true;
         }
         source.setCurrentSchema(SCHEMA);
-        try (var resource = PostgresRankingRepositoryIT.class.getResourceAsStream(
-                "/db/migration/V1__create_ranking_entries.sql")) {
-            if (resource == null) {
-                throw new IllegalStateException("Initial schema resource is missing.");
-            }
-            String sql = new String(resource.readAllBytes(), StandardCharsets.UTF_8);
-            try (var connection = source.getConnection(); var statement = connection.createStatement()) {
-                statement.execute(sql);
+        for (String migration : List.of("V1__create_ranking_entries.sql", "V2__validate_player_names.sql")) {
+            try (var resource = PostgresRankingRepositoryIT.class.getResourceAsStream("/db/migration/" + migration)) {
+                if (resource == null) {
+                    throw new IllegalStateException("Schema resource is missing: " + migration);
+                }
+                String sql = new String(resource.readAllBytes(), StandardCharsets.UTF_8);
+                try (var connection = source.getConnection(); var statement = connection.createStatement()) {
+                    statement.execute(sql);
+                }
             }
         }
     }
@@ -221,6 +225,52 @@ class PostgresRankingRepositoryIT {
     @Test
     void rejectsInvalidLimitsBeforeQuerying() {
         assertThrows(IllegalArgumentException.class, () -> repository.findTop(0));
+    }
+
+    @Test
+    void enforcesNameLengthAndControlCharacterConstraintsAtTheDatabaseBoundary() throws SQLException {
+        for (String invalidName : List.of("a".repeat(81), "Ra\ti", "Ra\u0085i")) {
+            try (var connection = source.getConnection(); var statement = connection.prepareStatement(
+                    "INSERT INTO ranking_entries VALUES (?, ?, 3, 10, 1)")) {
+                statement.setString(1, invalidName);
+                statement.setString(2, invalidName);
+
+                SQLException exception = assertThrows(SQLException.class, statement::executeUpdate);
+
+                assertEquals("23514", exception.getSQLState());
+            }
+        }
+        assertEquals(0, countRows());
+    }
+
+    @Test
+    void persistsTheUnicodeNameLengthBoundaryAndKeepsRetriesIdempotent() throws SQLException {
+        RankingEntry result = new RankingEntry("😀".repeat(80), 10, 10, 1234L);
+
+        repository.saveBest(result);
+        repository.saveBest(result);
+
+        assertEquals(1, countRows());
+        assertEquals(result.getPlayerName(), repository.findTop(10).getFirst().getPlayerName());
+        assertEquals(1234L, repository.findTop(10).getFirst().getPlayedAtEpochMillis());
+    }
+
+    @Test
+    void checksTheActualDatabaseAndSchemaWithoutChangingData() throws SQLException {
+        repository.saveBest(new RankingEntry("Rai", 3, 10, 1L));
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+        DatabaseCheck.check(source, source.getDatabaseName(), new PrintStream(output));
+
+        assertTrue(output.toString().contains("Connected database: " + source.getDatabaseName()));
+        assertTrue(output.toString().contains("Ranking schema: ready"));
+        assertEquals(1, countRows());
+    }
+
+    @Test
+    void rejectsAConnectionToAnUnexpectedDatabase() {
+        assertThrows(IllegalStateException.class, () -> DatabaseCheck.check(
+                source, "a_different_database", new PrintStream(new ByteArrayOutputStream())));
     }
 
     private int countRows() throws SQLException {

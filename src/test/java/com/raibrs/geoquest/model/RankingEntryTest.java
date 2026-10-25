@@ -1,11 +1,30 @@
 package com.raibrs.geoquest.model;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class RankingEntryTest {
+
+    @Test
+    void acceptsTheNameLengthBoundaryCountingUnicodeCodePoints() {
+        String name = "😀".repeat(RankingEntry.MAX_PLAYER_NAME_LENGTH);
+
+        assertEquals(name, new RankingEntry(name, 3, 10, 1L).getPlayerName());
+        assertThrows(IllegalArgumentException.class,
+                () -> new RankingEntry(name + "x", 3, 10, 1L));
+        assertThrows(IllegalArgumentException.class, () -> RankingEntry.playerKey("a".repeat(81)));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Rai\0", "Ra\ti", "Ra\ni", "Ra\u0085i"})
+    void rejectsControlCharactersBeforePersistence(String name) {
+        assertThrows(IllegalArgumentException.class, () -> new RankingEntry(name, 3, 10, 1L));
+        assertThrows(IllegalArgumentException.class, () -> RankingEntry.playerKey(name));
+    }
 
     @Test
     void preservesCaseInsensitiveIdentityIncludingUnicodeAndWhitespace() {

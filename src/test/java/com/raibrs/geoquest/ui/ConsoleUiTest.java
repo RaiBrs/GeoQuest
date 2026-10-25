@@ -91,7 +91,34 @@ class ConsoleUiTest {
         String playerName = ui.askPlayerName();
 
         assertEquals("Rai", playerName);
-        assertTrue(outputBytes.toString().contains("Please enter a name."));
+        assertTrue(outputBytes.toString().contains("Player name must not be blank."));
+    }
+
+    @Test
+    void retriesNamesThatWouldBeRejectedByPersistence() {
+        ByteArrayOutputStream outputBytes = new ByteArrayOutputStream();
+        ConsoleUi ui = new ConsoleUi(
+                new Scanner("a".repeat(81) + "\nRa\0i\n  Rai  \n"), new PrintStream(outputBytes));
+
+        assertEquals("Rai", ui.askPlayerName());
+        assertTrue(outputBytes.toString().contains("at most 80 characters"));
+        assertTrue(outputBytes.toString().contains("control characters"));
+    }
+
+    @Test
+    void retriesInvalidSaveConfirmationUntilThePlayerChoosesToRetry() {
+        ByteArrayOutputStream outputBytes = new ByteArrayOutputStream();
+        ConsoleUi ui = new ConsoleUi(new Scanner("maybe\n Y \n"), new PrintStream(outputBytes));
+
+        assertTrue(ui.askToRetryRankingSave());
+        assertTrue(outputBytes.toString().contains("Please enter y or n."));
+    }
+
+    @Test
+    void allowsExplicitlyDiscardingAnUnsavedResult() {
+        ConsoleUi ui = new ConsoleUi(new Scanner("no\n"), new PrintStream(new ByteArrayOutputStream()));
+
+        assertFalse(ui.askToRetryRankingSave());
     }
 
     // Ensures the terminal displays the ranking order and score context provided by the service.

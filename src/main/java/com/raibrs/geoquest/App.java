@@ -99,7 +99,7 @@ public class App {
         ui.showNoRankingEntryToDelete();
     }
 
-    private void playAndSaveRound(String playerName) throws SQLException, InterruptedException {
+    private void playAndSaveRound(String playerName) throws InterruptedException {
         GameSession session;
 
         try {
@@ -122,11 +122,36 @@ public class App {
         }
 
         playRound(ui, session);
-        List<RankingEntry> ranking = rankingService.registerResult(
+        RankingEntry result = rankingService.createResult(
                 playerName,
                 session.getScore(),
                 session.getTotalQuestions());
-        ui.showRanking(ranking);
+        if (!saveCompletedResult(result)) {
+            return;
+        }
+        ui.showRoundResultSaved();
+        try {
+            ui.showRanking(rankingService.getTopRanking());
+        } catch (SQLException exception) {
+            LOGGER.log(System.Logger.Level.WARNING, "Ranking read failed after the result was saved.", exception);
+            ui.showError("Your result was saved, but the ranking could not be displayed.");
+        }
+    }
+
+    private boolean saveCompletedResult(RankingEntry result) {
+        while (true) {
+            try {
+                rankingService.saveResult(result);
+                return true;
+            } catch (SQLException exception) {
+                LOGGER.log(System.Logger.Level.WARNING, "Round result save failed.", exception);
+                ui.showError("Could not save this round. Your result is still held in memory.");
+            }
+            if (!ui.askToRetryRankingSave()) {
+                ui.showRoundResultDiscarded();
+                return false;
+            }
+        }
     }
 
     private static void playRound(ConsoleUi ui, GameSession session) {

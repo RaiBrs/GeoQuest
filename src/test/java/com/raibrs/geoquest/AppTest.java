@@ -36,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AppTest {
@@ -247,6 +248,62 @@ class AppTest {
         assertTrue(output.toString().contains("Input is no longer available."));
     }
 
+    @Test
+    void retriesTheSameCompletedResultWithoutReplayingTheRoundOrChangingItsTimestamp() {
+        repository.writeFailuresRemaining = 2;
+        AnsweringUi ui = new AnsweringUi("Rai\n1\ny\ny\n5\n", 10);
+
+        app(ui).run();
+
+        assertEquals(10, ui.questionsAsked);
+        assertEquals(3, repository.attemptedResults.size());
+        assertEquals(1, repository.saves);
+        RankingEntry original = repository.attemptedResults.getFirst();
+        assertSame(original, repository.attemptedResults.get(1));
+        assertSame(original, repository.attemptedResults.get(2));
+        assertEquals(10, repository.allEntries().getFirst().getScore());
+        assertEquals(original.getPlayedAtEpochMillis(), repository.allEntries().getFirst().getPlayedAtEpochMillis());
+        assertTrue(output.toString().contains("Your result is still held in memory."));
+        assertTrue(output.toString().contains("Round result saved."));
+    }
+
+    @Test
+    void discardsAnUnsavedResultOnlyWhenThePlayerDeclinesRetry() {
+        repository.writeFailuresRemaining = 1;
+
+        app(new AnsweringUi("Rai\n1\nn\n5\n", 10)).run();
+
+        assertEquals(1, repository.attemptedResults.size());
+        assertEquals(0, repository.saves);
+        assertTrue(repository.allEntries().isEmpty());
+        assertTrue(output.toString().contains("Round result discarded without saving."));
+        assertTrue(output.toString().contains("Thanks for playing"));
+    }
+
+    @Test
+    void doesNotRetrySavingWhenOnlyTheRankingDisplayFails() {
+        repository.readFailure = new SQLTransientConnectionException("Test read failure", "08006");
+
+        app(new AnsweringUi("Rai\n1\n5\n", 0)).run();
+
+        assertEquals(1, repository.saves);
+        assertEquals(1, repository.attemptedResults.size());
+        assertEquals(1, repository.allEntries().size());
+        assertTrue(output.toString().contains("Your result was saved, but the ranking could not be displayed."));
+        assertFalse(output.toString().contains("Retry saving this round?"));
+    }
+
+    @Test
+    void handlesClosedInputWhileWaitingForASaveRetry() {
+        repository.writeFailuresRemaining = 1;
+
+        app(new AnsweringUi("Rai\n1\n", 0)).run();
+
+        assertEquals(1, repository.attemptedResults.size());
+        assertEquals(0, repository.saves);
+        assertTrue(output.toString().contains("Input is no longer available."));
+    }
+
     private App app(ConsoleUi ui) {
         return new App(ui, client, new QuestionService(new Random(0)), rankingService);
     }
@@ -269,9 +326,16 @@ class AppTest {
     private static class TrackingRepository extends InMemoryRankingRepository {
         private int saves;
         private SQLException readFailure;
+        private int writeFailuresRemaining;
+        private final List<RankingEntry> attemptedResults = new ArrayList<>();
 
         @Override
         public void saveBest(RankingEntry entry) throws SQLException {
+            attemptedResults.add(entry);
+            if (writeFailuresRemaining > 0) {
+                writeFailuresRemaining--;
+                throw new SQLTransientConnectionException("Test write failure", "08006");
+            }
             super.saveBest(entry);
             saves++;
         }

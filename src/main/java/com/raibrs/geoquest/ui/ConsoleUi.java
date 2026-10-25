@@ -141,6 +141,28 @@ public class ConsoleUi {
         output.println("Ranking entry deletion cancelled.");
     }
 
+    public boolean askToRetryRankingSave() {
+        while (true) {
+            output.print("Retry saving this round? (y = retry, n = discard result): ");
+            String choice = readLine().strip();
+            if (choice.equalsIgnoreCase("y") || choice.equalsIgnoreCase("yes")) {
+                return true;
+            }
+            if (choice.equalsIgnoreCase("n") || choice.equalsIgnoreCase("no")) {
+                return false;
+            }
+            output.println("Please enter y or n.");
+        }
+    }
+
+    public void showRoundResultSaved() {
+        output.println("Round result saved.");
+    }
+
+    public void showRoundResultDiscarded() {
+        output.println("Round result discarded without saving.");
+    }
+
     public void showError(String message) {
         output.println("Error: " + message);
     }
@@ -168,14 +190,12 @@ public class ConsoleUi {
     public String askPlayerName() {
         while (true) {
             output.print("Player name: ");
-            String playerName = readLine().strip();
-
-            // Normalize the name and retry so every future ranking entry identifies a player.
-            if (!playerName.isEmpty()) {
-                return playerName;
+            String playerName = readLine();
+            try {
+                return RankingEntry.normalizePlayerName(playerName);
+            } catch (IllegalArgumentException exception) {
+                output.println(exception.getMessage());
             }
-
-            output.println("Please enter a name.");
         }
     }
 }

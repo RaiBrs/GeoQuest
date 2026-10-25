@@ -24,9 +24,16 @@ public class RankingService {
 
     public List<RankingEntry> registerResult(String playerName, int score, int totalQuestions)
             throws SQLException {
-        RankingEntry entry = new RankingEntry(playerName, score, totalQuestions, clock.millis());
-        repository.saveBest(entry);
+        saveResult(createResult(playerName, score, totalQuestions));
         return getTopRanking();
+    }
+
+    public RankingEntry createResult(String playerName, int score, int totalQuestions) {
+        return new RankingEntry(playerName, score, totalQuestions, clock.millis());
+    }
+
+    public void saveResult(RankingEntry entry) throws SQLException {
+        repository.saveBest(Objects.requireNonNull(entry, "Ranking entry must not be null."));
     }
 
     public List<RankingEntry> getTopRanking() throws SQLException {
