@@ -14,6 +14,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class QuestionTest {
 
+    @ParameterizedTest
+    @ValueSource(strings = {"İ", "ı", "I"})
+    void rejectsAlternativesThatAreEquivalentUnderTheAnswerComparison(String equivalent) {
+        assertThrows(IllegalArgumentException.class,
+                () -> new Question("Capital?", "i", List.of("i", equivalent, "Seoul", "Paris")));
+    }
+
     // Ensures question text and answers are normalized before the game displays or compares them.
     @Test
     void normalizesQuestionFields() {

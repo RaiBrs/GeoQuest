@@ -18,7 +18,7 @@ class DatabaseConfigTest {
 
         assertEquals("localhost", source.getServerNames()[0]);
         assertEquals(5432, source.getPortNumbers()[0]);
-        assertEquals("geoquest", source.getDatabaseName());
+        assertEquals("GeoQuestDB", source.getDatabaseName());
         assertEquals("geoquest", source.getUser());
         assertEquals("test-password", source.getPassword());
         assertEquals(5, source.getConnectTimeout());
@@ -46,7 +46,7 @@ class DatabaseConfigTest {
     }
 
     private Map<String, String> environment() {
-        return Map.of("DATABASE_URL", "jdbc:postgresql://localhost:5432/geoquest",
+        return Map.of("DATABASE_URL", "jdbc:postgresql://localhost:5432/GeoQuestDB",
                 "DATABASE_USER", "geoquest", "DATABASE_PASSWORD", "test-password");
     }
 }

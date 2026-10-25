@@ -58,14 +58,14 @@ Connect as a PostgreSQL administrator, then create a dedicated login and databas
 ```sql
 CREATE ROLE geoquest LOGIN;
 \password geoquest
-CREATE DATABASE geoquest OWNER geoquest;
+CREATE DATABASE "GeoQuestDB" OWNER geoquest;
 ```
 
 `\password` is a psql command that prompts for the password without embedding it in SQL history.
 Apply the initial schema once from the project directory, connecting as the new login:
 
 ```bash
-psql -h localhost -U geoquest -d geoquest --single-transaction -v ON_ERROR_STOP=1 -f src/main/resources/db/migration/V1__create_ranking_entries.sql
+psql -h localhost -U geoquest -d GeoQuestDB --single-transaction -v ON_ERROR_STOP=1 -f src/main/resources/db/migration/V1__create_ranking_entries.sql -f src/main/resources/db/migration/V2__validate_player_names.sql
 ```
 
 On Windows, if psql is not on PATH, use the executable under your PostgreSQL installation,
@@ -73,6 +73,8 @@ for example `C:\Program Files\PostgreSQL\18\bin\psql.exe`.
 The application does not create databases or run DDL at startup.
 If you already created the database in IntelliJ, skip database creation and apply the schema there.
 Set DATABASE_URL to the actual database name, which may differ from the IntelliJ connection label.
+If V1 was already applied, run only `V2__validate_player_names.sql` with the same psql options.
+V2 validates existing rows without truncating or renaming player names.
 
 ### Configure the API key
 
@@ -84,17 +86,30 @@ from environment variables. Set your chosen database password locally; never com
 
 ```powershell
 $env:API_KEY="your-api-key"
-$env:DATABASE_URL="jdbc:postgresql://localhost:5432/geoquest"
+$env:DATABASE_URL="jdbc:postgresql://localhost:5432/GeoQuestDB"
 $env:DATABASE_USER="geoquest"
 $env:DATABASE_PASSWORD="your-database-password"
 mvn compile exec:java -Dexec.mainClass=com.raibrs.geoquest.App
 ```
 
+### Verify the actual database connection
+
+Run the read-only diagnostic with the same environment variables used by the application:
+
+```bash
+mvn compile exec:java -Dexec.mainClass=com.raibrs.geoquest.config.DatabaseCheck
+```
+
+It prints the actual database name, database user, server address/port, and schema readiness,
+without printing passwords. To additionally require an exact database name, use
+`-Dexec.args="GeoQuestDB"`, using the exact database name and capitalization.
+The name shown for an IntelliJ connection is a label; its JDBC URL determines the database used.
+
 **Bash**
 
 ```bash
 export API_KEY="your-api-key"
-export DATABASE_URL="jdbc:postgresql://localhost:5432/geoquest"
+export DATABASE_URL="jdbc:postgresql://localhost:5432/GeoQuestDB"
 export DATABASE_USER="geoquest"
 export DATABASE_PASSWORD="your-database-password"
 mvn compile exec:java -Dexec.mainClass=com.raibrs.geoquest.App
@@ -118,6 +133,7 @@ After choosing a player name, the application keeps that identity until the play
 
 - The ranking displays the Top 10 results.
 - A player has only one entry; a later better score replaces the previous one.
+- Player names are trimmed, limited to 80 Unicode code points, and cannot contain control characters.
 - The database retains players outside the displayed Top 10.
 - Tied scores are ordered by the most recent round.
 - A tied result from the same player updates the saved timestamp.
@@ -129,6 +145,10 @@ After choosing a player name, the application keeps that identity until the play
   `player_key` is a primary key; display names retain their capitalization and accents.
 - JDBC connections, statements, and result sets are closed after each operation.
 - Connection and socket timeouts bound database failures; they return to the menu.
+- If saving a completed round fails, its score and original timestamp remain in memory while the
+  player retries. Declining retry explicitly discards that result. Closing the application or input
+  ends the retry flow; pending results are not persisted outside PostgreSQL.
+- A failure to display the ranking after a successful save does not trigger another write.
 
 ## 🧪 Tests
 
@@ -205,7 +225,8 @@ src/
 │           │   ├── Question.java            # Question and answer rule
 │           │   └── RankingEntry.java        # One persisted player result
 │           ├── config/
-│           │   └── DatabaseConfig.java      # PostgreSQL environment settings
+│           │   ├── DatabaseConfig.java      # PostgreSQL environment settings
+│           │   └── DatabaseCheck.java       # Read-only connection/schema diagnostic
 │           ├── repository/
 │           │   ├── RankingRepository.java   # Persistence contract
 │           │   └── PostgresRankingRepository.java # JDBC implementation

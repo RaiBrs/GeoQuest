@@ -1,9 +1,8 @@
 package com.raibrs.geoquest.model;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
+import java.util.TreeSet;
 
 public class Question {
 
@@ -60,10 +59,10 @@ public class Question {
         List<String> normalizedAlternatives = alternatives.stream()
                 .map(alternative -> requireNonBlank(alternative, "Alternative"))
                 .toList();
-        Set<String> distinctAlternatives = new HashSet<>();
+        Set<String> distinctAlternatives = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
 
         for (String alternative : normalizedAlternatives) {
-            if (!distinctAlternatives.add(alternative.toLowerCase(Locale.ROOT))) {
+            if (!distinctAlternatives.add(alternative)) {
                 throw new IllegalArgumentException("Alternatives must not repeat.");
             }
         }

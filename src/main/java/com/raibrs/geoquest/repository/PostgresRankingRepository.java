@@ -61,8 +61,13 @@ public class PostgresRankingRepository implements RankingRepository {
             try (var rows = statement.executeQuery()) {
                 List<RankingEntry> entries = new ArrayList<>();
                 while (rows.next()) {
-                    entries.add(new RankingEntry(rows.getString("player_name"), rows.getInt("score"),
-                            rows.getInt("total_questions"), rows.getLong("played_at_epoch_millis")));
+                    try {
+                        entries.add(new RankingEntry(rows.getString("player_name"), rows.getInt("score"),
+                                rows.getInt("total_questions"), rows.getLong("played_at_epoch_millis")));
+                    } catch (IllegalArgumentException exception) {
+                        throw new SQLException("Stored ranking data is invalid. Check database migrations.",
+                                "22000", exception);
+                    }
                 }
                 return List.copyOf(entries);
             }
