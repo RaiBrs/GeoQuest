@@ -1,17 +1,18 @@
 package com.raibrs.geoquest;
 
 import com.raibrs.geoquest.api.CountriesClient;
+import com.raibrs.geoquest.config.DatabaseConfig;
 import com.raibrs.geoquest.model.Country;
 import com.raibrs.geoquest.model.GameSession;
 import com.raibrs.geoquest.model.Question;
 import com.raibrs.geoquest.model.RankingEntry;
-import com.raibrs.geoquest.repository.RankingRepository;
+import com.raibrs.geoquest.repository.PostgresRankingRepository;
 import com.raibrs.geoquest.service.QuestionService;
 import com.raibrs.geoquest.service.RankingService;
 import com.raibrs.geoquest.ui.ConsoleUi;
 
 import java.io.IOException;
-import java.nio.file.Path;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -19,8 +20,6 @@ public class App {
 
     private static final int QUESTIONS_PER_ROUND = 10;
     private static final int COUNTRIES_PER_REQUEST = 80;
-    // Relative to the working directory from which the application is launched.
-    private static final Path RANKING_FILE = Path.of("data", "ranking.json");
     private static final System.Logger LOGGER = System.getLogger(App.class.getName());
 
     private final ConsoleUi ui;
@@ -48,7 +47,8 @@ public class App {
 
         try {
             CountriesClient client = new CountriesClient(apiKey);
-            RankingService rankingService = new RankingService(new RankingRepository(RANKING_FILE));
+            RankingService rankingService = new RankingService(
+                    new PostgresRankingRepository(DatabaseConfig.fromEnvironment()));
             new App(ui, client, new QuestionService(), rankingService).run();
         } catch (IllegalArgumentException exception) {
             ui.showError(exception.getMessage());
@@ -69,9 +69,9 @@ public class App {
                         case LOGOUT -> playerName = ui.askPlayerName();
                         case EXIT -> isRunning = false;
                     }
-                } catch (IOException exception) {
-                    LOGGER.log(System.Logger.Level.WARNING, "Local ranking operation failed.", exception);
-                    ui.showError("Could not read or save the local ranking. Check the ranking file and permissions.");
+                } catch (SQLException exception) {
+                    LOGGER.log(System.Logger.Level.WARNING, "Ranking database operation failed.", exception);
+                    ui.showError("Could not read or save the ranking. Check the database connection.");
                 }
             }
 
@@ -84,7 +84,7 @@ public class App {
         }
     }
 
-    private void deleteRankingEntry(String playerName) throws IOException {
+    private void deleteRankingEntry(String playerName) throws SQLException {
         if (!ui.askToConfirmRankingDeletion()) {
             ui.showRankingDeletionCancelled();
             return;
@@ -99,7 +99,7 @@ public class App {
         ui.showNoRankingEntryToDelete();
     }
 
-    private void playAndSaveRound(String playerName) throws IOException, InterruptedException {
+    private void playAndSaveRound(String playerName) throws SQLException, InterruptedException {
         GameSession session;
 
         try {

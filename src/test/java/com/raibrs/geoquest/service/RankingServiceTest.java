@@ -1,33 +1,26 @@
 package com.raibrs.geoquest.service;
 
 import com.raibrs.geoquest.model.RankingEntry;
-import com.raibrs.geoquest.repository.RankingRepository;
+import com.raibrs.geoquest.support.InMemoryRankingRepository;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Files;
+import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RankingServiceTest {
 
-    @TempDir
-    Path temporaryDirectory;
 
     // Ensures higher scores rank first and newer rounds resolve score ties.
     @Test
-    void ordersResultsByScoreThenByMostRecentRound() throws IOException {
-        RankingRepository repository = new RankingRepository(
-                temporaryDirectory.resolve("data/ranking.json"));
+    void ordersResultsByScoreThenByMostRecentRound() throws SQLException {
+        InMemoryRankingRepository repository = new InMemoryRankingRepository();
 
         new RankingService(repository, fixedClock("2025-09-01T10:00:00Z"))
                 .registerResult("Rai", 3, 5);
@@ -44,9 +37,8 @@ class RankingServiceTest {
 
     // Ensures one player keeps only their best result, even when names differ by letter case.
     @Test
-    void keepsOnlyTheBestResultForEachPlayer() throws IOException {
-        RankingRepository repository = new RankingRepository(
-                temporaryDirectory.resolve("data/ranking.json"));
+    void keepsOnlyTheBestResultForEachPlayer() throws SQLException {
+        InMemoryRankingRepository repository = new InMemoryRankingRepository();
 
         new RankingService(repository, fixedClock("2025-09-01T10:00:00Z"))
                 .registerResult("Rai", 1, 5);
@@ -60,14 +52,13 @@ class RankingServiceTest {
         assertEquals(1, ranking.size());
         assertEquals("rai", ranking.getFirst().getPlayerName());
         assertEquals(4, ranking.getFirst().getScore());
-        assertEquals(1, repository.load().size());
+        assertEquals(1, repository.allEntries().size());
     }
 
     // Ensures the terminal receives only the Top 10 while the repository keeps the full history.
     @Test
-    void returnsOnlyTheTopTenEntriesAndKeepsAllSavedResults() throws IOException {
-        RankingRepository repository = new RankingRepository(
-                temporaryDirectory.resolve("data/ranking.json"));
+    void returnsOnlyTheTopTenEntriesAndKeepsAllSavedResults() throws SQLException {
+        InMemoryRankingRepository repository = new InMemoryRankingRepository();
         RankingService service = new RankingService(repository, fixedClock("2025-09-01T10:00:00Z"));
         List<RankingEntry> ranking = List.of();
 
@@ -78,14 +69,13 @@ class RankingServiceTest {
         assertEquals(10, ranking.size());
         assertEquals(10, ranking.getFirst().getScore());
         assertEquals(1, ranking.getLast().getScore());
-        assertEquals(11, repository.load().size());
+        assertEquals(11, repository.allEntries().size());
     }
 
     // Ensures deletion ignores name capitalization and preserves every other player's result.
     @Test
-    void deletesOnlyTheLoggedInPlayerResult() throws IOException {
-        RankingRepository repository = new RankingRepository(
-                temporaryDirectory.resolve("data/ranking.json"));
+    void deletesOnlyTheLoggedInPlayerResult() throws SQLException {
+        InMemoryRankingRepository repository = new InMemoryRankingRepository();
         RankingService service = new RankingService(repository, fixedClock("2025-09-01T10:00:00Z"));
         service.registerResult("Rai", 4, 5);
         service.registerResult("Ana", 3, 5);
@@ -93,16 +83,15 @@ class RankingServiceTest {
         boolean removed = service.deleteResultFor("RAI");
 
         assertTrue(removed);
-        assertEquals(List.of("Ana"), repository.load().stream()
+        assertEquals(List.of("Ana"), repository.allEntries().stream()
                 .map(RankingEntry::getPlayerName)
                 .toList());
     }
 
     // Ensures a missing player result does not remove any existing ranking entry.
     @Test
-    void keepsTheRankingWhenThePlayerHasNoResult() throws IOException {
-        RankingRepository repository = new RankingRepository(
-                temporaryDirectory.resolve("data/ranking.json"));
+    void keepsTheRankingWhenThePlayerHasNoResult() throws SQLException {
+        InMemoryRankingRepository repository = new InMemoryRankingRepository();
         RankingService service = new RankingService(repository, fixedClock("2025-09-01T10:00:00Z"));
         service.registerResult("Rai", 4, 5);
         service.registerResult("Ana", 3, 5);
@@ -110,7 +99,7 @@ class RankingServiceTest {
         boolean removed = service.deleteResultFor("Bia");
 
         assertFalse(removed);
-        assertEquals(List.of("Rai", "Ana"), repository.load().stream()
+        assertEquals(List.of("Rai", "Ana"), repository.allEntries().stream()
                 .map(RankingEntry::getPlayerName)
                 .toList());
     }
@@ -120,8 +109,8 @@ class RankingServiceTest {
     }
 
     @Test
-    void updatesTheTimestampAndNameForTheSamePlayersTiedResult() throws IOException {
-        RankingRepository repository = new RankingRepository(temporaryDirectory.resolve("ranking.json"));
+    void updatesTheTimestampAndNameForTheSamePlayersTiedResult() throws SQLException {
+        InMemoryRankingRepository repository = new InMemoryRankingRepository();
         new RankingService(repository, fixedClock("2025-09-01T10:00:00Z"))
                 .registerResult("Rai", 4, 10);
         Clock later = fixedClock("2025-09-01T12:00:00Z");
@@ -131,22 +120,20 @@ class RankingServiceTest {
         assertEquals(1, ranking.size());
         assertEquals("RAI", ranking.getFirst().getPlayerName());
         assertEquals(later.millis(), ranking.getFirst().getPlayedAtEpochMillis());
-        assertEquals(later.millis(), repository.load().getFirst().getPlayedAtEpochMillis());
+        assertEquals(later.millis(), repository.allEntries().getFirst().getPlayedAtEpochMillis());
     }
 
     @Test
-    void sortsAnUnorderedFileForDisplayWithoutRewritingIt() throws IOException {
-        Path rankingFile = temporaryDirectory.resolve("ranking.json");
-        RankingRepository repository = new RankingRepository(rankingFile);
-        repository.save(List.of(
-                new RankingEntry("Rai", 2, 10, 1L),
-                new RankingEntry("Ana", 8, 10, 2L),
-                new RankingEntry("Bia", 8, 10, 3L)));
-        byte[] original = Files.readAllBytes(rankingFile);
+    void ordersTheRankingWithoutChangingSavedEntries() throws SQLException {
+        InMemoryRankingRepository repository = new InMemoryRankingRepository();
+        repository.saveBest(new RankingEntry("Rai", 2, 10, 1L));
+        repository.saveBest(new RankingEntry("Ana", 8, 10, 2L));
+        repository.saveBest(new RankingEntry("Bia", 8, 10, 3L));
+        List<RankingEntry> original = repository.allEntries();
 
         List<RankingEntry> ranking = new RankingService(repository).getTopRanking();
 
         assertEquals(List.of("Bia", "Ana", "Rai"), ranking.stream().map(RankingEntry::getPlayerName).toList());
-        assertArrayEquals(original, Files.readAllBytes(rankingFile));
+        assertEquals(original, repository.allEntries());
     }
 }
