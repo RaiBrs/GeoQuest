@@ -1,12 +1,21 @@
 package com.raibrs.geoquest.model;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class RankingEntryTest {
+
+    @Test
+    void preservesCaseInsensitiveIdentityIncludingUnicodeAndWhitespace() {
+        assertEquals(RankingEntry.playerKey(" Rai "), RankingEntry.playerKey("RAI"));
+        assertEquals(RankingEntry.playerKey("İ"), RankingEntry.playerKey("i"));
+        assertEquals(RankingEntry.playerKey("ı"), RankingEntry.playerKey("I"));
+        org.junit.jupiter.api.Assertions.assertNotEquals(
+                RankingEntry.playerKey("ß"), RankingEntry.playerKey("SS"));
+        assertThrows(IllegalArgumentException.class, () -> RankingEntry.playerKey(" "));
+    }
 
     // Ensures a completed round keeps the player and score data needed by the ranking.
     @Test
@@ -56,20 +65,5 @@ class RankingEntryTest {
     @Test
     void rejectsNonPositivePlayedAtTimestamp() {
         assertThrows(IllegalArgumentException.class, () -> new RankingEntry("Rai", 3, 5, 0L));
-    }
-
-    // Ensures a saved ranking entry can be reconstructed from JSON without losing round data.
-    @Test
-    void preservesRoundDataWhenSerializedAndDeserialized() throws Exception {
-        ObjectMapper objectMapper = new ObjectMapper();
-        RankingEntry original = new RankingEntry("Rai", 3, 5, 1_756_684_800_000L);
-
-        String json = objectMapper.writeValueAsString(original);
-        RankingEntry restored = objectMapper.readValue(json, RankingEntry.class);
-
-        assertEquals(original.getPlayerName(), restored.getPlayerName());
-        assertEquals(original.getScore(), restored.getScore());
-        assertEquals(original.getTotalQuestions(), restored.getTotalQuestions());
-        assertEquals(original.getPlayedAtEpochMillis(), restored.getPlayedAtEpochMillis());
     }
 }

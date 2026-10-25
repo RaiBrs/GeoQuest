@@ -1,8 +1,5 @@
 package com.raibrs.geoquest.model;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 // Stores a stable snapshot of one completed round.
 public class RankingEntry {
     private final String playerName;
@@ -10,13 +7,11 @@ public class RankingEntry {
     private final int totalQuestions;
     private final long playedAtEpochMillis;
 
-    // Jackson uses this constructor to rebuild a validated entry from the ranking JSON file.
-    @JsonCreator
     public RankingEntry(
-            @JsonProperty("playerName") String playerName,
-            @JsonProperty("score") int score,
-            @JsonProperty("totalQuestions") int totalQuestions,
-            @JsonProperty("playedAtEpochMillis") long playedAtEpochMillis
+            String playerName,
+            int score,
+            int totalQuestions,
+            long playedAtEpochMillis
     ) {
         // A saved result needs a name so the ranking can identify its player.
         if (playerName == null || playerName.isBlank()) {
@@ -44,7 +39,18 @@ public class RankingEntry {
         this.playedAtEpochMillis = playedAtEpochMillis;
     }
 
-    // Getters
+    // Preserve Java's equalsIgnoreCase identity, including Turkish I variants.
+    public static String playerKey(String playerName) {
+        if (playerName == null || playerName.isBlank()) {
+            throw new IllegalArgumentException("playerName must not be blank.");
+        }
+        StringBuilder key = new StringBuilder();
+        playerName.strip().codePoints()
+                .map(character -> Character.toLowerCase(Character.toUpperCase(character)))
+                .forEach(key::appendCodePoint);
+        return key.toString();
+    }
+
     public String getPlayerName() {
         return playerName;
     }
