@@ -11,4 +11,7 @@ public interface RankingRepository {
     List<RankingEntry> findTop(int limit) throws SQLException;
 
     boolean deleteByPlayerName(String playerName) throws SQLException;
+
+    // Administrative maintenance only; scores and timestamps must remain unchanged.
+    boolean renameByPlayerName(String currentName, String newName) throws SQLException;
 }

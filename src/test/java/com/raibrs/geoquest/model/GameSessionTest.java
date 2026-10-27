@@ -14,6 +14,35 @@ class GameSessionTest {
 
     private static final List<String> ALTERNATIVES = List.of("One", "Two", "Three", "Four");
 
+    @Test
+    void wrongAnswerEndsRoundWithoutChangingTheScoreAndCannotBeReplayed() {
+        GameSession session = new GameSession(List.of(
+                new Question("First?", "One", ALTERNATIVES),
+                new Question("Second?", "Two", ALTERNATIVES)));
+        session.answer("One");
+
+        var result = session.answer("Three");
+
+        assertFalse(result.correct());
+        assertEquals("Two", result.correctAnswer());
+        assertEquals(1, session.getScore());
+        assertTrue(session.isFinished());
+        assertFalse(session.hasNextQuestion());
+        assertThrows(IllegalStateException.class, session::getCurrentQuestion);
+        assertThrows(IllegalStateException.class, () -> session.answer("Two"));
+        assertEquals(1, session.getScore());
+    }
+
+    @Test
+    void invalidChoicesDoNotAdvanceOrEndTheRound() {
+        GameSession session = new GameSession(List.of(new Question("First?", "One", ALTERNATIVES)));
+        assertThrows(IllegalArgumentException.class, () -> session.answer("unknown"));
+        assertThrows(IllegalArgumentException.class, () -> session.answer(null));
+        assertEquals(0, session.getScore());
+        assertEquals(1, session.getCurrentQuestionNumber());
+        assertFalse(session.isFinished());
+    }
+
     // Ensures a correct answer advances exactly one question and increments the score once.
     @Test
     void advancesTheQuestionAndScoreAfterACorrectAnswer() {
@@ -23,12 +52,12 @@ class GameSessionTest {
 
         assertEquals(firstQuestion, session.getCurrentQuestion());
 
-        session.registerCorrectAnswer();
+        session.answer(session.getCurrentQuestion().getCorrectAnswer());
 
         assertEquals(1, session.getScore());
         assertEquals(secondQuestion, session.getCurrentQuestion());
 
-        session.registerCorrectAnswer();
+        session.answer(session.getCurrentQuestion().getCorrectAnswer());
 
         assertEquals(2, session.getScore());
         assertFalse(session.hasNextQuestion());
@@ -39,7 +68,7 @@ class GameSessionTest {
     void rejectsReadingPastTheLastQuestion() {
         GameSession session = new GameSession(List.of(new Question("First?", "One", ALTERNATIVES)));
 
-        session.registerCorrectAnswer();
+        session.answer(session.getCurrentQuestion().getCorrectAnswer());
 
         assertThrows(IllegalStateException.class, session::getCurrentQuestion);
     }
@@ -53,9 +82,9 @@ class GameSessionTest {
     @Test
     void rejectsScoringAfterTheSessionEndsWithoutChangingTheScore() {
         GameSession session = new GameSession(List.of(new Question("First?", "One", ALTERNATIVES)));
-        session.registerCorrectAnswer();
+        session.answer(session.getCurrentQuestion().getCorrectAnswer());
 
-        assertThrows(IllegalStateException.class, session::registerCorrectAnswer);
+        assertThrows(IllegalStateException.class, () -> session.answer("One"));
 
         assertEquals(1, session.getScore());
         assertFalse(session.hasNextQuestion());

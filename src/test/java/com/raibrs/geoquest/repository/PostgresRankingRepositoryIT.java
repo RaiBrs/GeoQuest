@@ -1,7 +1,12 @@
 package com.raibrs.geoquest.repository;
 
 import com.raibrs.geoquest.model.RankingEntry;
+import com.raibrs.geoquest.dto.GameDtos;
 import com.raibrs.geoquest.config.DatabaseCheck;
+import com.raibrs.geoquest.service.QuestionService;
+import com.raibrs.geoquest.service.RankingService;
+import com.raibrs.geoquest.service.GameService;
+import com.raibrs.geoquest.support.TestCountriesClient;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -88,6 +93,115 @@ class PostgresRankingRepositoryIT {
         assertEquals(3, entry.getScore());
         assertEquals(10, entry.getTotalQuestions());
         assertEquals(1234L, entry.getPlayedAtEpochMillis());
+    }
+
+    @Test
+    void renamesOnlyTheSelectedPlayerAndPreservesTheOriginalResult() throws SQLException {
+        repository.saveBest(new RankingEntry("Rai", 7, 10, 1234));
+        repository.saveBest(new RankingEntry("Other", 2, 10, 5678));
+        assertTrue(repository.renameByPlayerName(" rai ", " Raibr "));
+
+        var entries = new PostgresRankingRepository(source).findTop(10);
+        assertEquals(2, entries.size());
+        var renamed = entries.getFirst();
+        assertEquals("Raibr", renamed.getPlayerName());
+        assertEquals(7, renamed.getScore());
+        assertEquals(10, renamed.getTotalQuestions());
+        assertEquals(1234, renamed.getPlayedAtEpochMillis());
+        assertEquals("Other", entries.getLast().getPlayerName());
+        assertEquals(2, entries.getLast().getScore());
+        assertEquals(5678, entries.getLast().getPlayedAtEpochMillis());
+        assertFalse(repository.deleteByPlayerName("Rai"));
+    }
+
+    @Test
+    void occupiedNameRejectsRenameWithoutChangingEitherResult() throws SQLException {
+        repository.saveBest(new RankingEntry("Rai", 7, 10, 1234));
+        repository.saveBest(new RankingEntry("Other", 2, 10, 5678));
+        var failure = assertThrows(SQLException.class, () -> repository.renameByPlayerName("Rai", "OTHER"));
+        assertEquals("23505", failure.getSQLState());
+        var entries = repository.findTop(10);
+        assertEquals(2, entries.size());
+        assertEquals("Rai", entries.getFirst().getPlayerName());
+        assertEquals(7, entries.getFirst().getScore());
+        assertEquals("Other", entries.getLast().getPlayerName());
+        assertEquals(2, entries.getLast().getScore());
+    }
+
+    @Test
+    void renameSupportsCaseOnlyChangesAndExistingUnicodeIdentityRules() throws SQLException {
+        repository.saveBest(new RankingEntry("Rai", 7, 10, 1234));
+        assertTrue(repository.renameByPlayerName("rai", "RAI"));
+        assertEquals("RAI", repository.findTop(10).getFirst().getPlayerName());
+        repository.saveBest(new RankingEntry("İpek", 2, 10, 5678));
+        assertTrue(repository.renameByPlayerName("ipek", "New İpek"));
+        assertEquals("New İpek", repository.findTop(10).getLast().getPlayerName());
+    }
+
+    @Test
+    void renameRejectsInvalidNamesAndDoesNotCreateMissingPlayers() throws SQLException {
+        repository.saveBest(new RankingEntry("Rai", 7, 10, 1234));
+        assertFalse(repository.renameByPlayerName("Missing", "New"));
+        assertThrows(IllegalArgumentException.class, () -> repository.renameByPlayerName("Rai", " "));
+        assertThrows(IllegalArgumentException.class, () -> repository.renameByPlayerName("Rai", "Bad\tName"));
+        var entry = repository.findTop(10).getFirst();
+        assertEquals("Rai", entry.getPlayerName());
+        assertEquals(7, entry.getScore());
+    }
+
+    @Test
+    void concurrentRenamesCannotMergeOrOverwritePlayers() throws Exception {
+        repository.saveBest(new RankingEntry("First", 7, 10, 1234));
+        repository.saveBest(new RankingEntry("Second", 2, 10, 5678));
+        var barrier = new java.util.concurrent.CyclicBarrier(2);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            List<Future<Boolean>> attempts = new ArrayList<>();
+            for (String name : List.of("First", "Second")) {
+                attempts.add(executor.submit(() -> {
+                    barrier.await(5, TimeUnit.SECONDS);
+                    try {
+                        return repository.renameByPlayerName(name, "Destination");
+                    } catch (SQLException exception) {
+                        assertEquals("23505", exception.getSQLState());
+                        return false;
+                    }
+                }));
+            }
+            int successful = 0;
+            for (var attempt : attempts) if (attempt.get(10, TimeUnit.SECONDS)) successful++;
+            assertEquals(1, successful);
+        }
+        var entries = repository.findTop(10);
+        assertEquals(2, entries.size());
+        assertEquals(List.of(7, 2), entries.stream().map(RankingEntry::getScore).toList());
+        assertEquals(1, entries.stream().filter(entry -> entry.getPlayerName().equals("Destination")).count());
+    }
+
+    @Test
+    void persistsTheJavaWebRoundScoreAndPreservesBestResult() throws Exception {
+        var games = new GameService(new TestCountriesClient(),
+                new QuestionService(), new RankingService(repository));
+        var state = games.start("Web Player");
+        for (int index = 0; index < 3; index++) {
+            String correct = TestCountriesClient.answerFor(state.question().text());
+            state = games.answer(new GameDtos.AnswerRequest(
+                    state.gameId(), state.number(), correct)).state();
+        }
+        String correct = TestCountriesClient.answerFor(state.question().text());
+        String wrong = state.question().alternatives().stream()
+                .filter(choice -> !choice.equals(correct)).findFirst().orElseThrow();
+        games.answer(new GameDtos.AnswerRequest(
+                state.gameId(), state.number(), wrong));
+        games.saveResult(state.gameId());
+        games.saveResult(state.gameId());
+
+        var saved = new PostgresRankingRepository(source).findTop(10).getFirst();
+        assertEquals("Web Player", saved.getPlayerName());
+        assertEquals(3, saved.getScore());
+        assertEquals(10, saved.getTotalQuestions());
+        repository.saveBest(new RankingEntry("WEB PLAYER", 1, 10,
+                saved.getPlayedAtEpochMillis() + 1000));
+        assertEquals(3, repository.findTop(10).getFirst().getScore());
     }
 
     @Test

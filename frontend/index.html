@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Geo Quest</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./src/app.js"></script>
+</head>
+<body>
+  <main class="container">
+    <header>
+      <a class="brand" href="./">Geo Quest</a>
+      <p>Um desafio sobre capitais.</p>
+    </header>
+
+    <section id="welcome" aria-labelledby="welcome-title">
+      <h1 id="welcome-title">Quanto você conhece do mundo?</h1>
+      <p>Dez perguntas. Um erro encerra a rodada.</p>
+      <form id="player-form">
+        <label for="player-name">Como podemos chamar você?</label>
+        <input id="player-name" name="playerName" type="text"
+               autocomplete="nickname" required>
+        <button type="submit">Começar</button>
+      </form>
+    </section>
+
+    <section id="game" aria-labelledby="question" hidden>
+      <div class="game-status">
+        <span id="progress"></span>
+        <span id="score"></span>
+      </div>
+      <h1 id="question" tabindex="-1"></h1>
+      <div id="alternatives" class="alternatives"></div>
+      <p id="feedback" role="status"></p>
+      <button id="next" type="button" hidden>Próxima pergunta</button>
+    </section>
+
+    <section id="result" aria-labelledby="result-title" hidden>
+      <h1 id="result-title" tabindex="-1">Rodada encerrada</h1>
+      <p id="summary"></p>
+      <p id="save-status" role="status"></p>
+      <h2>Top 10</h2>
+      <ol id="ranking"></ol>
+      <div class="actions">
+        <button id="restart" type="button">Jogar novamente</button>
+        <button id="change-player" class="secondary" type="button">
+          Trocar jogador
+        </button>
+      </div>
+    </section>
+
+    <p id="error" role="alert" hidden></p>
+    <button id="retry" type="button" hidden>Tentar novamente</button>
+    <footer>Dez perguntas sobre capitais.</footer>
+  </main>
+</body>
+</html>

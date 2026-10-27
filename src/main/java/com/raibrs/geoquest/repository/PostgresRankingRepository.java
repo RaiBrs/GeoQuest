@@ -85,4 +85,25 @@ public class PostgresRankingRepository implements RankingRepository {
         }
     }
 
+    @Override
+    public boolean renameByPlayerName(String currentName, String newName) throws SQLException {
+        String currentKey = RankingEntry.playerKey(currentName);
+        String normalizedName = RankingEntry.normalizePlayerName(newName);
+        String newKey = RankingEntry.playerKey(normalizedName);
+        // A single statement preserves the result and lets the primary key reject name collisions atomically.
+        // Do not use saveBest here: it could merge two different players' results.
+        String sql = """
+                UPDATE ranking_entries
+                SET player_key = ?, player_name = ?
+                WHERE player_key = ?
+                """;
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, newKey);
+            statement.setString(2, normalizedName);
+            statement.setString(3, currentKey);
+            return statement.executeUpdate() == 1;
+        }
+    }
+
 }

@@ -2,10 +2,11 @@ package com.raibrs.geoquest.model;
 
 import java.util.List;
 
-public class GameSession {
+public final class GameSession {
 
     private final List<Question> questions;
     private int currentQuestionIndex;
+    private boolean finished;
 
     public GameSession(List<Question> questions) {
         if (questions == null || questions.isEmpty()) {
@@ -17,7 +18,7 @@ public class GameSession {
     }
 
     public boolean hasNextQuestion() {
-        return currentQuestionIndex < questions.size();
+        return !finished;
     }
 
     public Question getCurrentQuestion() {
@@ -28,12 +29,28 @@ public class GameSession {
         return questions.get(currentQuestionIndex);
     }
 
-    public void registerCorrectAnswer() {
-        if (!hasNextQuestion()) {
-            throw new IllegalStateException("There are no questions left in this session.");
+    public AnswerResult answer(String choice) {
+        Question question = getCurrentQuestion();
+        if (choice == null || !question.getAlternatives().contains(choice)) {
+            throw new IllegalArgumentException("Alternativa inválida.");
         }
+        boolean correct = question.isCorrectAnswer(choice);
+        // One state transition owns both scoring and termination, independent of any UI.
+        if (correct) {
+            currentQuestionIndex++;
+            finished = currentQuestionIndex == questions.size();
+        } else {
+            finished = true;
+        }
+        return new AnswerResult(correct, question.getCorrectAnswer());
+    }
 
-        currentQuestionIndex++;
+    public boolean isFinished() {
+        return finished;
+    }
+
+    public int getCurrentQuestionNumber() {
+        return Math.min(currentQuestionIndex + 1, questions.size());
     }
 
     public int getScore() {
@@ -43,4 +60,6 @@ public class GameSession {
     public int getTotalQuestions() {
         return questions.size();
     }
+
+    public record AnswerResult(boolean correct, String correctAnswer) {}
 }
