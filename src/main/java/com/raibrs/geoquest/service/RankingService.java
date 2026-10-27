@@ -6,6 +6,7 @@ import com.raibrs.geoquest.repository.RankingRepository;
 import java.sql.SQLException;
 import java.time.Clock;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 
 public class RankingService {
@@ -43,5 +44,23 @@ public class RankingService {
     public boolean deleteResultFor(String playerName) throws SQLException {
         RankingEntry.playerKey(playerName);
         return repository.deleteByPlayerName(playerName);
+    }
+
+    public void renamePlayer(String currentName, String newName) throws SQLException {
+        String current = RankingEntry.normalizePlayerName(currentName);
+        String replacement = RankingEntry.normalizePlayerName(newName);
+        boolean renamed;
+        try {
+            renamed = repository.renameByPlayerName(current, replacement);
+        } catch (SQLException exception) {
+            // PostgreSQL unique_violation: refuse a collision instead of overwriting another player.
+            if ("23505".equals(exception.getSQLState())) {
+                throw new IllegalStateException("Já existe um jogador com esse nome.", exception);
+            }
+            throw exception;
+        }
+        if (!renamed) {
+            throw new NoSuchElementException("Não foi encontrado um registro para o nome informado.");
+        }
     }
 }

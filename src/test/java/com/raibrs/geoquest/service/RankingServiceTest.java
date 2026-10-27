@@ -13,8 +13,50 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class RankingServiceTest {
+
+    @Test
+    void renamePreservesResultAndDoesNotMergePlayers() throws SQLException {
+        var repository = new InMemoryRankingRepository();
+        repository.saveBest(new RankingEntry("Rai", 7, 10, 1234));
+        repository.saveBest(new RankingEntry("Other", 2, 10, 5678));
+        var service = new RankingService(repository);
+        service.renamePlayer(" rai ", " Raibr ");
+        var renamed = repository.allEntries().stream()
+                .filter(entry -> entry.getPlayerName().equals("Raibr")).findFirst().orElseThrow();
+        assertEquals(7, renamed.getScore());
+        assertEquals(1234, renamed.getPlayedAtEpochMillis());
+        assertEquals(2, repository.allEntries().size());
+        var before = repository.allEntries();
+        var failure = assertThrows(IllegalStateException.class, () -> service.renamePlayer("Raibr", "OTHER"));
+        assertEquals("23505", ((SQLException) failure.getCause()).getSQLState());
+        assertEquals(before, repository.allEntries());
+    }
+
+    @Test
+    void renameRejectsMissingOrInvalidNamesWithoutCreatingRows() {
+        var repository = new InMemoryRankingRepository();
+        var service = new RankingService(repository);
+        assertThrows(java.util.NoSuchElementException.class, () -> service.renamePlayer("Missing", "New"));
+        assertThrows(IllegalArgumentException.class, () -> service.renamePlayer("Rai", " "));
+        assertThrows(IllegalArgumentException.class, () -> service.renamePlayer("Rai", "Bad\tName"));
+        assertTrue(repository.allEntries().isEmpty());
+    }
+
+    @Test
+    void renameDoesNotMisreportConnectionFailureAsANameCollision() {
+        var repository = new InMemoryRankingRepository() {
+            @Override
+            public boolean renameByPlayerName(String current, String replacement) throws SQLException {
+                throw new SQLException("Test connection failure", "08006");
+            }
+        };
+        var service = new RankingService(repository);
+        assertEquals("08006", assertThrows(SQLException.class,
+                () -> service.renamePlayer("Rai", "New")).getSQLState());
+    }
 
 
     // Ensures higher scores rank first and newer rounds resolve score ties.
@@ -55,7 +97,7 @@ class RankingServiceTest {
         assertEquals(1, repository.allEntries().size());
     }
 
-    // Ensures the terminal receives only the Top 10 while the repository keeps the full history.
+    // Displaying the Top 10 must not discard players outside that window.
     @Test
     void returnsOnlyTheTopTenEntriesAndKeepsAllSavedResults() throws SQLException {
         InMemoryRankingRepository repository = new InMemoryRankingRepository();
@@ -74,7 +116,7 @@ class RankingServiceTest {
 
     // Ensures deletion ignores name capitalization and preserves every other player's result.
     @Test
-    void deletesOnlyTheLoggedInPlayerResult() throws SQLException {
+    void deletesOnlyTheSpecifiedPlayerResult() throws SQLException {
         InMemoryRankingRepository repository = new InMemoryRankingRepository();
         RankingService service = new RankingService(repository, fixedClock("2025-09-01T10:00:00Z"));
         service.registerResult("Rai", 4, 5);

@@ -39,4 +39,21 @@ public class InMemoryRankingRepository implements RankingRepository {
     public List<RankingEntry> allEntries() {
         return List.copyOf(entries.values());
     }
+
+    @Override
+    public boolean renameByPlayerName(String currentName, String newName) throws SQLException {
+        String currentKey = RankingEntry.playerKey(currentName);
+        String normalizedName = RankingEntry.normalizePlayerName(newName);
+        String newKey = RankingEntry.playerKey(normalizedName);
+        RankingEntry current = entries.get(currentKey);
+        if (current == null) return false;
+        if (!currentKey.equals(newKey) && entries.containsKey(newKey)) {
+            throw new SQLException("Player name already exists.", "23505");
+        }
+        RankingEntry replacement = new RankingEntry(normalizedName, current.getScore(),
+                current.getTotalQuestions(), current.getPlayedAtEpochMillis());
+        entries.remove(currentKey);
+        entries.put(newKey, replacement);
+        return true;
+    }
 }

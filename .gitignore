@@ -3,8 +3,16 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 .kotlin
-.env
 .idea/
+
+# Local configuration; examples remain versionable
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# JavaScript dependencies
+node_modules/
 
 ### IntelliJ IDEA ###
 .idea/modules.xml
