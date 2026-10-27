@@ -40,7 +40,15 @@ class PostgresRankingRepositoryIT {
         String url = System.getenv("TEST_DATABASE_URL");
         String user = System.getenv("TEST_DATABASE_USER");
         if (url == null || !url.startsWith("jdbc:postgresql://") || user == null || user.isBlank()) {
-            throw new IllegalStateException("Set TEST_DATABASE_URL and TEST_DATABASE_USER for PostgreSQL integration tests.");
+            // Fail before opening a connection; never fall back to the application's database settings.
+            throw new IllegalStateException("""
+                    Set TEST_DATABASE_URL and TEST_DATABASE_USER for PostgreSQL integration tests.
+                    From the directory containing pom.xml, run .\\scripts\\test-postgres.ps1
+                    to create a temporary PostgreSQL instance and configure test variables automatically.
+                    For a direct Maven or IDE run, configure TEST_DATABASE_URL, TEST_DATABASE_USER,
+                    and TEST_DATABASE_PASSWORD for a dedicated test database.
+                    DATABASE_* application variables are not reused by integration tests.
+                    """);
         }
         source = new PGSimpleDataSource();
         source.setURL(url);

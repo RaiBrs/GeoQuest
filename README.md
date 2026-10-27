@@ -203,6 +203,16 @@ src/main/resources/db/migration/
 ├── V1__create_ranking_entries.sql
 └── V2__validate_player_names.sql
 src/test/java/com/raibrs/geoquest/
+├── WebAppTest.java             # Application wiring and cross-component HTTP flow
+├── AdminAppTest.java           # Local maintenance interaction
+├── controller/                # Game and ranking HTTP contracts
+├── http/                      # Static asset handler behavior
+├── model/                     # Domain state and invariants
+├── service/                   # Operation coordination and business rules
+├── repository/                # Real PostgreSQL integration
+├── api/                       # Country client and parser
+├── config/                    # Database configuration validation
+└── support/                   # Shared HTTP server and controlled dependencies
 scripts/test-postgres.ps1
 ```
 
@@ -287,7 +297,18 @@ This tool trusts the local operator with database credentials. It does not list 
 
 Tests cover round termination, scoring, request replay, save retries, JSON contracts, administrative confirmation and cancellation, and preservation of ranking results. Front-end behavior tests use a minimal DOM adapter; they do not replace a visual review in a browser.
 
+Test packages follow the component they exercise. `controller/` tests each controller over local
+HTTP with controlled dependencies, while `http/` verifies static file access. `WebAppTest` keeps
+the application-wiring checks and the play → save → ranking flow. `support/TestHttpServer`
+shares transport setup and cleanup through composition; it contains no game assertions.
+
 The Windows PostgreSQL helper starts a temporary cluster on a free loopback port, runs `postgres-integration`, and stops the cluster in `finally`. It uses dummy credentials and trust authentication only for this disposable instance. It does not access the installed PostgreSQL service or existing databases. Data and logs stay under ignored `target/postgres-test-*` directories.
+
+Running `PostgresRankingRepositoryIT` directly in an IDE requires `TEST_DATABASE_URL`,
+`TEST_DATABASE_USER`, and the appropriate `TEST_DATABASE_PASSWORD` in that test's run configuration.
+The application's `DATABASE_*` variables are separate. The helper supplies its temporary settings
+only to its own Maven run and restores the previous values when finished; those settings do not
+configure a later IDE run. Use the helper to run against an automatically prepared temporary database.
 
 <details>
 <summary><strong>Custom PostgreSQL installation or a separate test database</strong></summary>
@@ -317,6 +338,7 @@ Integration tests create and remove only their own randomly named schema. The pr
 | Symptom | What to check |
 | :--- | :--- |
 | `Set the DATABASE_URL environment variable` | Set the environment variables in the same terminal that launches Maven. |
+| `Set TEST_DATABASE_URL and TEST_DATABASE_USER` | Run `.\scripts\test-postgres.ps1` from the project directory, or configure `TEST_DATABASE_*` for a dedicated test database in the terminal or IDE running the integration test. |
 | `501 Unsupported method ('POST')` | Stop the old static server and launch `WebApp`; Java must serve both the page and the API. |
 | Port 8080 is already in use | Stop the process currently serving that port before starting the game. |
 | Ranking schema is missing or not ready | Check the actual database name and apply the required V1/V2 migrations. |
