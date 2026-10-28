@@ -1,69 +1,41 @@
 package com.raibrs.geoquest.support;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
+import com.fasterxml.jackson.databind.*;
+import com.raibrs.geoquest.http.*;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.test.web.servlet.*;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import java.net.http.HttpHeaders;
+import java.util.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
-
-/** Shared transport setup for component tests and application-wiring tests, without business assertions. */
+/** HTTP component tests use the actual MVC mapping, conversion and error handling. */
 public final class TestHttpServer implements AutoCloseable {
     private static final ObjectMapper JSON = new ObjectMapper();
-    private static final Duration TIMEOUT = Duration.ofSeconds(5);
-    private final HttpServer server;
-    private final HttpClient client;
-    private final String baseUrl;
-
-    public TestHttpServer(HttpServer server) {
-        this.server = server;
-        this.client = HttpClient.newBuilder().connectTimeout(TIMEOUT).build();
-        server.start();
-        this.baseUrl = "http://127.0.0.1:" + server.getAddress().getPort();
+    private final MockMvc mvc;
+    public record Response(int statusCode, String body, HttpHeaders headers) {}
+    public TestHttpServer(MockMvc mvc) { this.mvc = mvc; }
+    public static TestHttpServer start(Object... controllers) {
+        return new TestHttpServer(MockMvcBuilders.standaloneSetup(controllers)
+                .setControllerAdvice(new ApiErrors(), new JsonBodyLimit())
+                .setMessageConverters(new org.springframework.http.converter.ByteArrayHttpMessageConverter(),
+                        new org.springframework.http.converter.StringHttpMessageConverter(java.nio.charset.StandardCharsets.UTF_8),
+                        new MappingJackson2HttpMessageConverter(JSON)).build());
     }
-
-    public static TestHttpServer start(HttpHandler handler) throws IOException {
-        // Bind only to loopback on a free port; component tests register just their target handler.
-        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-        server.createContext("/", handler);
-        return new TestHttpServer(server);
+    public Response get(String path) throws Exception { return read(mvc.perform(MockMvcRequestBuilders.get(path)).andReturn()); }
+    public Response post(String path, Object body) throws Exception { return postRaw(path, JSON.writeValueAsString(body), "application/json"); }
+    public Response postRaw(String path, String body, String contentType) throws Exception {
+        var request = MockMvcRequestBuilders.post(path).with(csrf()).content(body);
+        if (contentType != null) request.contentType(contentType);
+        return read(mvc.perform(request).andReturn());
     }
-
-    public HttpResponse<String> get(String path) throws IOException, InterruptedException {
-        return client.send(request(path).GET().build(), HttpResponse.BodyHandlers.ofString());
+    private Response read(MvcResult result) throws Exception {
+        var response = result.getResponse();
+        Map<String, List<String>> headers = new HashMap<>();
+        for (String name : response.getHeaderNames()) headers.put(name, response.getHeaders(name));
+        return new Response(response.getStatus(), response.getContentAsString(java.nio.charset.StandardCharsets.UTF_8), HttpHeaders.of(headers, (k,v) -> true));
     }
-    public HttpResponse<String> head(String path) throws IOException, InterruptedException {
-        return client.send(request(path).method("HEAD", HttpRequest.BodyPublishers.noBody()).build(), HttpResponse.BodyHandlers.ofString());
-    }
-
-    public HttpResponse<String> post(String path, Object body) throws IOException, InterruptedException {
-        return postRaw(path, JSON.writeValueAsString(body), "application/json");
-    }
-
-    public HttpResponse<String> postRaw(String path, String body, String contentType)
-            throws IOException, InterruptedException {
-        var request = request(path).POST(HttpRequest.BodyPublishers.ofString(body));
-        if (contentType != null) request.header("Content-Type", contentType);
-        return client.send(request.build(), HttpResponse.BodyHandlers.ofString());
-    }
-
-    public JsonNode readJson(HttpResponse<String> response) throws IOException {
-        return JSON.readTree(response.body());
-    }
-
-    private HttpRequest.Builder request(String path) {
-        return HttpRequest.newBuilder(URI.create(baseUrl + path)).timeout(TIMEOUT);
-    }
-
-    @Override
-    public void close() {
-        server.stop(0);
-        client.close();
-    }
+    public JsonNode readJson(Response response) throws java.io.IOException { return JSON.readTree(response.body()); }
+    @Override public void close() {}
 }

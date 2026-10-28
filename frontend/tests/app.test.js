@@ -60,6 +60,7 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
   const initial = { gameId: "round", number: 1, total: 2, score: 0, finished: false,
     question: { text: "Capital?", alternatives: ["A", "B", "C", "D"] } };
   globalThis.fetch = async (url, options) => {
+    if (url === "/api/csrf") return { ok: true, json: async () => ({ token: "test-token", headerName: "X-XSRF-TOKEN" }) };
     const body = JSON.parse(options.body);
     requests.push({ url, body });
     let payload;

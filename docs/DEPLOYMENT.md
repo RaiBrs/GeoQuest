@@ -1,132 +1,151 @@
-# Publishing GeoQuest with accounts: Render + Neon
+# Publicação e autenticação do GeoQuest
 
-The Java server and frontend run together in one Render container. Neon is standard PostgreSQL;
-Google and GitHub handle sign-in directly through OAuth authorization code + PKCE. No hosted
-authentication intermediary is used. Existing visitor mode needs only API_KEY.
+O projeto usa Java 25, Spring Boot 3.5.16, Spring Security 6.5.11 e PostgreSQL padrão no Neon.
+O frontend e a API continuam juntos no Docker. O protocolo OAuth2/OIDC é executado pelo Spring;
+as sessões persistentes do jogo continuam nas tabelas existentes.
 
-## Configuração desta publicação
+## Situação desta migração
 
-- Endereço público: https://geoquest-raibrs.onrender.com
-- Painel do serviço: https://dashboard.render.com/web/srv-dbh2tcks728c73anvrk0
-- Branch publicada: `feat/render-neon-accounts` (atualizações nessa branch geram deploy automático).
-- O projeto Neon `geoquest` já recebeu a migração. As credenciais ficam nas variáveis do Render.
-- Inicialmente `ACCOUNTS_ENABLED=false`: partidas como visitante funcionam sem cadastrar contas.
+- Endereço da aplicação: https://geoquest-raibrs.onrender.com.
+- A implementação Spring usa `feat/spring-security-oauth2` e é integrada em `feat/render-neon-accounts`, a branch acompanhada pelo serviço existente.
+- O serviço existente está em https://dashboard.render.com/web/srv-dbh2tcks728c73anvrk0.
+- O banco Neon recebeu as migrações 001 e 002. A 002 foi validada primeiro na branch isolada `spring-oauth-migration-check`.
+- As credenciais Google/GitHub foram configuradas diretamente no Render. O consentimento e o retorno devem ser conferidos com uma conta real após o deploy.
 
-Para ativar as opções de conta:
+## 1. Banco de dados
 
-1. No Google Auth Platform, crie um cliente OAuth do tipo **Web application** e configure o
-   consentimento para o público de teste. Cadastre a URI de redirecionamento abaixo.
-2. Em GitHub → Settings → Developer settings → OAuth Apps, cadastre o endereço público como
-   **Homepage URL** e a URI abaixo como **Authorization callback URL**.
-3. No painel do Render, em **Environment**, preencha `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`,
-   `GITHUB_CLIENT_ID` e `GITHUB_CLIENT_SECRET`. Não envie esses segredos pelo chat nem pelo Git.
-4. Mude `ACCOUNTS_ENABLED` para `true`, salve com deploy e teste o login de cada provedor.
-   `APP_URL`, as credenciais do Neon e `API_KEY` já estão configurados no serviço.
+Para uma instalação nova, aplique os arquivos nesta ordem:
 
-URI de retorno para os dois provedores:
+1. `database/001_accounts.sql`
+2. `database/002_oauth_profile.sql`
 
-    https://geoquest-raibrs.onrender.com/auth/callback
+Em um banco existente com a migração 001, aplique apenas a 002. Ela adiciona email/avatar opcionais ao
+perfil e o provedor à sessão, sem excluir perfis, identidades, sessões ou resultados. Para sessões antigas,
+o provedor é preenchido somente quando o perfil tem uma identidade inequívoca. Teste a migração em um
+ambiente isolado antes de aplicá-la ao banco publicado. O aplicativo verifica todas essas tabelas na inicialização.
 
-É possível ativar um provedor primeiro: deixe o par de variáveis do outro sem configuração.
-Essa etapa exige cadastrar os aplicativos nas contas dos provedores; o código não gera os
-identificadores e segredos OAuth. Nenhum login real é considerado validado antes desses testes.
+Forneça a conexão JDBC, usuário e senha separadamente nas variáveis do servidor:
 
-## 1. Prepare the database
+    JDBC_DATABASE_URL=jdbc:postgresql://YOUR-ENDPOINT.neon.tech/geoquest?sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory
+    DATABASE_USER=your-database-role
+    DATABASE_PASSWORD=your-database-password
 
-Create a Neon project using its free plan and select a region close to the Render region.
-In Neon's SQL editor run `database/001_accounts.sql`. This creates profiles, provider identities,
-hashed sessions, and results. Use a dedicated database role for the application with access only
-to these tables. Do not expose the PostgreSQL connection to browser JavaScript.
+A configuração verifica o certificado e o hostname usando as autoridades confiáveis da JVM. Não coloque
+credenciais na URL do frontend, em commits ou logs. Use uma role dedicada com acesso às tabelas do jogo.
+O lock usado para concorrência de login é transacional e funciona com a conexão pooled do Neon.
 
-Copy the JDBC connection parameters from Neon (Java connection option). Supply the username and
-password separately using DATABASE_USER and DATABASE_PASSWORD. Example URL:
+## 2. Cadastrar os aplicativos OAuth
 
-    jdbc:postgresql://YOUR-ENDPOINT.neon.tech/neondb?sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory
+Defina `APP_URL` como a origem real, sem caminho. O padrão local é `http://localhost:8080`; `HOST` e
+`PORT` podem alterá-lo. HTTP é permitido somente em localhost/127.0.0.1. Na publicação use HTTPS.
 
-The Java SSL factory uses trusted JVM certificate authorities and verifies the server hostname.
-For transaction-pooled endpoints, the application's advisory lock is transaction-scoped.
+| Provedor | Desenvolvimento | Publicação neste serviço |
+|---|---|---|
+| Google | `http://localhost:8080/login/oauth2/code/google` | `https://geoquest-raibrs.onrender.com/login/oauth2/code/google` |
+| GitHub | `http://localhost:8080/login/oauth2/code/github` | `https://geoquest-raibrs.onrender.com/login/oauth2/code/github` |
 
-## 2. Configure Google and GitHub
+**Google:** abra https://console.cloud.google.com/auth/overview, selecione/crie um projeto e configure
+Branding/Audience do Google Auth Platform. Em Clients crie um cliente do tipo Web application. Cadastre
+as URIs acima em Authorized redirect URIs e copie Client ID/Client Secret para as variáveis do servidor.
+O aplicativo solicita `openid profile email`. Se o projeto estiver em Testing, configure os usuários de teste.
 
-Choose the Render service name first so you know its public URL, for example:
+**GitHub:** abra https://github.com/settings/developers → OAuth Apps → New OAuth App. Use o endereço do
+jogo como Homepage URL e a URI específica de GitHub como Authorization callback URL. Gere o Client Secret
+e guarde os dois valores no servidor. Para localhost, prefira outro OAuth App. O escopo `read:user` permite
+ler o perfil; um email privado pode não ser fornecido. O sistema aceita email ausente e não pede acesso a repositórios.
 
-    https://YOUR-SERVICE.onrender.com
+As antigas rotas `/auth/login` e `/auth/callback` não são usadas nesta versão. Atualize os callbacks externos
+antes de habilitar as contas após esta migração.
 
-Register a web OAuth client in Google Auth Platform. Request only `openid profile`. Configure the
-consent screen and the exact authorized redirect URI:
+## 3. Variáveis necessárias
 
-    https://YOUR-SERVICE.onrender.com/auth/callback
+| Variável | Finalidade |
+|---|---|
+| `API_KEY` | Catálogo REST Countries, independente da autenticação |
+| `ACCOUNTS_ENABLED` | `false` para visitantes; `true` para habilitar as contas |
+| `APP_URL` | Origem exata usada nos callbacks |
+| `JDBC_DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD` | Persistência PostgreSQL |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Cliente OAuth Google |
+| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | OAuth App GitHub |
 
-For local development, register `http://localhost:8080/auth/callback` as well. Google projects in
-Testing mode require adding the people who will test as test users. Complete Google's publishing
-requirements before advertising sign-in more broadly.
+Configure pelo menos um par completo de provedor. O outro par pode ficar sem configuração; apenas os
+provedores configurados aparecem no frontend. Nunca compartilhe segredos pelo chat. Para desenvolvimento,
+o `WebApp` ainda lê `.env` ignorado pelo Git; variáveis de processo/IDE têm prioridade sobre esse arquivo.
 
-Create a GitHub OAuth App and use the same public URL for its homepage and the exact callback URL
-above. A separate development OAuth app is convenient for localhost. The app requests `read:user`;
-it does not request repository or email permissions.
+## 4. Executar e publicar
 
-Store GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET and GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET only in
-the server environment. Configure both to show both login options. One provider can be omitted by
-leaving both of its values unset. Never commit client secrets or passwords.
+Localmente, na pasta de `pom.xml`:
 
-## 3. Deploy the application
+    mvn spring-boot:run
 
-Commit and push the reviewed changes to the repository. Create a Render Blueprint from render.yaml
-or create a Docker Web Service manually with the same environment variables. Select the Free plan
-and keep a single instance. Set APP_URL to the exact HTTPS origin, without a path or trailing slash.
-Set ACCOUNTS_ENABLED=true only after applying the SQL and configuring at least one login provider.
-The server checks that the account schema exists before accepting traffic.
+Ou gere o executável:
 
-Render builds the Dockerfile and runs the Java tests. Configure the health check as `/` and wait
-for deployment to become healthy. The container uses HOST=0.0.0.0 and PORT=8080. The existing
-API_KEY remains the country API key, independent of OAuth credentials.
+    mvn verify
+    java -jar target/Geo-Quest-1.0-SNAPSHOT.jar
 
-## 4. Verify the public deployment
+Docker:
 
-- Open the public address in a private browser window and play a visitor round.
-- Sign in with each configured provider; verify return to the hub with the provider's display name.
-- Finish a round, return to the hub and open the matching mode/type ranking.
-- Retry the final request: there must still be one result for that round.
-- Log out and verify the cookie no longer authenticates. Check from another device as well.
-- Use a disposable account to test deletion. Type DELETE after a recent login. Verify the profile,
-  identities, sessions, and ranking results disappear. Its active in-memory rounds are removed too.
-- Reopen the site after a restart. Accounts/results remain in PostgreSQL; unfinished rounds do not.
+    docker build -t geoquest .
+    docker run --rm --name geoquest -p 127.0.0.1:8080:8080 --mount "type=bind,source=${PWD}\.env,target=/app/.env,readonly" geoquest
 
-## Session and deletion behavior
+O Docker constrói e testa o projeto e executa o JAR Spring Boot como usuário sem privilégios. `.env` e
+artefatos locais ficam fora da imagem. O comando local monta o .env somente para leitura e permite que o Java interprete aspas. Se usar --env-file, use outro arquivo sem aspas: o Docker as mantém no valor. O container escuta em `0.0.0.0:$PORT` e continua exigindo uma única
+instância: partidas ativas vivem em memória. Reinícios preservam perfis/resultados/sessões no banco,
+mas encerram partidas e logins OAuth ainda em andamento.
 
-The browser gets a random HttpOnly, SameSite=Lax cookie, marked Secure over HTTPS. Only its SHA-256
-hash is stored in PostgreSQL. Sessions expire after seven days, can be revoked by logout, and are
-removed when the profile is deleted. Mutations require the configured Origin. Deletion additionally
-requires the literal confirmation DELETE and authentication within the last ten minutes.
+Para atualizar o Render, envie a branch revisada ao GitHub e selecione-a no serviço (ou integre no branch
+que ele acompanha). Configure as variáveis em Environment, aplique as migrações, confirme o plano Free
+e habilite `ACCOUNTS_ENABLED=true` somente com credenciais reais. Health check: `/`. Não faça upgrade
+para um plano pago para esta etapa. Consulte as cotas e condições atuais dos planos nos painéis dos provedores.
 
-Identities are keyed by provider + provider subject. Accounts from different providers are not
-silently merged by email or display name. Account linking is outside this implementation.
-No provider access/refresh tokens are stored. Deletion removes GeoQuest's data and sign-in link;
-it does not delete the Google/GitHub account or automatically revoke its external OAuth grant.
-Users can also remove GeoQuest from each provider's authorized-app settings.
+## 5. Testes manuais de autenticação
 
-Only completed, authenticated rounds enter the ranking. The best result per player is shown in
-each mode/question-type category. The browser never submits a score or a user ID to save a result.
-Result persistence must succeed before the final response is acknowledged; retrying is idempotent.
-This prevents client-supplied scores, but does not claim to prevent automated play or all cheating.
+1. Acesse `/` sem conta e conclua uma rodada de visitante.
+2. Sem login, `/api/me` deve responder 401 em JSON. `/api/account` permanece público.
+3. Visite `/oauth2/authorization/google`; conclua o consentimento e confirme o retorno ao hub.
+4. Visite `/api/me`: verifique nome, email quando disponível, `provider`, `providerId` e `avatarUrl`.
+5. Saia da conta e repita com `/oauth2/authorization/github`, incluindo um perfil sem email público.
+6. Conclua uma rodada autenticada e consulte o ranking correspondente. Reenviar a última resposta
+   não deve duplicar o resultado no banco. Não envie pontuações prontas pelo cliente.
+7. Use Sair da conta; `/api/me` deve voltar a 401, inclusive ao reutilizar o cookie revogado.
+8. Para testar exclusão, use uma conta de teste e login recente. Confirme com DELETE e verifique que
+   perfil, identidades, sessões e resultados foram removidos. As partidas desse jogador também devem acabar.
 
-## Costs and limits
+Nenhum login real é considerado validado até as etapas com credenciais reais serem executadas.
 
-Free hosting/database plans have quotas and may suspend or sleep. Confirm their current conditions
-in the provider dashboards. Choose a plan with no automatic paid upgrade for initial tests.
-One Render instance avoids cross-instance round loss; Redis is not required for this deployment.
-Database backups and log retention are controlled by the provider and should be described in the
-published privacy notice before broader release. No payment or paid resource is created by these files.
+## CSRF, sessões e APIs privadas
 
-## Local PostgreSQL integration tests
+`GET /api/csrf` devolve `token` e `headerName`. O navegador deve manter o cookie CSRF e enviar o token no
+header `X-XSRF-TOKEN` de todo POST, inclusive nas partidas de visitantes. O módulo `http-client.js` faz isso
+para contas e jogo; uma resposta 403 de CSRF pede atualização da página. CORS continua restrito à mesma origem.
 
-Use a disposable database named geoquest_test, role geoquest_test, and password test-only-password.
-Expose it on loopback and set TEST_DATABASE_URL to its JDBC URL when running Maven. The integration
-test verifies that dedicated database name before clearing test data. Without TEST_DATABASE_URL,
-only these external-database tests are skipped; provider/controller tests use controlled fixtures.
+`/api/me`, `/api/logout` e `/api/account/delete` exigem autenticação. Os endpoints do jogo aceitam visitantes,
+mas o proprietário de uma rodada autenticada é conferido pelo servidor. Pontuações do ranking são calculadas
+no Java e inseridas de forma idempotente. Cada API autenticada consulta a sessão uma vez; os controllers usam
+o usuário já resolvido no `SecurityContext`, sem outra consulta de identidade.
 
-Reference docs:
-- https://render.com/docs/blueprint-spec
-- https://neon.com/docs/guides/java
-- https://developers.google.com/identity/protocols/oauth2/web-server
-- https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps
+O `JSESSIONID` temporário é usado pelo Spring para state/nonce/PKCE do OAuth. Após o login ele é invalidado.
+A única sessão de jogo é `geoquest_session`, aleatória, HttpOnly, SameSite=Lax e Secure em HTTPS, com validade
+de sete dias. Somente seu hash SHA-256 fica no banco. Não há JWT, Basic Auth ou segunda base de usuários.
+Tokens do provedor são usados temporariamente pelo Spring e descartados ao concluir o login; não vão para
+as tabelas do jogo. Exclusão requer login nos últimos dez minutos e confirmação DELETE. A exclusão não apaga
+a conta Google/GitHub nem revoga automaticamente as permissões externas; isso pode ser feito nos provedores.
+
+## Testes automatizados
+
+    mvn test
+    node --test frontend/tests/*.test.js
+
+Os testes normais não exigem credenciais de produção. Para a suíte PostgreSQL, use um banco descartável chamado
+`geoquest_test`, role `geoquest_test`, senha `test-only-password`, e defina `TEST_DATABASE_URL` com sua URL JDBC.
+A suíte valida o nome dedicado antes de limpar dados de teste. Não use a URL do Neon publicado.
+
+## Referências
+
+- Spring Boot/Java: https://docs.spring.io/spring-boot/3.5/system-requirements.html
+- OAuth2 Login: https://docs.spring.io/spring-security/reference/6.5/servlet/oauth2/login/advanced.html
+- CSRF: https://docs.spring.io/spring-security/reference/6.5/servlet/exploits/csrf.html
+- Google: https://developers.google.com/identity/protocols/oauth2/web-server
+- GitHub: https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app
+- Render: https://render.com/docs/docker
+- Neon/JDBC: https://neon.com/docs/guides/java
