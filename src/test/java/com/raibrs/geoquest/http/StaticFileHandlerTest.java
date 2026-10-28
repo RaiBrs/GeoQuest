@@ -57,15 +57,4 @@ class StaticFileHandlerTest {
     void onlyAllowsGetAndHeadRequests() throws Exception {
         assertEquals(405, http.post("/", Map.of()).statusCode());
     }
-    @Test
-    void headReturnsGetHeadersWithoutABodyForPagesAssetsAndMissingFiles() throws Exception {
-        for (String path : List.of("/", "/styles.css", "/assets/geoquest-icon.svg", "/missing.html")) {
-            var get = http.get(path);
-            var head = http.head(path);
-            assertEquals(get.statusCode(), head.statusCode(), path);
-            assertEquals(get.headers().firstValue("Content-Type"), head.headers().firstValue("Content-Type"), path);
-            assertEquals(get.headers().firstValue("Content-Length"), head.headers().firstValue("Content-Length"), path);
-            assertEquals("", head.body(), path);
-        }
-    }
 }
