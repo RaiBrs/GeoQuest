@@ -2,3 +2,12 @@
 .result-score { display: flex; align-items: baseline; gap: 6px; color: var(--blue); font-weight: 750; }
 #result-score { font-size: 64px; letter-spacing: -3px; line-height: 1.2; }
 #result-total { color: #6a82a0; font-size: 24px; }
+.mistake-review { margin: 24px 0; text-align: left; border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+.mistake-review summary { cursor: pointer; font-weight: 700; }
+.mistake-list { padding-left: 24px; }
+.mistake-list li { padding: 16px 0; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.mistake-list li:last-child { border-bottom: 0; }
+.mistake-list span { display: block; }
+.review-question { font-weight: 650; }
+.review-selected { color: #963322; }
+.review-correct { color: #20623f; }

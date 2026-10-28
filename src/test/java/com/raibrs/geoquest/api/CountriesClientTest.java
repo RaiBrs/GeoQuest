@@ -98,7 +98,7 @@ class CountriesClientTest {
 
         assertEquals(expected, client.fetchCountries(80));
 
-        assertEquals(List.of("response_fields=names.common,capitals&limit=80&offset=0"), queries);
+        assertEquals(List.of("response_fields=names.common,names.translations.por,codes.alpha_2,capitals&limit=80&offset=0"), queries);
         assertEquals(List.of("Bearer test-key"), authorizationHeaders);
     }
 

@@ -23,7 +23,7 @@ public class TestCountriesClient extends CountriesClient {
             throw new IOException("Test country service unavailable.");
         }
         return IntStream.range(0, 40)
-                .mapToObj(index -> new Country("Country " + index, "Capital " + index))
+                .mapToObj(index -> new Country("Country " + index, "Capital " + index, "País " + index, "Capital " + index))
                 .toList();
     }
 

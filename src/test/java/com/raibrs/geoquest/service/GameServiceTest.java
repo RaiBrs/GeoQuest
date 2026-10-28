@@ -18,6 +18,43 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class GameServiceTest {
     @Test
+    void timedRoundLoadsFreshBatchesPastTenAndStopsOnlyAtItsDeadline() throws Exception {
+        var time = new java.util.concurrent.atomic.AtomicReference<>(Instant.parse("2026-01-01T00:00:00Z"));
+        Clock clock = new Clock() {
+            public ZoneId getZone() { return ZoneOffset.UTC; }
+            public Clock withZone(ZoneId zone) { return this; }
+            public Instant instant() { return time.get(); }
+        };
+        var client = new TestCountriesClient();
+        var timedGames = new GameService(client, new QuestionService(new java.util.Random(1)), clock);
+        var state = timedGames.start(GameMode.TIMED);
+        var deadline = state.expiresAt();
+        assertNull(state.total());
+        var seen = new java.util.HashSet<String>();
+        for (int number = 1; number <= 25; number++) {
+            assertEquals(number, state.number());
+            seen.add(state.question().text());
+            var submission = correctRequest(state);
+            var answer = timedGames.answer(submission);
+            assertEquals(answer, timedGames.answer(submission), "Retries cannot advance twice");
+            state = answer.state();
+            assertFalse(state.finished());
+            assertEquals(number, state.score());
+            assertEquals(number, state.answered());
+            assertEquals(deadline, state.expiresAt());
+        }
+        assertTrue(seen.size() > 10, "The next batch must not loop over the same ten questions");
+        assertEquals(1, client.calls, "Refilling uses the cached country catalog");
+        var lateAnswer = correctRequest(state);
+        time.updateAndGet(now -> now.plusSeconds(60));
+        var result = timedGames.answer(lateAnswer).state();
+        assertTrue(result.timedOut());
+        assertTrue(result.finished());
+        assertEquals(25, result.score());
+        assertEquals(25, result.answered());
+        assertTrue(result.mistakes().isEmpty());
+    }
+    @Test
     void deadlineEndsIdleRoundsAndLateAnswersCannotScore() throws Exception {
         var time = new java.util.concurrent.atomic.AtomicReference<>(Instant.parse("2026-01-01T00:00:00Z"));
         Clock clock = new Clock() {

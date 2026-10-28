@@ -1,3 +1,4 @@
+import { t } from "../../i18n.js";
 import { element } from "../dom.js";
 
 export const hubView = {
@@ -9,6 +10,6 @@ export const hubView = {
   },
 
   render(playerName) {
-    element("hub-title").textContent = `Hello, ${playerName}!`;
+    element("hub-title").textContent = t("Hello, {name}!", { name: playerName });
   }
 };

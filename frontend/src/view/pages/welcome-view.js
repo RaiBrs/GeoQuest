@@ -1,3 +1,4 @@
+import { t } from "../../i18n.js";
 import { element } from "../dom.js";
 
 function clearValidation() {
@@ -21,7 +22,7 @@ export const welcomeView = {
     const input = element("player-name");
     const name = input.value.trim();
     if (!name || [...name].length > 80 || /\p{Cc}/u.test(input.value)) {
-      input.setCustomValidity("Enter a name of up to 80 characters, without control characters.");
+      input.setCustomValidity(t("Enter a name of up to 80 characters, without control characters."));
       input.setAttribute("aria-invalid", "true");
       input.reportValidity();
       return undefined;

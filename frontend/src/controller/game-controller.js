@@ -1,3 +1,5 @@
+import { getLanguage, setLanguage } from "../i18n.js";
+import { element } from "../view/dom.js";
 import { gameService } from "../service/game-service.js";
 import { gameView } from "../view/pages/game-view.js";
 import { resultView } from "../view/pages/result-view.js";
@@ -15,6 +17,7 @@ export function initializeGameController() {
   let retryTask;
   let selectedMode = "SURVIVAL";
   let timer;
+  let selectedType = "CAPITAL";
 
   function stopTimer() { clearInterval(timer); timer = undefined; }
 
@@ -51,6 +54,7 @@ export function initializeGameController() {
   function showScreen(next) {
     screen = next;
     shellView.showScreen(next);
+    element("language").disabled = next === "game" || next === "result";
   }
 
   function clearError() {
@@ -60,6 +64,8 @@ export function initializeGameController() {
 
   function updateControls() {
     shellView.updateControls(busy, answer != null || pendingAnswer != null);
+    element("language").disabled = busy || screen === "game" || screen === "result";
+    element("question-type").disabled = busy;
   }
 
   function focusCurrentStep() { shellView.focusCurrentStep(screen, answer != null); }
@@ -84,7 +90,7 @@ export function initializeGameController() {
   }
 
   async function startGame(name) {
-    const nextState = await gameService.start(selectedMode);
+    const nextState = await gameService.start(selectedMode, selectedType, getLanguage());
     playerName = name;
     state = nextState;
     pendingAnswer = undefined;
@@ -172,10 +178,19 @@ export function initializeGameController() {
     onHome: () => navigate(() => playerName ? showHub() : resetPlayer()),
     onRetry: () => { if (retryTask) run(retryTask.action, retryTask.operation); }
   });
+  element("language").addEventListener("change", () => {
+    if (busy || screen === "game" || screen === "result") return;
+    setLanguage(element("language").value);
+    if (screen === "hub") hubView.render(playerName);
+    clearError();
+    welcomeView.reset();
+  });
+  setLanguage("EN");
   hubView.bind({
     onSelectMode(mode) {
       if (busy) return;
       selectedMode = mode;
+      selectedType = element("question-type").value || "CAPITAL";
       run(() => startGame(playerName), "start");
     },
     onChangePlayer: () => navigate(resetPlayer)

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.raibrs.geoquest.model.Country;
+import com.raibrs.geoquest.model.PortugueseGeography;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -81,7 +82,12 @@ public class CountryJsonParser {
                 continue;
             }
 
-            parsedCountries.add(new Country(name, capital));
+            JsonNode translatedName = countryNode.path("names").path("translations").path("por").path("common");
+            String portugueseName = translatedName.isTextual() ? translatedName.asText() : "";
+            if (portugueseName.isBlank()) {
+                portugueseName = PortugueseGeography.country(name, countryNode.path("codes").path("alpha_2").asText(""));
+            }
+            parsedCountries.add(new Country(name, capital, portugueseName, PortugueseGeography.capital(capital)));
         }
 
         return parsedCountries;

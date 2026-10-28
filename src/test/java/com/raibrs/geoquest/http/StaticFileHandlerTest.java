@@ -28,7 +28,7 @@ class StaticFileHandlerTest {
     void servesTheBrowserAssets() throws Exception {
         for (String asset : List.of("/", "/index.html", "/styles.css", "/styles/base.css",
                 "/styles/layout.css", "/styles/components.css", "/styles/pages/welcome.css",
-                "/styles/pages/game.css", "/styles/pages/result.css", "/src/app.js",
+                "/styles/pages/game.css", "/styles/pages/result.css", "/src/app.js", "/src/i18n.js",
                 "/src/controller/game-controller.js", "/src/service/game-service.js",
                 "/src/view/dom.js", "/src/view/shell-view.js", "/src/view/pages/welcome-view.js", "/src/view/pages/hub-view.js",
                 "/src/view/pages/game-view.js", "/src/view/pages/result-view.js", "/assets/geoquest-icon.svg")) {

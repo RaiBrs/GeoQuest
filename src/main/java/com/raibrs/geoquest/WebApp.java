@@ -38,8 +38,17 @@ public final class WebApp {
         var server = new WebApp(games, frontend)
                 .createServer(new InetSocketAddress("127.0.0.1", 8080));
         var executor = Executors.newVirtualThreadPerTaskExecutor();
+        var cleanup = Executors.newSingleThreadScheduledExecutor();
+        cleanup.scheduleWithFixedDelay(() -> {
+            try { games.cleanupExpiredRounds(); }
+            catch (RuntimeException exception) {
+                System.getLogger(WebApp.class.getName()).log(System.Logger.Level.ERROR,
+                        "Session cleanup failed.", exception);
+            }
+        }, 1, 1, java.util.concurrent.TimeUnit.MINUTES);
         server.setExecutor(executor);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            cleanup.shutdownNow();
             server.stop(1);
             executor.close();
         }));

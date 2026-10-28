@@ -1,3 +1,4 @@
+import { t } from "../i18n.js";
 import { element } from "./dom.js";
 
 const loadingMessages = {
@@ -21,13 +22,13 @@ export const shellView = {
   },
 
   showError(message) {
-    element("error").textContent = message || "Unable to complete the operation.";
+    element("error").textContent = t(message || "Unable to complete the operation.");
     element("error-panel").hidden = false;
   },
 
   hasError() { return !element("error-panel").hidden; },
 
-  showLoading(operation) { element("loading-text").textContent = loadingMessages[operation]; },
+  showLoading(operation) { element("loading-text").textContent = t(loadingMessages[operation]); },
 
   updateControls(busy, answersLocked) {
     for (const button of document.querySelectorAll("button")) {
