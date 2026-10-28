@@ -39,6 +39,21 @@ class GameControllerTest {
     }
 
     @Test
+    void acceptsEachModeAndRejectsUnknownModes() throws Exception {
+        for (String mode : List.of("CAPITALS", "SURVIVAL", "TIMED")) {
+            var response = http.post("/api/games", Map.of("mode", mode));
+            assertEquals(201, response.statusCode());
+            var state = http.readJson(response);
+            assertEquals(mode, state.get("mode").asText());
+            assertEquals(mode.equals("TIMED"), !state.get("expiresAt").isNull());
+            var status = http.post("/api/games/status", Map.of("gameId", state.get("gameId").asText()));
+            assertEquals(200, status.statusCode());
+            assertEquals(state, http.readJson(status));
+        }
+        assertEquals(400, http.post("/api/games", Map.of("mode", "UNKNOWN")).statusCode());
+    }
+
+    @Test
     void rejectsMalformedMissingOversizedAndUnexpectedStartData() throws Exception {
         for (String body : List.of("{", "null", "{\"playerName\":\"Rai\"}",
                 "{\"score\":10}", "x".repeat(4097))) {

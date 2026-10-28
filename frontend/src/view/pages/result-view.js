@@ -10,5 +10,6 @@ export const resultView = {
     element("result-score").textContent = String(state.score);
     element("result-total").textContent = `/${state.total}`;
     element("summary").textContent = `${playerName}, you answered ${state.score} out of ${state.total} questions correctly.`;
+    element("result-title").textContent = state.timedOut ? "Time is up!" : "Round complete";
   }
 };

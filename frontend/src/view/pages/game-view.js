@@ -5,6 +5,16 @@ function renderScore(score) {
 }
 
 export const gameView = {
+  renderMode(mode, timed) {
+    element("mode-label").textContent = {
+      CAPITALS: "CAPITALS · 10 QUESTIONS", SURVIVAL: "SURVIVAL · ONE MISTAKE ENDS THE ROUND",
+      TIMED: "AGAINST THE CLOCK · 60 SECONDS"
+    }[mode];
+    element("timer").hidden = !timed;
+  },
+
+  renderTimer(seconds) { element("timer").textContent = `Time remaining: ${seconds}s`; },
+
   bind({ onNext, onRestart, canRestart, canContinue, canAnswer }) {
     element("next").addEventListener("click", onNext);
     element("restart-round").addEventListener("click", onRestart);
@@ -42,7 +52,7 @@ export const gameView = {
     element("progress").textContent = `QUESTION ${state.number} OF ${state.total}`;
     renderScore(state.score);
     element("round-progress").max = state.total;
-    element("round-progress").value = state.score;
+    element("round-progress").value = state.number - 1;
     element("player-label").textContent = `Your turn, ${playerName}.`;
     element("question").textContent = state.question.text;
     element("feedback").textContent = "";
@@ -66,7 +76,8 @@ export const gameView = {
   renderAnswer(answer, choice, playerName) {
     const state = answer.state;
     renderScore(state.score);
-    element("round-progress").value = state.score + (answer.correct ? 0 : 1);
+    element("round-progress").value = Math.min(state.total,
+      Number(element("round-progress").value) + 1);
     for (const button of element("alternatives").children) {
       const correct = button.dataset.choice === answer.correctAnswer;
       const selected = button.dataset.choice === choice;

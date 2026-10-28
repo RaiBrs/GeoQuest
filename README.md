@@ -26,7 +26,7 @@ GeoQuest is a capital-city quiz built with a Java backend and a lightweight HTML
 
 | Pick a name | Take the challenge | See your result |
 | :--- | :--- | :--- |
-| Your name personalizes greetings during the game. | Ten questions. Four choices each. Your first mistake ends the round. | The final screen shows the score for that round. |
+| Your name personalizes greetings in the hub and game. | Choose Capitals, Survival, or Against the clock. | The final screen shows the score for that round. |
 
 ### Names are only for greetings
 
@@ -35,11 +35,23 @@ The name is a display preference used for messages such as **â€œYour turn, Rai.â
 
 - Any player can choose the same name; no uniqueness or name ownership is enforced.
 - The name stays in the browser's current JavaScript state. It is not sent to the API or stored in a database, cookie, or browser storage by the application.
-- Play again keeps the name. Back to home, the header's Home button, or reloading the page clears it.
+- Play again keeps the name and selected mode. Back to hub and the header's Home button keep the name; Change player or reloading the page clears it.
 - The form accepts up to 80 Unicode code points after trimming surrounding whitespace, and rejects blank names and control characters.
 - User-entered names are rendered with `textContent` so they remain plain text.
 
 ### Round rules
+
+The hub offers three modes, all using world-capital questions:
+
+| Mode | Rules |
+| :--- | :--- |
+| Capitals (`CAPITALS`) | Answer all 10 questions, continuing after mistakes. |
+| Survival (`SURVIVAL`) | Up to 10 questions; the first mistake ends the round. |
+| Against the clock (`TIMED`) | Up to 10 questions in 60 seconds, continuing after mistakes. The Java server enforces the deadline. |
+
+Each correct answer earns one point. Answered-question progress is separate from the score.
+Returning to the hub leaves the current round; choosing a mode starts a new round.
+Timed rounds show their result when the deadline is reached, even without submitting an answer.
 
 - Country and capital data comes from REST Countries.
 - Every displayed capital appears at most once within a round, including distractors.
@@ -194,8 +206,9 @@ Routes use the same origin as the browser page. Request bodies must use `Content
 
 | Method | Endpoint | Request | Result |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/games` | `{}` | Creates an anonymous round and returns its first question. |
+| `POST` | `/api/games` | `mode` | Creates a round in `CAPITALS`, `SURVIVAL`, or `TIMED`; omitted mode defaults to `SURVIVAL`. |
 | `POST` | `/api/answers` | `gameId`, `number`, `choice` | Checks the answer and returns updated state. |
+| `POST` | `/api/games/status` | `gameId` | Returns current state, checking whether the server deadline has passed. |
 
 The start request is an empty JSON object. Display names are not accepted as API fields.
 The former `/api/ranking` and `/api/results` routes return `404`.
@@ -207,7 +220,8 @@ Content-Type: application/json
 {}
 ```
 
-The response includes a `gameId`, question number, total, score, finished flag, and question alternatives.
+The response includes a `gameId`, question number, total, score, finished flag, question alternatives,
+`mode`, `expiresAt` (Unix milliseconds, or null for untimed modes), and `timedOut`.
 It contains neither a name nor an answer key. When a round ends, the answer response already contains
 the final server-calculated score; the browser displays it without another request.
 
