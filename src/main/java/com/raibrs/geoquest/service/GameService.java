@@ -55,6 +55,11 @@ public final class GameService {
 
     public GameView start(GameMode mode, QuestionType type, GameLanguage language)
             throws IOException, InterruptedException {
+        return start(mode, type, language, null);
+    }
+
+    public GameView start(GameMode mode, QuestionType type, GameLanguage language, UUID owner)
+            throws IOException, InterruptedException {
         Objects.requireNonNull(mode);
         Objects.requireNonNull(type);
         Objects.requireNonNull(language);
@@ -67,20 +72,23 @@ public final class GameService {
             throw new IOException("Country catalog cannot produce a round.", exception);
         }
         Round round = new Round(new GameSession(questions, mode, clock,
-                () -> questionService.createQuestions(catalog, 10, type, language)), clock.instant());
+                () -> questionService.createQuestions(catalog, 10, type, language)), clock.instant(), owner, type);
         synchronized (round) {
             rounds.put(round.id, round);
             return view(round);
         }
     }
 
-    public AnswerView answer(AnswerRequest request) {
+    public AnswerView answer(AnswerRequest request) { return answer(request, null); }
+
+    public AnswerView answer(AnswerRequest request, UUID owner) {
         if (request == null) {
             throw new IllegalArgumentException("Provide an answer.");
         }
         Round round = findRound(request.gameId());
         synchronized (round) {
             requireActive(round);
+            requireOwner(round, owner);
             round.lastActivity = clock.instant();
             return answer(round, request);
         }
@@ -119,13 +127,22 @@ public final class GameService {
         return round;
     }
 
-    public GameView status(UUID gameId) {
+    public GameView status(UUID gameId) { return status(gameId, null); }
+
+    public GameView status(UUID gameId, UUID owner) {
         Round round = findRound(gameId);
         synchronized (round) {
             requireActive(round);
+            requireOwner(round, owner);
             round.lastActivity = clock.instant();
             return view(round);
         }
+    }
+
+    public QuestionType questionType(UUID gameId) { return findRound(gameId).type; }
+
+    private void requireOwner(Round round, UUID owner) {
+        if (!Objects.equals(round.owner, owner)) throw new NoSuchElementException("Round not found. Start a new game.");
     }
 
     private GameView view(Round round) {
@@ -174,6 +191,12 @@ public final class GameService {
         }
     }
 
+    public void removePlayerRounds(UUID owner) {
+        rounds.forEach((id, round) -> {
+            if (owner.equals(round.owner)) synchronized (round) { rounds.remove(id, round); }
+        });
+    }
+
     public int cleanupExpiredRounds() {
         int removed = 0;
         for (Round round : rounds.values()) {
@@ -187,14 +210,18 @@ public final class GameService {
     private static final class Round {
         private final UUID id = UUID.randomUUID();
         private final GameSession session;
+        private final UUID owner;
+        private final QuestionType type;
         private AnswerRequest lastRequest;
         private AnswerView lastAnswer;
 
         private Instant lastActivity;
         private Instant finishedAt;
 
-        private Round(GameSession session, Instant now) {
+        private Round(GameSession session, Instant now, UUID owner, QuestionType type) {
             this.session = session;
+            this.owner = owner;
+            this.type = type;
             this.lastActivity = now;
         }
     }

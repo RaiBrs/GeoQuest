@@ -38,6 +38,9 @@ public final class TestHttpServer implements AutoCloseable {
     public HttpResponse<String> get(String path) throws IOException, InterruptedException {
         return client.send(request(path).GET().build(), HttpResponse.BodyHandlers.ofString());
     }
+    public HttpResponse<String> head(String path) throws IOException, InterruptedException {
+        return client.send(request(path).method("HEAD", HttpRequest.BodyPublishers.noBody()).build(), HttpResponse.BodyHandlers.ofString());
+    }
 
     public HttpResponse<String> post(String path, Object body) throws IOException, InterruptedException {
         return postRaw(path, JSON.writeValueAsString(body), "application/json");

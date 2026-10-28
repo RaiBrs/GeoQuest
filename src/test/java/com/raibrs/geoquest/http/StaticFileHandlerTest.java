@@ -26,7 +26,7 @@ class StaticFileHandlerTest {
 
     @Test
     void servesTheBrowserAssets() throws Exception {
-        for (String asset : List.of("/", "/index.html", "/styles.css", "/styles/base.css",
+        for (String asset : List.of("/", "/index.html", "/privacy.html", "/src/controller/account-controller.js", "/styles.css", "/styles/base.css",
                 "/styles/layout.css", "/styles/components.css", "/styles/pages/welcome.css",
                 "/styles/pages/game.css", "/styles/pages/result.css", "/src/app.js", "/src/i18n.js",
                 "/src/controller/game-controller.js", "/src/service/game-service.js",
@@ -54,7 +54,18 @@ class StaticFileHandlerTest {
     }
 
     @Test
-    void onlyAllowsGetRequests() throws Exception {
+    void onlyAllowsGetAndHeadRequests() throws Exception {
         assertEquals(405, http.post("/", Map.of()).statusCode());
+    }
+    @Test
+    void headReturnsGetHeadersWithoutABodyForPagesAssetsAndMissingFiles() throws Exception {
+        for (String path : List.of("/", "/styles.css", "/assets/geoquest-icon.svg", "/missing.html")) {
+            var get = http.get(path);
+            var head = http.head(path);
+            assertEquals(get.statusCode(), head.statusCode(), path);
+            assertEquals(get.headers().firstValue("Content-Type"), head.headers().firstValue("Content-Type"), path);
+            assertEquals(get.headers().firstValue("Content-Length"), head.headers().firstValue("Content-Length"), path);
+            assertEquals("", head.body(), path);
+        }
     }
 }

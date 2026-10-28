@@ -101,7 +101,8 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
   }
   const name = "Rai <script>text</script>";
   try {
-    await import("../src/app.js");
+    const { initializeGameController } = await import("../src/controller/game-controller.js");
+    initializeGameController();
     for (const invalid of ["   ", "😀".repeat(81), "Rai\n"]) {
       ui["player-name"].value = invalid;
       ui["player-name"].emit("input");
