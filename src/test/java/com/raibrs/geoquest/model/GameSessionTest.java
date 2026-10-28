@@ -52,17 +52,21 @@ class GameSessionTest {
         assertTrue(session.isTimedOut());
         assertThrows(IllegalStateException.class, () -> session.answer("Two"));
         assertEquals(0, session.getScore());
+        assertEquals(1, session.getMistakes().size(), "Unanswered questions are not mistakes");
     }
 
     @Test
-    void completingTimedRoundBeforeDeadlineDoesNotBecomeATimeoutLater() {
+    void finishingABatchDoesNotFinishATimedRound() {
         var clock = new MutableClock();
         var session = new GameSession(List.of(new Question("First?", "One", ALTERNATIVES)),
                 GameMode.TIMED, clock);
         session.answer("One");
+        assertFalse(session.isFinished());
+        assertEquals("First?", session.getCurrentQuestion().getText());
+        assertEquals(2, session.getCurrentQuestionNumber());
         clock.now = clock.now.plusSeconds(60);
         assertTrue(session.isFinished());
-        assertFalse(session.isTimedOut());
+        assertTrue(session.isTimedOut());
         assertEquals(1, session.getScore());
     }
 

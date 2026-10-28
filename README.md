@@ -39,6 +39,26 @@ The name is a display preference used for messages such as **“Your turn, Rai.�
 - The form accepts up to 80 Unicode code points after trimming surrounding whitespace, and rejects blank names and control characters.
 - User-entered names are rendered with `textContent` so they remain plain text.
 
+### Languages and question types
+
+Use the header selector to choose English or Brazilian Portuguese before a round. The choice
+applies to interface text, greetings, feedback, and Java-generated prompts, and stays fixed during
+the round. Country names use Portuguese API translations with an ISO/Java locale fallback. Capital names
+use a bundled Portuguese catalog sourced from Wikidata with Brazilian spellings and aliases.
+Names are localized before generating questions, including all distractors in both question directions.
+Entries without complete localization are excluded from Portuguese rounds instead of falling back
+to English. The real catalog audit on 2026-10-28 covered all 249 entries with a capital.
+See [catalog provenance](src/main/resources/localization/README.md) for sources and maintenance.
+The hub offers **Find the capital** (default) and **Find the country** in all three modes.
+Country questions exclude shared capitals to avoid ambiguous correct answers.
+At the end of a round, **See where I went wrong / Veja onde eu errei** lists each incorrect
+question, the submitted answer, and the correct answer. Review data is provided only for finished
+rounds and is kept in session memory. Retries do not duplicate errors; unanswered questions are
+not counted as mistakes. A round without mistakes displays a clear empty state.
+
+The final ten seconds show a warning; results distinguish perfect rounds, survival endings, and timeouts.
+Screen transitions respect reduced-motion preferences.
+
 ### Round rules
 
 The hub offers three modes, all using world-capital questions:
@@ -47,7 +67,12 @@ The hub offers three modes, all using world-capital questions:
 | :--- | :--- |
 | Capitals (`CAPITALS`) | Answer all 10 questions, continuing after mistakes. |
 | Survival (`SURVIVAL`) | Up to 10 questions; the first mistake ends the round. |
-| Against the clock (`TIMED`) | Up to 10 questions in 60 seconds, continuing after mistakes. The Java server enforces the deadline. |
+| Against the clock (`TIMED`) | Unlimited questions for 60 seconds, continuing after mistakes. The Java server enforces the deadline. |
+
+Timed rounds load fresh batches as needed, keep the original deadline, and have no question limit.
+Questions and alternatives can repeat across batches when drawing again from the finite country catalog.
+Their progress bar shows remaining time; their result reports correct and submitted answers without a fixed denominator.
+The API returns `total: null` for timed rounds and an `answered` count for every mode.
 
 Each correct answer earns one point. Answered-question progress is separate from the score.
 Returning to the hub leaves the current round; choosing a mode starts a new round.
@@ -60,9 +85,9 @@ Timed rounds show their result when the deadline is reached, even without submit
 - Retrying the same answer returns its original response without counting it twice.
 - When a round ends, choose **Play again** directly from the answer screen or **View result**.
 - On the answer screen, **R** restarts a finished round with the same greeting name, while **Space** opens its result.
-- Rounds remain in server memory until shutdown; scores are shown for the current round and are not persisted.
+- Rounds stay in server memory: idle rounds expire after 30 minutes, and finished rounds are retained for 5 minutes to support network retries. Scores are not persisted.
 
-The interface is in English, uses a responsive blue design, supports **A–D to answer** and
+The interface supports English and Brazilian Portuguese, uses a responsive blue design, supports **A–D to answer** and
 **Space to continue**, restores keyboard focus after requests, and respects reduced-motion preferences.
 
 There is no global leaderboard, registration, authentication, or persistent player profile.
@@ -206,7 +231,7 @@ Routes use the same origin as the browser page. Request bodies must use `Content
 
 | Method | Endpoint | Request | Result |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/games` | `mode` | Creates a round in `CAPITALS`, `SURVIVAL`, or `TIMED`; omitted mode defaults to `SURVIVAL`. |
+| `POST` | `/api/games` | `mode`, `questionType`, `language` | Creates a round in `CAPITALS`, `SURVIVAL`, or `TIMED`; omitted mode defaults to `SURVIVAL`. |
 | `POST` | `/api/answers` | `gameId`, `number`, `choice` | Checks the answer and returns updated state. |
 | `POST` | `/api/games/status` | `gameId` | Returns current state, checking whether the server deadline has passed. |
 
@@ -220,8 +245,11 @@ Content-Type: application/json
 {}
 ```
 
+Optional start fields: `questionType` is `CAPITAL` or `COUNTRY` (default `CAPITAL`); `language` is `EN` or `PT_BR` (default `EN`). Unknown values return HTTP 400.
+
 The response includes a `gameId`, question number, total, score, finished flag, question alternatives,
-`mode`, `expiresAt` (Unix milliseconds, or null for untimed modes), and `timedOut`.
+`mode`, `expiresAt` (Unix milliseconds, or null for untimed modes), `timedOut`, and `mistakes`.
+`mistakes` is empty during play; after completion it contains `number`, `text`, `selectedAnswer`, and `correctAnswer`.
 It contains neither a name nor an answer key. When a round ends, the answer response already contains
 the final server-calculated score; the browser displays it without another request.
 
@@ -257,12 +285,16 @@ Front-end behavior tests use a minimal DOM adapter; visual and native keyboard c
 - [x] Separate controllers, views, API service, and styles.
 - [x] Responsive blue interface, keyboard access, and reduced-motion support.
 - [x] Anonymous rounds with no database dependency or global ranking.
-- [ ] Refine feedback, transitions, and question types.
-- [ ] Add session cleanup and improve concurrency before public hosting.
-- [ ] Expand language support.
+- [x] Refine feedback, transitions, and question types.
+- [x] Add session cleanup and improve concurrency before public hosting.
+- [x] Support English and Brazilian Portuguese.
 
-The current server binds to `127.0.0.1`, serializes game operations, and retains rounds until shutdown.
-Public hosting also needs concurrency and abuse-prevention work. Open, account-free play remains a product decision.
+The server binds to `127.0.0.1`. A cleanup task runs every minute and stops during server shutdown.
+Requests also check expiration before using a round. Each round has its own lock for answer validation,
+scoring, retries, status, and removal. Catalog loading uses a separate lock; question generation is
+serialized independently and does not block answers to existing rounds.
+Public hosting still needs abuse prevention, resource limits, and deployment configuration.
+Open, account-free play remains a product decision.
 
 ---
 

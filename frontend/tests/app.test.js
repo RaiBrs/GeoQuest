@@ -32,7 +32,7 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
   Date.now = () => now;
   globalThis.setInterval = callback => { tick = callback; return 1; };
   globalThis.clearInterval = () => { tick = undefined; };
-  const ids = ["hub", "hub-title", "mode-capitals", "mode-survival", "mode-timed", "change-player", "mode-label", "timer",
+  const ids = ["mistake-review", "mistake-list", "review-note","language", "question-type", "time-warning","hub", "hub-title", "mode-capitals", "mode-survival", "mode-timed", "change-player", "mode-label", "timer",
     "app", "home", "welcome", "game", "result", "player-form", "player-name",
     "error", "error-panel", "retry", "progress", "round-progress", "score", "player-label", "question",
     "feedback", "next", "restart-round", "keyboard-hint", "alternatives", "summary", "result-title", "result-score", "result-total",
@@ -45,6 +45,7 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
   const staticButtons = ["home", "retry", "next", "restart-round", "restart", "back-to-home"].map(id => ui[id]);
   const documentHandlers = {}, windowHandlers = {};
   globalThis.document = {
+    documentElement: { lang: "en" },
     getElementById: id => ui[id], createElement: name => new Element("", name.toUpperCase()),
     querySelectorAll: () => [...staticButtons, ...ui.alternatives.children],
     addEventListener: (name, fn) => { documentHandlers[name] = fn; }
@@ -54,7 +55,8 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
   const requests = [];
   let starts = 0, answers = 0;
   let failNextStart = false;
-  let expectedMode = "SURVIVAL", activeMode, expiresAt;
+  let timedAnswered = 0;
+  let expectedMode = "SURVIVAL", expectedType = "CAPITAL", expectedLanguage = "EN", activeMode, expiresAt;
   const initial = { gameId: "round", number: 1, total: 2, score: 0, finished: false,
     question: { text: "Capital?", alternatives: ["A", "B", "C", "D"] } };
   globalThis.fetch = async (url, options) => {
@@ -62,27 +64,30 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
     requests.push({ url, body });
     let payload;
     if (url === "/api/games") {
-      assert.deepEqual(body, { mode: expectedMode }, "Only the selected mode is sent to Java");
+      assert.deepEqual(body, { mode: expectedMode, questionType: expectedType, language: expectedLanguage }, "Only the selected mode is sent to Java");
       if (failNextStart) {
         failNextStart = false;
         return { ok: false, json: async () => ({ message: "Could not start a new round." }) };
       }
       starts++;
       activeMode = body.mode;
+      timedAnswered = 0;
       expiresAt = activeMode === "TIMED" ? now + 60000 : null;
-      payload = { ...initial, gameId: "round-" + starts, mode: activeMode, expiresAt };
+      payload = { ...initial, gameId: "round-" + starts, mode: activeMode, expiresAt, total: activeMode === "TIMED" ? null : initial.total, answered: 0 };
     } else if (url === "/api/answers") {
       answers++;
       if (answers === 1) throw new Error("Network response lost");
       const correct = body.choice === "B";
-      const finished = (!correct && activeMode === "SURVIVAL") || body.number === 2;
+      const finished = activeMode !== "TIMED" && ((!correct && activeMode === "SURVIVAL") || body.number === 2);
+      if (activeMode === "TIMED") timedAnswered++;
       payload = { correct, correctAnswer: "B", state: { ...initial, gameId: body.gameId,
         score: correct ? body.number : body.number - 1,
         number: finished ? body.number : body.number + 1, finished,
-        question: finished ? null : initial.question, mode: activeMode, expiresAt } };
+        question: finished ? null : initial.question, mode: activeMode, expiresAt,
+        total: activeMode === "TIMED" ? null : initial.total, answered: body.number } };
     } else if (url === "/api/games/status") {
       payload = { ...initial, gameId: body.gameId, mode: "TIMED", expiresAt,
-        finished: true, timedOut: true, question: null };
+        finished: true, timedOut: true, question: null, total: null, answered: timedAnswered, score: timedAnswered };
     } else {
       throw new Error("Unexpected API route: " + url);
     }
@@ -222,11 +227,21 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
     await settle();
     assert.equal(ui.timer.hidden, false);
     assert.match(ui.timer.textContent, /60s/);
+    for (let i = 0; i < 12; i++) {
+      press("b");
+      await settle();
+      press(" ", ui.next);
+    }
+    assert.equal(ui.progress.textContent, "QUESTION 13");
+    assert.equal(ui["round-progress"].max, 60);
+    assert.equal(ui["round-progress"].value, 60);
     now += 60000;
     tick();
     await settle();
     assert.equal(ui.result.hidden, false, "The timer ends an idle round");
     assert.equal(ui["result-title"].textContent, "Time is up!");
+    assert.equal(ui["result-total"].textContent, "");
+    assert.match(ui.summary.textContent, /12 correct answers from 12 questions/);
     assert.equal(tick, undefined);
     ui["back-to-home"].click();
     ui["mode-timed"].click();
@@ -238,5 +253,24 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
     assert.equal(ui["player-name"].value, "");
     assert.equal(document.activeElement, ui["player-name"]);
     assert.ok(requests.every(request => !JSON.stringify(request.body).includes(name)));
+    ui.language.value = "PT_BR";
+    ui.language.emit("change");
+    assert.equal(document.documentElement.lang, "pt-BR");
+    ui["player-name"].value = "Rai";
+    ui["player-form"].emit("submit");
+    assert.equal(ui["hub-title"].textContent, "Olá, Rai!");
+    ui["question-type"].value = "COUNTRY";
+    expectedType = "COUNTRY";
+    expectedLanguage = "PT_BR";
+    ui["mode-timed"].click();
+    await settle();
+    assert.equal(ui.language.disabled, true, "Language stays fixed during a round");
+    now += 51000;
+    tick();
+    assert.equal(ui["time-warning"].textContent, "Restam apenas 9 segundos!");
+    assert.equal(ui.timer.dataset.urgent, "true");
+    ui.home.click();
+    assert.equal(tick, undefined);
+    assert.equal(ui.language.disabled, false);
   } finally { Object.assign(globalThis, original); Date.now = originalNow; }
 });

@@ -2,10 +2,8 @@
 .app-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 32px 0; }
 .brand { display: inline-flex; align-items: center; gap: 12px; padding: 0; border: 0; background: none; color: #214d7b; font-size: 22px; font-weight: 750; }
 .brand-mark { display: block; width: 42px; height: 42px; flex-shrink: 0; }
-.screen { animation: arrive 180ms ease-out; }
 .play-card, .result-card { max-width: 780px; margin: 20px auto; padding: clamp(24px, 4vw, 44px); }
 footer { margin: 28px 0; text-align: center; color: #526b86; font-size: 12px; }
-@keyframes arrive { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 @media (max-width: 760px) {
   .app-header { padding: 24px 0; }
   .play-card, .result-card { margin-top: 8px; }

@@ -79,7 +79,7 @@ public class CountriesClient {
 
         HttpRequest request = HttpRequest.newBuilder()
                 // Ask only for the fields we need to keep the response small.
-                .uri(URI.create(baseUri + "?response_fields=names.common,capitals&limit=" + limit
+                .uri(URI.create(baseUri + "?response_fields=names.common,names.translations.por,codes.alpha_2,capitals&limit=" + limit
                         + "&offset=" + offset))
                 .header("Authorization", "Bearer " + apiKey)
                 .timeout(requestTimeout)

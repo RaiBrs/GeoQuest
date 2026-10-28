@@ -4,6 +4,8 @@ import com.raibrs.geoquest.dto.GameDtos.AnswerRequest;
 import com.raibrs.geoquest.dto.GameDtos.StartRequest;
 import com.raibrs.geoquest.dto.GameDtos.StatusRequest;
 import com.raibrs.geoquest.model.GameMode;
+import com.raibrs.geoquest.model.GameLanguage;
+import com.raibrs.geoquest.model.QuestionType;
 import com.raibrs.geoquest.http.JsonHttp;
 import com.raibrs.geoquest.service.GameService;
 import com.sun.net.httpserver.HttpExchange;
@@ -43,7 +45,9 @@ public final class GameController implements HttpHandler {
             case GAMES -> {
                 var request = JsonHttp.read(exchange, StartRequest.class);
                 JsonHttp.send(exchange, 201, games.start(
-                        request.mode() == null ? GameMode.SURVIVAL : request.mode()));
+                        request.mode() == null ? GameMode.SURVIVAL : request.mode(),
+                        request.questionType() == null ? QuestionType.CAPITAL : request.questionType(),
+                        request.language() == null ? GameLanguage.EN : request.language()));
             }
             case STATUS -> JsonHttp.send(exchange, 200,
                     games.status(JsonHttp.read(exchange, StatusRequest.class).gameId()));

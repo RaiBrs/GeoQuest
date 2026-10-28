@@ -15,6 +15,17 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 class GameControllerTest {
+    @Test
+    void startsLocalizedCountryQuestionsAndRejectsUnknownPreferences() throws Exception {
+        var response = http.post("/api/games", Map.of("mode", "CAPITALS",
+                "questionType", "COUNTRY", "language", "PT_BR"));
+        assertEquals(201, response.statusCode());
+        var question = http.readJson(response).get("question");
+        assertTrue(question.get("text").asText().startsWith("De qual país Capital "));
+        assertFalse(question.has("correctAnswer"));
+        assertEquals(400, http.post("/api/games", Map.of("language", "UNKNOWN")).statusCode());
+        assertEquals(400, http.post("/api/games", Map.of("questionType", "UNKNOWN")).statusCode());
+    }
     private final TestCountriesClient countries = new TestCountriesClient();
     private final GameService games = new GameService(countries, new QuestionService());
     private TestHttpServer http;

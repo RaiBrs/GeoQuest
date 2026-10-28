@@ -15,7 +15,7 @@ public final class StaticFileHandler implements HttpHandler {
             "index.html", "styles.css", "assets/geoquest-icon.svg",
             "styles/base.css", "styles/layout.css", "styles/components.css",
             "styles/pages/welcome.css", "styles/pages/game.css", "styles/pages/result.css",
-            "src/app.js", "src/controller/game-controller.js", "src/service/game-service.js",
+            "src/i18n.js", "src/app.js", "src/controller/game-controller.js", "src/service/game-service.js",
             "src/view/dom.js", "src/view/shell-view.js",
             "src/view/pages/welcome-view.js", "src/view/pages/hub-view.js",
             "src/view/pages/game-view.js", "src/view/pages/result-view.js");
