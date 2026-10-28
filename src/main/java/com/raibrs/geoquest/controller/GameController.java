@@ -22,9 +22,15 @@ public final class GameController implements HttpHandler {
     // The server and controller share these paths so registration cannot drift from routing.
     public static final Set<String> ROUTES = Set.of(GAMES, ANSWERS, STATUS);
     private final GameService games;
+    private final com.raibrs.geoquest.account.AccountController accounts;
 
     public GameController(GameService games) {
+        this(games, new com.raibrs.geoquest.account.AccountController(null, null));
+    }
+
+    public GameController(GameService games, com.raibrs.geoquest.account.AccountController accounts) {
         this.games = Objects.requireNonNull(games);
+        this.accounts = Objects.requireNonNull(accounts);
     }
 
     @Override
@@ -39,7 +45,9 @@ public final class GameController implements HttpHandler {
             JsonHttp.error(exchange, 404, "Endpoint not found.");
             return;
         }
-        if (!JsonHttp.requireMethod(exchange, "POST") || !JsonHttp.requireJson(exchange)) return;
+        if (!JsonHttp.requireMethod(exchange, "POST") || !accounts.requireOrigin(exchange) || !JsonHttp.requireJson(exchange)) return;
+        var user = accounts.user(exchange);
+        var owner = user == null ? null : user.id();
 
         switch (path) {
             case GAMES -> {
@@ -47,13 +55,18 @@ public final class GameController implements HttpHandler {
                 JsonHttp.send(exchange, 201, games.start(
                         request.mode() == null ? GameMode.SURVIVAL : request.mode(),
                         request.questionType() == null ? QuestionType.CAPITAL : request.questionType(),
-                        request.language() == null ? GameLanguage.EN : request.language()));
+                        request.language() == null ? GameLanguage.EN : request.language(), owner));
             }
-            case STATUS -> JsonHttp.send(exchange, 200,
-                    games.status(JsonHttp.read(exchange, StatusRequest.class).gameId()));
+            case STATUS -> {
+                var state = games.status(JsonHttp.read(exchange, StatusRequest.class).gameId(), owner);
+                accounts.save(user, state, games.questionType(state.gameId()));
+                JsonHttp.send(exchange, 200, state);
+            }
             case ANSWERS -> {
                 var request = JsonHttp.read(exchange, AnswerRequest.class);
-                JsonHttp.send(exchange, 200, games.answer(request));
+                var answer = games.answer(request, owner);
+                accounts.save(user, answer.state(), games.questionType(request.gameId()));
+                JsonHttp.send(exchange, 200, answer);
             }
             default -> throw new IllegalStateException("Unexpected game route.");
         }

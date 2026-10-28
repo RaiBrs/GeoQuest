@@ -1,0 +1,13 @@
+# Only application sources and browser assets enter the build context.
+**
+!pom.xml
+!src/
+!src/**
+!frontend/
+!frontend/**
+frontend/node_modules/
+frontend/tests/
+**/.env
+**/.env.*
+**/*.log
+**/target/

@@ -28,13 +28,13 @@ GeoQuest is a capital-city quiz built with a Java backend and a lightweight HTML
 | :--- | :--- | :--- |
 | Your name personalizes greetings in the hub and game. | Choose Capitals, Survival, or Against the clock. | The final screen shows the score for that round. |
 
-### Names are only for greetings
+### Visitor names are only for greetings
 
 The name is a display preference used for messages such as **“Your turn, Rai.”** and
-**“Well done, Rai! Correct answer.”** It does not identify an account or a ranking entry.
+**“Well done, Rai! Correct answer.”** For visitors, it does not identify an account or a ranking entry. Signed-in players use the provider profile name.
 
 - Any player can choose the same name; no uniqueness or name ownership is enforced.
-- The name stays in the browser's current JavaScript state. It is not sent to the API or stored in a database, cookie, or browser storage by the application.
+- The visitor name stays in the browser's current JavaScript state. It is not sent to the API or stored in a database, cookie, or browser storage by the application.
 - Play again keeps the name and selected mode. Back to hub and the header's Home button keep the name; Change player or reloading the page clears it.
 - The form accepts up to 80 Unicode code points after trimming surrounding whitespace, and rejects blank names and control characters.
 - User-entered names are rendered with `textContent` so they remain plain text.
@@ -85,15 +85,22 @@ Timed rounds show their result when the deadline is reached, even without submit
 - Retrying the same answer returns its original response without counting it twice.
 - When a round ends, choose **Play again** directly from the answer screen or **View result**.
 - On the answer screen, **R** restarts a finished round with the same greeting name, while **Space** opens its result.
-- Rounds stay in server memory: idle rounds expire after 30 minutes, and finished rounds are retained for 5 minutes to support network retries. Scores are not persisted.
+- Rounds stay in server memory: idle rounds expire after 30 minutes, and finished rounds are retained for 5 minutes to support network retries. Completed signed-in results are persisted; visitor scores are not.
 
 The interface supports English and Brazilian Portuguese, uses a responsive blue design, supports **A–D to answer** and
 **Space to continue**, restores keyboard focus after requests, and respects reduced-motion preferences.
 
-There is no global leaderboard, registration, authentication, or persistent player profile.
-The former ranking, result-saving routes, database layer, administrative terminal, and PostgreSQL
-tests have been removed. Existing databases from earlier versions are untouched; this application
-no longer connects to them.
+### Optional accounts and ranking
+
+Sign in directly with Google or GitHub to keep a profile and completed results in PostgreSQL.
+The hub shows a top-20 ranking filtered by mode and question type, with each player's best result.
+A recently signed-in player can delete their GeoQuest account, sessions and results using the
+confirmation form. Visitor rounds remain available and do not enter the ranking.
+
+Accounts are opt-in with `ACCOUNTS_ENABLED=true`; only configured providers are shown.
+Apply `database/001_accounts.sql` before enabling them. See
+[Render + Neon deployment](docs/DEPLOYMENT.md) for credentials, provider callbacks, security behavior,
+local database tests and the public deployment checklist. All identity secrets remain on the Java server.
 
 ## Run locally
 
@@ -124,8 +131,8 @@ API_KEY=your-rest-countries-api-key
 ```
 
 Explicit process or IDE environment variables override the file. Keep `.env` local: Git ignores it,
-while `.env.example` contains a placeholder only. Existing `DATABASE_*` entries from an older local
-configuration are unused by the game and may be removed from that local file.
+while `.env.example` contains placeholders only. Database and OAuth settings are used only when
+accounts are enabled; visitor mode needs only the country API key.
 
 The file accepts plain `NAME=value` entries, blank lines, and full-line `#` comments. Optional matching
 quotes preserve spaces. Values are literal, with no variable expansion, inline comments, or multiline
@@ -141,8 +148,36 @@ Open **[localhost:8080](http://localhost:8080)** when the startup message appear
 running; press `Ctrl+C` to stop. Restart the server after Java changes and refresh with `Ctrl+F5`
 after browser-file changes. Opening the HTML through the IDE's static preview does not provide the API.
 
-When upgrading from the version with ranking, first stop the old server and run `mvn clean test`
-to remove obsolete compiled classes. Start the updated `WebApp`, then refresh the browser.
+## Run with Docker
+
+Run these commands from the folder containing `pom.xml` and `Dockerfile`:
+
+```powershell
+docker build -t geoquest .
+docker run --rm --name geoquest -p 127.0.0.1:8080:8080 --env-file .env geoquest
+```
+
+Open http://localhost:8080. Stop with Ctrl+C. Docker Desktop must be running in Linux-container mode.
+The image builds and runs Java tests in a Maven/JDK 25 stage, then copies the application JAR,
+runtime dependencies, localization resources, and frontend to a Java 25 JRE image. It runs as a
+non-root user. Tests do not call the real country API.
+
+The local `.env` never enters the build context or image. Pass `API_KEY` at runtime through
+`--env-file` or the hosting platform's environment settings. Use a Docker-compatible env file
+with unquoted `NAME=value` entries; Docker env-file parsing differs from the app's local parser.
+
+The image sets `HOST=0.0.0.0` and `PORT=8080` so published ports can reach Java. For a custom
+container port, change both the environment and the port mapping:
+
+```powershell
+docker run --rm --name geoquest -p 127.0.0.1:8081:10000 --env-file .env -e HOST=0.0.0.0 -e PORT=10000 geoquest
+```
+
+Without Docker, the defaults remain `HOST=127.0.0.1` and `PORT=8080`. Invalid ports fail at startup.
+The image runs frontend and API together. On a hosting platform, configure the listening port and
+`API_KEY`; no local `.env` is needed. PostgreSQL and OAuth settings are required only when enabling accounts. Keep one instance while sessions are in memory.
+Docker packaging does not make sessions shared: deploying this container to Vercel Functions still
+requires shared session storage to handle requests across instances. Restarts discard active rounds.
 
 ## Architecture
 
@@ -163,6 +198,7 @@ flowchart LR
 | :--- | :--- |
 | `WebApp` | Wires dependencies, registers handlers, and manages the HTTP server lifecycle. |
 | `controller/` | Reads JSON requests and selects game operations. |
+| `account/` | Handles provider sign-in, cookie sessions, PostgreSQL profiles, ranking, and deletion. |
 | `http/` | Shares JSON handling, error responses, and cleanup; serves an explicit static-file allowlist. |
 | `dto/` | Defines anonymous API input and output records. |
 | `model/` | Represents countries, questions, and sessions; owns scoring and answer transitions. |
@@ -231,11 +267,17 @@ Routes use the same origin as the browser page. Request bodies must use `Content
 
 | Method | Endpoint | Request | Result |
 | :--- | :--- | :--- | :--- |
+| `GET` | `/api/account` | — | Returns provider availability and the current display name. |
+| `GET` | `/auth/login` | provider query parameter | Starts Google/GitHub sign-in with PKCE and state. |
+| `GET` | `/auth/callback` | provider callback | Exchanges the code and creates an opaque session cookie. |
+| `POST` | `/api/logout` | `{}` | Revokes the current session. |
+| `POST` | `/api/account/delete` | `confirmation: "DELETE"` | Deletes account data after recent sign-in. |
+| `GET` | `/api/leaderboard` | mode, questionType query parameters | Returns the top 20 best results. |
 | `POST` | `/api/games` | `mode`, `questionType`, `language` | Creates a round in `CAPITALS`, `SURVIVAL`, or `TIMED`; omitted mode defaults to `SURVIVAL`. |
 | `POST` | `/api/answers` | `gameId`, `number`, `choice` | Checks the answer and returns updated state. |
 | `POST` | `/api/games/status` | `gameId` | Returns current state, checking whether the server deadline has passed. |
 
-The start request is an empty JSON object. Display names are not accepted as API fields.
+An empty JSON object starts a round with the default settings. Display names are not accepted as API fields.
 The former `/api/ranking` and `/api/results` routes return `404`.
 
 ```http
@@ -258,11 +300,11 @@ the final server-calculated score; the browser displays it without another reque
 | Suite | Command | External services |
 | :--- | :--- | :--- |
 | Java unit and local HTTP tests | `mvn test` | No production credentials or external service needed. |
+| PostgreSQL account integration | `mvn test` with `TEST_DATABASE_URL` | Dedicated disposable PostgreSQL database; see the deployment guide. |
 | Browser logic and API communication | `node --test frontend/tests/*.test.js` | No browser or network service needed. |
 
 Tests cover anonymous independent rounds, scoring, first-mistake termination, answer replay, JSON
-contracts, English errors, and public static-file access. They also verify that the former ranking
-routes are unavailable. Front-end checks cover greeting-only names, plain-text rendering, keyboard
+contracts, English errors, and public static-file access. They also verify that legacy ranking routes remain unavailable. Account and leaderboard routes have their own tests. Front-end checks cover greeting-only names, plain-text rendering, keyboard
 navigation, focus restoration, player reset, and retries without sending the display name to Java.
 Front-end behavior tests use a minimal DOM adapter; visual and native keyboard checks use a browser.
 
@@ -284,17 +326,18 @@ Front-end behavior tests use a minimal DOM adapter; visual and native keyboard c
 - [x] Display names used only for browser greetings.
 - [x] Separate controllers, views, API service, and styles.
 - [x] Responsive blue interface, keyboard access, and reduced-motion support.
-- [x] Anonymous rounds with no database dependency or global ranking.
+- [x] Visitor rounds without a database dependency.
+- [x] Optional Google/GitHub accounts, PostgreSQL ranking, and account deletion.
 - [x] Refine feedback, transitions, and question types.
 - [x] Add session cleanup and improve concurrency before public hosting.
 - [x] Support English and Brazilian Portuguese.
 
-The server binds to `127.0.0.1`. A cleanup task runs every minute and stops during server shutdown.
+The server defaults to `127.0.0.1:8080`; `HOST` and `PORT` can override it (the Docker image uses `0.0.0.0:8080`). A cleanup task runs every minute and stops during server shutdown.
 Requests also check expiration before using a round. Each round has its own lock for answer validation,
 scoring, retries, status, and removal. Catalog loading uses a separate lock; question generation is
 serialized independently and does not block answers to existing rounds.
-Public hosting still needs abuse prevention, resource limits, and deployment configuration.
-Open, account-free play remains a product decision.
+The deployment guide covers the initial public test setup. Before a broader release, add abuse
+prevention and resource limits. Account-free visitor play remains available.
 
 ---
 
