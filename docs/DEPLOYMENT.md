@@ -4,6 +4,33 @@ The Java server and frontend run together in one Render container. Neon is stand
 Google and GitHub handle sign-in directly through OAuth authorization code + PKCE. No hosted
 authentication intermediary is used. Existing visitor mode needs only API_KEY.
 
+## Configuração desta publicação
+
+- Endereço público: https://geoquest-raibrs.onrender.com
+- Painel do serviço: https://dashboard.render.com/web/srv-dbh2tcks728c73anvrk0
+- Branch publicada: `feat/render-neon-accounts` (atualizações nessa branch geram deploy automático).
+- O projeto Neon `geoquest` já recebeu a migração. As credenciais ficam nas variáveis do Render.
+- Inicialmente `ACCOUNTS_ENABLED=false`: partidas como visitante funcionam sem cadastrar contas.
+
+Para ativar as opções de conta:
+
+1. No Google Auth Platform, crie um cliente OAuth do tipo **Web application** e configure o
+   consentimento para o público de teste. Cadastre a URI de redirecionamento abaixo.
+2. Em GitHub → Settings → Developer settings → OAuth Apps, cadastre o endereço público como
+   **Homepage URL** e a URI abaixo como **Authorization callback URL**.
+3. No painel do Render, em **Environment**, preencha `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`,
+   `GITHUB_CLIENT_ID` e `GITHUB_CLIENT_SECRET`. Não envie esses segredos pelo chat nem pelo Git.
+4. Mude `ACCOUNTS_ENABLED` para `true`, salve com deploy e teste o login de cada provedor.
+   `APP_URL`, as credenciais do Neon e `API_KEY` já estão configurados no serviço.
+
+URI de retorno para os dois provedores:
+
+    https://geoquest-raibrs.onrender.com/auth/callback
+
+É possível ativar um provedor primeiro: deixe o par de variáveis do outro sem configuração.
+Essa etapa exige cadastrar os aplicativos nas contas dos provedores; o código não gera os
+identificadores e segredos OAuth. Nenhum login real é considerado validado antes desses testes.
+
 ## 1. Prepare the database
 
 Create a Neon project using its free plan and select a region close to the Render region.
