@@ -27,7 +27,7 @@ public final class JsonHttp {
         try {
             action.run();
         } catch (JsonProcessingException exception) {
-            error(exchange, 400, "JSON inválido.");
+            error(exchange, 400, "Invalid JSON.");
         } catch (IllegalArgumentException exception) {
             error(exchange, 400, exception.getMessage());
         } catch (NoSuchElementException exception) {
@@ -36,16 +36,16 @@ public final class JsonHttp {
             error(exchange, 409, exception.getMessage());
         } catch (SQLException exception) {
             LOGGER.log(System.Logger.Level.WARNING, "Ranking database operation failed.", exception);
-            error(exchange, 503, "Não foi possível acessar o ranking. Tente novamente.");
+            error(exchange, 503, "Unable to access the leaderboard. Please try again.");
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
-            error(exchange, 503, "A operação foi interrompida.");
+            error(exchange, 503, "The operation was interrupted. Please try again.");
         } catch (IOException exception) {
             LOGGER.log(System.Logger.Level.WARNING, "HTTP or country catalog operation failed.", exception);
-            error(exchange, 503, "Não foi possível concluir a operação. Tente novamente.");
+            error(exchange, 503, "Unable to complete the operation. Please try again.");
         } catch (RuntimeException exception) {
             LOGGER.log(System.Logger.Level.ERROR, "Unexpected HTTP failure.", exception);
-            error(exchange, 500, "Ocorreu um erro interno.");
+            error(exchange, 500, "An internal error occurred. Please try again.");
         } finally {
             exchange.close();
         }
@@ -55,7 +55,7 @@ public final class JsonHttp {
         String contentType = exchange.getRequestHeaders().getFirst("Content-Type");
         if (contentType == null || !contentType.split(";", 2)[0].trim()
                 .equalsIgnoreCase("application/json")) {
-            error(exchange, 415, "Envie o conteúdo como application/json.");
+            error(exchange, 415, "Send the request body as application/json.");
             return false;
         }
         return true;
@@ -64,7 +64,7 @@ public final class JsonHttp {
     public static boolean requireMethod(HttpExchange exchange, String expected) throws IOException {
         if (!expected.equals(exchange.getRequestMethod())) {
             exchange.getResponseHeaders().set("Allow", expected);
-            error(exchange, 405, "Método não permitido.");
+            error(exchange, 405, "Method not allowed.");
             return false;
         }
         return true;
@@ -74,11 +74,11 @@ public final class JsonHttp {
         // The extra byte detects oversized input without buffering an unlimited body.
         byte[] body = exchange.getRequestBody().readNBytes(MAX_BODY_BYTES + 1);
         if (body.length > MAX_BODY_BYTES) {
-            throw new IllegalArgumentException("Requisição muito grande.");
+            throw new IllegalArgumentException("Request body is too large.");
         }
         T value = JSON.readValue(body, type);
         if (value == null) {
-            throw new IllegalArgumentException("Informe os dados da requisição.");
+            throw new IllegalArgumentException("Provide the request data.");
         }
         return value;
     }

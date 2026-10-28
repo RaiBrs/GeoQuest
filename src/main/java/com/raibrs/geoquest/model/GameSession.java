@@ -32,7 +32,7 @@ public final class GameSession {
     public AnswerResult answer(String choice) {
         Question question = getCurrentQuestion();
         if (choice == null || !question.getAlternatives().contains(choice)) {
-            throw new IllegalArgumentException("Alternativa inválida.");
+            throw new IllegalArgumentException("Invalid answer choice.");
         }
         boolean correct = question.isCorrectAnswer(choice);
         // One state transition owns both scoring and termination, independent of any UI.

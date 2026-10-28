@@ -33,7 +33,7 @@ class DatabaseConfigTest {
 
         var exception = assertThrows(IllegalArgumentException.class, () -> DatabaseConfig.from(environment));
 
-        assertEquals("Set the " + setting + " environment variable.", exception.getMessage());
+        assertEquals("Configure " + setting + " in .env or as an environment variable.", exception.getMessage());
         assertFalse(exception.getMessage().contains("test-password"));
     }
 

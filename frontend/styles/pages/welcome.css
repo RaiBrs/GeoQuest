@@ -1,0 +1,15 @@
+.welcome-layout { display: grid; grid-template-columns: 1.15fr 1fr; align-items: center; gap: clamp(32px, 6vw, 88px); padding: 48px 0 32px; }
+.intro h1 { margin-bottom: 24px; font-size: clamp(36px, 4.4vw, 54px); }
+.intro h1 span { color: var(--blue); }
+.intro-copy { max-width: 38ch; color: var(--muted); font-size: 17px; }
+.entry-card { padding: 36px; }
+.entry-card h2 { margin: 12px 0 8px; font-size: 25px; letter-spacing: -0.5px; }
+#player-form { display: grid; gap: 10px; margin-top: 28px; }
+#player-form .button { margin-top: 12px; }
+.entry-note { margin: 22px 0 0; color: var(--muted); font-size: 12px; text-align: center; }
+@media (max-width: 760px) {
+  .welcome-layout { grid-template-columns: 1fr; gap: 28px; padding-top: 16px; }
+  .intro { text-align: center; }
+  .intro-copy { margin: 0 auto; }
+  .entry-card { width: min(100%, 480px); margin: auto; padding: 28px; }
+}

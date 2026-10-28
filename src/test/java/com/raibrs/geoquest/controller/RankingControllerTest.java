@@ -53,6 +53,8 @@ class RankingControllerTest {
             var response = http.get("/api/ranking");
             assertEquals(503, response.statusCode());
             assertFalse(response.body().contains("private test database"));
+            assertEquals("Unable to access the leaderboard. Please try again.",
+                    http.readJson(response).get("message").asText());
         }
     }
 

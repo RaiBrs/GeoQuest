@@ -90,8 +90,31 @@ class GameControllerTest {
         var response = http.post("/api/games", Map.of("playerName", "Rai"));
         assertEquals(503, response.statusCode());
         assertFalse(response.body().contains("Test country service"));
+        assertEquals("Unable to complete the operation. Please try again.",
+                http.readJson(response).get("message").asText());
         countries.failing = false;
         assertEquals(201, http.post("/api/games", Map.of("playerName", "Rai")).statusCode());
+    }
+
+    @Test
+    void returnsEnglishValidationAndRoundErrors() throws Exception {
+        assertEquals("Invalid JSON.", http.readJson(http.postRaw("/api/games", "{", "application/json"))
+                .get("message").asText());
+        assertEquals("Provide the request data.",
+                http.readJson(http.postRaw("/api/games", "null", "application/json"))
+                        .get("message").asText());
+        assertEquals("Method not allowed.", http.readJson(http.get("/api/games"))
+                .get("message").asText());
+        assertEquals("Round not found. Start a new game.",
+                http.readJson(http.post("/api/results", Map.of("gameId", UUID.randomUUID())))
+                        .get("message").asText());
+        var state = games.start("Rai");
+        assertEquals("This round has not ended yet.",
+                http.readJson(http.post("/api/results", Map.of("gameId", state.gameId())))
+                        .get("message").asText());
+        assertEquals("Invalid answer choice.", http.readJson(http.post("/api/answers",
+                Map.of("gameId", state.gameId(), "number", 1, "choice", "invalid")))
+                .get("message").asText());
     }
 
     @Test

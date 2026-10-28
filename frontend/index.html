@@ -1,58 +1,95 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Geo Quest</title>
+  <meta name="theme-color" content="#2766b3">
+  <title>GeoQuest — Explore the world</title>
+  <link rel="icon" type="image/svg+xml" href="./assets/geoquest-icon.svg">
   <link rel="stylesheet" href="./styles.css">
   <script type="module" src="./src/app.js"></script>
 </head>
 <body>
-  <main class="container">
-    <header>
-      <a class="brand" href="./">Geo Quest</a>
-      <p>Um desafio sobre capitais.</p>
+  <div class="shell">
+    <header class="app-header">
+      <button id="home" class="brand" type="button" aria-label="GeoQuest: back to home">
+        <img class="brand-mark" src="./assets/geoquest-icon.svg" width="42" height="42" alt="" aria-hidden="true"> GeoQuest
+      </button>
     </header>
 
-    <section id="welcome" aria-labelledby="welcome-title">
-      <h1 id="welcome-title">Quanto você conhece do mundo?</h1>
-      <p>Dez perguntas. Um erro encerra a rodada.</p>
-      <form id="player-form">
-        <label for="player-name">Como podemos chamar você?</label>
-        <input id="player-name" name="playerName" type="text"
-               autocomplete="nickname" required>
-        <button type="submit">Começar</button>
-      </form>
-    </section>
+    <main id="app" aria-busy="false">
+      <section id="welcome" class="screen welcome-layout" aria-labelledby="welcome-title">
+        <div class="intro">
+          <p class="eyebrow">YOUR NEXT CHALLENGE</p>
+          <h1 id="welcome-title">Explore the world.<br><span>Make your mark.</span></h1>
+          <p class="intro-copy">Put your knowledge of world capitals to the test and find your place on the leaderboard.</p>
+        </div>
+        <div class="card entry-card">
+          <span class="card-label">WORLD CAPITALS</span>
+          <h2>Start your journey</h2>
+          <p class="muted">Choose how you'll appear on the leaderboard.</p>
+          <form id="player-form" novalidate>
+            <label for="player-name">Your name</label>
+            <input id="player-name" name="playerName" type="text" autocomplete="nickname"
+                   placeholder="What should we call you?" aria-describedby="name-help" required>
+            <small id="name-help" class="muted">Up to 80 characters. No sign-up.</small>
+            <button class="button primary" type="submit">Start playing <span aria-hidden="true">→</span></button>
+          </form>
+          <p class="entry-note">One mistake ends the round. Every correct answer counts.</p>
+        </div>
+      </section>
 
-    <section id="game" aria-labelledby="question" hidden>
-      <div class="game-status">
-        <span id="progress"></span>
-        <span id="score"></span>
+      <section id="game" class="screen card play-card" aria-labelledby="question" hidden>
+        <div class="game-meta">
+          <span id="progress" class="card-label"></span>
+          <span id="score" class="score-pill"></span>
+        </div>
+        <progress id="round-progress" value="0" max="1" aria-label="Questions answered"></progress>
+        <p id="player-label" class="muted player-label"></p>
+        <h1 id="question" tabindex="-1"></h1>
+        <div id="alternatives" class="alternatives" role="group" aria-labelledby="question"></div>
+        <p class="keyboard-hint">Press A–D to answer. After answering, press Space to continue.</p>
+        <p id="feedback" class="answer-feedback" role="status"></p>
+        <button id="next" class="button primary" type="button" hidden>Next question</button>
+      </section>
+
+      <section id="result" class="screen card result-card" aria-labelledby="result-title" hidden>
+        <p class="eyebrow">ANOTHER JOURNEY AROUND THE WORLD</p>
+        <h1 id="result-title" tabindex="-1">Round complete</h1>
+        <div class="result-score"><span id="result-score">0</span><span id="result-total"></span></div>
+        <p id="summary" class="muted"></p>
+        <p id="save-status" class="save-status" role="status"></p>
+        <div class="ranking-header"><h2>Leaderboard</h2><span class="card-label">TOP 10</span></div>
+        <p id="ranking-status" class="muted" role="status"></p>
+        <ol id="ranking" class="ranking" role="list" aria-label="Top scores"></ol>
+        <div class="actions">
+          <button id="restart" class="button primary" type="button">Play again</button>
+          <button id="change-player" class="button secondary" type="button">Change player</button>
+        </div>
+      </section>
+    </main>
+
+    <div class="system-feedback">
+      <p id="loading" class="loading" role="status" hidden>
+        <span class="spinner" aria-hidden="true"></span><span id="loading-text"></span>
+      </p>
+      <div id="error-panel" class="error-panel" hidden>
+        <p id="error" role="alert"></p>
+        <button id="retry" class="button secondary" type="button">Try again</button>
       </div>
-      <h1 id="question" tabindex="-1"></h1>
-      <div id="alternatives" class="alternatives"></div>
-      <p id="feedback" role="status"></p>
-      <button id="next" type="button" hidden>Próxima pergunta</button>
-    </section>
+    </div>
+    <footer>Your name. Your journey. Your mark on the world.</footer>
+  </div>
 
-    <section id="result" aria-labelledby="result-title" hidden>
-      <h1 id="result-title" tabindex="-1">Rodada encerrada</h1>
-      <p id="summary"></p>
-      <p id="save-status" role="status"></p>
-      <h2>Top 10</h2>
-      <ol id="ranking"></ol>
+  <dialog id="discard-dialog" aria-labelledby="discard-title" aria-describedby="discard-description">
+    <form method="dialog">
+      <h2 id="discard-title">Your result hasn't been saved yet</h2>
+      <p id="discard-description" class="muted">You can try saving again or discard this result to continue.</p>
       <div class="actions">
-        <button id="restart" type="button">Jogar novamente</button>
-        <button id="change-player" class="secondary" type="button">
-          Trocar jogador
-        </button>
+        <button class="button primary" value="cancel" autofocus>Stay here</button>
+        <button class="button secondary" value="discard">Discard result</button>
       </div>
-    </section>
-
-    <p id="error" role="alert" hidden></p>
-    <button id="retry" type="button" hidden>Tentar novamente</button>
-    <footer>Dez perguntas sobre capitais.</footer>
-  </main>
+    </form>
+  </dialog>
 </body>
 </html>
