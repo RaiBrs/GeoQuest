@@ -26,6 +26,8 @@ const portuguese = {
   "Accounts are not configured yet.": "As contas estão indisponíveis no momento.",
   "Sign-in could not be completed. Please try again.": "Não foi possível entrar. Tente novamente.",
   "Request origin is not allowed.": "A origem da solicitação não é permitida.",
+  "Request is not allowed. Refresh the page and try again.": "A solicitação não é permitida. Atualize a página e tente novamente.",
+  "Invalid request data.": "Os dados da solicitação são inválidos.",
   "QUESTION {number}": "PERGUNTA {number}",
   "Time remaining": "Tempo restante",
   "{name}, you got {score} correct answers from {answered} questions in 60 seconds.": "{name}, você acertou {score} de {answered} perguntas respondidas em 60 segundos.",

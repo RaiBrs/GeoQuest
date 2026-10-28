@@ -1,29 +1,29 @@
 package com.raibrs.geoquest;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.raibrs.geoquest.service.GameService;
-import com.raibrs.geoquest.service.QuestionService;
 import com.raibrs.geoquest.support.TestCountriesClient;
 import com.raibrs.geoquest.support.TestHttpServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.net.InetSocketAddress;
-import java.nio.file.Path;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@org.springframework.boot.test.context.SpringBootTest(properties = {"API_KEY=test", "ACCOUNTS_ENABLED=false"})
+@org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
+@org.springframework.context.annotation.Import(WebAppTest.Fixtures.class)
 class WebAppTest {
+    @org.springframework.beans.factory.annotation.Autowired org.springframework.test.web.servlet.MockMvc mvc;
+    @org.springframework.boot.test.context.TestConfiguration static class Fixtures {
+        @org.springframework.context.annotation.Bean @org.springframework.context.annotation.Primary com.raibrs.geoquest.api.CountriesClient fixtureCountries() { return new TestCountriesClient(); }
+    }
     private TestHttpServer http;
 
     @BeforeEach
     void startServer() throws Exception {
-        var games = new GameService(new TestCountriesClient(), new QuestionService());
-        var server = new WebApp(games, Path.of("frontend"))
-                .createServer(new InetSocketAddress("127.0.0.1", 0));
-        http = new TestHttpServer(server);
+        http = new TestHttpServer(mvc);
     }
 
     @AfterEach
@@ -58,5 +58,7 @@ class WebAppTest {
         assertEquals(404, http.post("/api/results", Map.of("gameId", "old-round")).statusCode());
         assertEquals(404, http.get("/api/unknown").statusCode());
         assertEquals(404, http.post("/api/admin/rename", Map.of()).statusCode());
+        assertEquals(405, http.get("/api/games").statusCode());
+        assertEquals(401, http.get("/api/me").statusCode());
     }
 }

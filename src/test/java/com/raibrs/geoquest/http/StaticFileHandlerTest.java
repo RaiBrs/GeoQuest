@@ -54,7 +54,7 @@ class StaticFileHandlerTest {
     }
 
     @Test
-    void onlyAllowsGetRequests() throws Exception {
+    void onlyAllowsGetAndHeadRequests() throws Exception {
         assertEquals(405, http.post("/", Map.of()).statusCode());
     }
 }

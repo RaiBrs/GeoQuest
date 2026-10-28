@@ -22,6 +22,7 @@ test("account UI restores identity, renders ranking safely and deletes only afte
   const calls = [], used = [];
   let busy = false;
   globalThis.fetch = async (path, options) => {
+    if (path === "/api/csrf") return { ok: true, json: async () => ({ token: "test-token", headerName: "X-XSRF-TOKEN" }) };
     calls.push({ path, options });
     return { ok: true, json: async () => path === "/api/account" ? { enabled: true, user: { displayName: "Rai<script>" }, providers: ["google"] }
       : path.startsWith("/api/leaderboard") ? [{ displayName: "Other<script>", score: 9, answered: 10 }] : { ok: true } };
