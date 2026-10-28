@@ -10,6 +10,25 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 class EnvironmentConfigTest {
+    @Test
+    void serverDefaultsToLoopbackAndSupportsContainerSettings() {
+        var local = EnvironmentConfig.serverAddress(Map.of());
+        assertEquals("127.0.0.1", local.getHostString());
+        assertEquals(8080, local.getPort());
+        var container = EnvironmentConfig.serverAddress(Map.of("HOST", "0.0.0.0", "PORT", "10000"));
+        assertTrue(container.getAddress().isAnyLocalAddress());
+        assertEquals(10000, container.getPort());
+    }
+
+    @Test
+    void invalidServerConfigurationFailsBeforeStarting() {
+        for (String port : java.util.List.of("", "0", "-1", "65536", "8080oops", "999999999999", "1.5")) {
+            assertThrows(IllegalArgumentException.class,
+                    () -> EnvironmentConfig.serverAddress(Map.of("PORT", port)));
+        }
+        assertThrows(IllegalArgumentException.class,
+                () -> EnvironmentConfig.serverAddress(Map.of("HOST", "  ")));
+    }
     @TempDir
     Path directory;
 

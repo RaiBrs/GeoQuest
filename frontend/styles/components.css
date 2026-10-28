@@ -31,3 +31,14 @@ select { font: inherit; padding: 10px; border: 1px solid var(--border); border-r
 .screen:not([hidden]) { animation: screen-enter 160ms ease-out; }
 @keyframes screen-enter { from { opacity: .4; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .screen:not([hidden]) { animation: none; } }
+
+.account-access { margin-top: 20px; }
+a.button { text-decoration: none; text-align: center; }
+.profile-panel, .leaderboard-panel { padding: 24px; margin: 24px 0; }
+.ranking-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+#ranking-list li { padding: 10px; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.delete-account { margin-top: 20px; }
+.delete-account summary { cursor: pointer; font-weight: 650; }
+#delete-account-form { display: grid; gap: 12px; max-width: 400px; }
+.danger { background: #9d3030; color: white; }
+.account-error { color: #963322; }

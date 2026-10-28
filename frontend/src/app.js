@@ -1,3 +1,6 @@
 import { initializeGameController } from "./controller/game-controller.js";
+import { initializeAccounts } from "./controller/account-controller.js";
 
-initializeGameController();
+let accounts;
+const game = initializeGameController({ onStateChange: state => accounts?.updateAvailability(state) });
+accounts = initializeAccounts(game);

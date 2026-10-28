@@ -80,9 +80,18 @@ public final class JsonHttp {
     }
 
     public static void send(HttpExchange exchange, int status, Object value) throws IOException {
-        byte[] body = JSON.writeValueAsBytes(value);
-        exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+        sendBytes(exchange, status, "application/json; charset=UTF-8", JSON.writeValueAsBytes(value));
+    }
+
+    public static void sendBytes(HttpExchange exchange, int status, String contentType, byte[] body) throws IOException {
+        exchange.getResponseHeaders().set("Content-Type", contentType);
         exchange.getResponseHeaders().set("Cache-Control", "no-store");
+        if ("HEAD".equals(exchange.getRequestMethod())) {
+            // HEAD describes the GET representation, but HttpServer must receive no response body.
+            exchange.getResponseHeaders().set("Content-Length", Integer.toString(body.length));
+            exchange.sendResponseHeaders(status, -1);
+            return;
+        }
         exchange.sendResponseHeaders(status, body.length);
         exchange.getResponseBody().write(body);
     }

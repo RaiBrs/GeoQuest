@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.net.InetSocketAddress;
 
 /** Local .env defaults with explicit process environment overrides. Never evaluates file contents. */
 public final class EnvironmentConfig {
@@ -59,6 +60,20 @@ public final class EnvironmentConfig {
             throw new IllegalArgumentException("Configure " + name + " in .env or as an environment variable.");
         }
         return value;
+    }
+
+    public static InetSocketAddress serverAddress(Map<String, String> environment) {
+        String host = environment.getOrDefault("HOST", "127.0.0.1").strip();
+        String portValue = environment.getOrDefault("PORT", "8080").strip();
+        if (host.isEmpty()) throw new IllegalArgumentException("HOST must not be blank.");
+        try {
+            if (!portValue.matches("[0-9]+")) throw new NumberFormatException();
+            int port = Integer.parseInt(portValue);
+            if (port < 1 || port > 65535) throw new NumberFormatException();
+            return new InetSocketAddress(host, port);
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("PORT must be an integer between 1 and 65535.");
+        }
     }
 
     private static IllegalArgumentException invalidLine(int number) {

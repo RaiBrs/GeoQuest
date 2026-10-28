@@ -12,10 +12,10 @@ import java.util.Set;
 public final class StaticFileHandler implements HttpHandler {
     // An explicit allowlist prevents exposing credentials or other project files.
     private static final Set<String> FILES = Set.of(
-            "index.html", "styles.css", "assets/geoquest-icon.svg",
+            "index.html", "privacy.html", "styles.css", "assets/geoquest-icon.svg",
             "styles/base.css", "styles/layout.css", "styles/components.css",
             "styles/pages/welcome.css", "styles/pages/game.css", "styles/pages/result.css",
-            "src/i18n.js", "src/app.js", "src/controller/game-controller.js", "src/service/game-service.js",
+            "src/controller/account-controller.js", "src/i18n.js", "src/app.js", "src/controller/game-controller.js", "src/service/game-service.js",
             "src/view/dom.js", "src/view/shell-view.js",
             "src/view/pages/welcome-view.js", "src/view/pages/hub-view.js",
             "src/view/pages/game-view.js", "src/view/pages/result-view.js");
@@ -31,7 +31,12 @@ public final class StaticFileHandler implements HttpHandler {
     }
 
     private void serve(HttpExchange exchange) throws IOException {
-        if (!JsonHttp.requireMethod(exchange, "GET")) return;
+        String method = exchange.getRequestMethod();
+        if (!"GET".equals(method) && !"HEAD".equals(method)) {
+            exchange.getResponseHeaders().set("Allow", "GET, HEAD");
+            JsonHttp.error(exchange, 405, "Method not allowed.");
+            return;
+        }
         String requestPath = exchange.getRequestURI().getPath();
         String relativePath = requestPath.equals("/") ? "index.html" : requestPath.substring(1);
         if (!FILES.contains(relativePath) || !Files.isRegularFile(frontend.resolve(relativePath))) {
@@ -44,9 +49,6 @@ public final class StaticFileHandler implements HttpHandler {
         else if (relativePath.endsWith(".svg")) contentType = "image/svg+xml";
 
         byte[] body = Files.readAllBytes(frontend.resolve(relativePath));
-        exchange.getResponseHeaders().set("Content-Type", contentType + "; charset=UTF-8");
-        exchange.getResponseHeaders().set("Cache-Control", "no-store");
-        exchange.sendResponseHeaders(200, body.length);
-        exchange.getResponseBody().write(body);
+        JsonHttp.sendBytes(exchange, 200, contentType + "; charset=UTF-8", body);
     }
 }
