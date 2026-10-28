@@ -20,7 +20,7 @@ public final class RankingController implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
         JsonHttp.handle(exchange, () -> {
             if (!exchange.getRequestURI().getPath().equals(ROUTE)) {
-                JsonHttp.error(exchange, 404, "Operação não encontrada.");
+                JsonHttp.error(exchange, 404, "Endpoint not found.");
                 return;
             }
             if (!JsonHttp.requireMethod(exchange, "GET")) return;

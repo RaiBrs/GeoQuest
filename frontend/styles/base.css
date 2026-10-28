@@ -1,0 +1,30 @@
+:root {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  color: #193451;
+  background: #f2f7ff;
+  line-height: 1.6;
+  --blue: #2766b3;
+  --blue-dark: #1b4e8d;
+  --blue-light: #e9f2ff;
+  --muted: #5d7187;
+  --border: #d8e5f3;
+  --radius: 24px;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  min-height: 100svh;
+  background: radial-gradient(ellipse at 85% 5%, #d8eaff 0, transparent 48%);
+}
+button, input { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: default; }
+h1, h2, p { margin-top: 0; }
+h1 { line-height: 1.15; letter-spacing: -1.4px; }
+small { font-size: 12px; }
+:focus-visible { outline: 3px solid #397dc7; outline-offset: 4px; }
+h1:focus-visible { outline: none; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

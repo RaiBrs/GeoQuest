@@ -53,7 +53,7 @@ public final class GameService {
 
     public synchronized AnswerView answer(AnswerRequest request) {
         if (request == null) {
-            throw new IllegalArgumentException("Informe a resposta.");
+            throw new IllegalArgumentException("Provide an answer.");
         }
         Round round = findRound(request.gameId());
         // A network retry returns the original response without scoring twice.
@@ -61,10 +61,10 @@ public final class GameService {
             return round.lastAnswer;
         }
         if (round.session.isFinished()) {
-            throw new IllegalStateException("A rodada já terminou.");
+            throw new IllegalStateException("This round has already ended.");
         }
         if (request.number() != round.session.getCurrentQuestionNumber()) {
-            throw new IllegalStateException("A pergunta não é a atual.");
+            throw new IllegalStateException("This is not the current question.");
         }
         GameSession.AnswerResult result = round.session.answer(request.choice());
         if (round.session.isFinished()) {
@@ -79,7 +79,7 @@ public final class GameService {
     public synchronized void saveResult(UUID gameId) throws SQLException {
         Round round = findRound(gameId);
         if (!round.session.isFinished()) {
-            throw new IllegalStateException("A rodada ainda não terminou.");
+            throw new IllegalStateException("This round has not ended yet.");
         }
         if (!round.saved) {
             // Keep the same result and timestamp if persistence needs a retry.
@@ -91,7 +91,7 @@ public final class GameService {
     private Round findRound(UUID gameId) {
         Round round = rounds.get(gameId);
         if (round == null) {
-            throw new NoSuchElementException("Rodada não encontrada. Inicie uma nova partida.");
+            throw new NoSuchElementException("Round not found. Start a new game.");
         }
         return round;
     }

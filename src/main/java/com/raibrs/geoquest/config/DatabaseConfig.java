@@ -9,13 +9,13 @@ public final class DatabaseConfig {
     }
 
     public static PGSimpleDataSource fromEnvironment() {
-        return from(System.getenv());
+        return from(EnvironmentConfig.load());
     }
 
-    static PGSimpleDataSource from(Map<String, String> environment) {
-        String url = required(environment, "DATABASE_URL");
-        String user = required(environment, "DATABASE_USER");
-        String password = required(environment, "DATABASE_PASSWORD");
+    public static PGSimpleDataSource from(Map<String, String> environment) {
+        String url = EnvironmentConfig.required(environment, "DATABASE_URL");
+        String user = EnvironmentConfig.required(environment, "DATABASE_USER");
+        String password = EnvironmentConfig.required(environment, "DATABASE_PASSWORD");
         if (!url.startsWith("jdbc:postgresql://")) {
             throw new IllegalArgumentException("DATABASE_URL must be a PostgreSQL JDBC URL.");
         }
@@ -29,11 +29,4 @@ public final class DatabaseConfig {
         return dataSource;
     }
 
-    private static String required(Map<String, String> environment, String name) {
-        String value = environment.get(name);
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("Set the " + name + " environment variable.");
-        }
-        return value;
-    }
 }

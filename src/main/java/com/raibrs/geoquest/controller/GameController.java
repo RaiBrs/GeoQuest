@@ -35,7 +35,7 @@ public final class GameController implements HttpHandler {
         String path = exchange.getRequestURI().getPath();
         // HttpServer contexts match prefixes; reject suffixes instead of treating them as real routes.
         if (!ROUTES.contains(path)) {
-            JsonHttp.error(exchange, 404, "Operação não encontrada.");
+            JsonHttp.error(exchange, 404, "Endpoint not found.");
             return;
         }
         if (!JsonHttp.requireMethod(exchange, "POST") || !JsonHttp.requireJson(exchange)) return;

@@ -37,7 +37,12 @@ GeoQuest is a capital-city quiz built with a Java backend and a lightweight HTML
 - The correct answer is returned only after a choice is submitted.
 - Network retries do not count the same answer twice or rewrite an already saved round.
 
-> **Current release:** a functional local MVP. Visual styling and game-flow improvements are next. Authentication is outside the game's scope.
+> **Current release:** a functional local MVP with a responsive blue interface, keyboard shortcuts, and explicit loading, answer, and save feedback. Authentication is outside the game's scope.
+
+The interface supports A–D answer shortcuts and Space to continue after an answer, restores
+keyboard focus after requests, and respects reduced-motion preferences. Leaving an unsaved
+completed round asks for confirmation; retrying leaderboard loading does not repeat an already
+confirmed save. Browser text, game questions, and HTTP error messages are in English.
 
 ## Run locally
 
@@ -81,9 +86,50 @@ psql -h localhost -U geoquest -d GeoQuestDB --single-transaction -v ON_ERROR_STO
 
 </details>
 
-### 02 — Configure the environment
+### 02 — Configure once
 
-Replace the sample values with your local settings, then run these assignments in **the same PowerShell session** that will start the application:
+Java automatically reads a local `.env` beside `pom.xml`. On a new checkout, create it from
+[`.env.example`](.env.example) and enter your local settings once:
+
+```powershell
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+notepad .env
+```
+
+The file uses plain `NAME=value` entries, not PowerShell commands:
+
+```dotenv
+DATABASE_URL=jdbc:postgresql://localhost:5432/GeoQuestDB
+DATABASE_USER=geoquest
+DATABASE_PASSWORD=your-database-password
+API_KEY=your-rest-countries-api-key
+```
+
+| Setting | Meaning | Required by |
+| :--- | :--- | :--- |
+| `DATABASE_URL` | PostgreSQL address in JDBC format | Web app and administration |
+| `DATABASE_USER` | Database login | Web app and administration |
+| `DATABASE_PASSWORD` | Database password | Web app and administration |
+| `API_KEY` | REST Countries credential | Web app only |
+
+The web app, administrative terminal, and connection diagnostic reuse this local configuration.
+You can close the terminal and start again without repeating `$env:` assignments. Run from
+the directory containing `pom.xml`, including when using an IntelliJ application configuration.
+
+**Precedence:** process environment variables override `.env` values. This preserves explicit
+IDE and deployment settings. An absent `.env` is allowed when those variables are configured.
+Integration tests continue to use separate `TEST_DATABASE_*` settings or the temporary PostgreSQL helper.
+
+Keep `.env` local: Git ignores it, while `.env.example` contains placeholders only. Put credentials
+in their separate settings, not inside `DATABASE_URL`. Blank lines and full-line `#` comments are
+supported. Optional matching single or double quotes preserve spaces. Values are literal: `$`,
+`#`, `=`, and backslashes are preserved; there is no variable expansion, inline comment syntax,
+or multiline value syntax. Duplicate or malformed entries report a line number without printing values.
+
+<details>
+<summary><strong>Prefer environment variables instead of a local file?</strong></summary>
+
+Existing PowerShell assignments still work:
 
 ```powershell
 $env:DATABASE_URL="jdbc:postgresql://localhost:5432/GeoQuestDB"
@@ -92,19 +138,7 @@ $env:DATABASE_PASSWORD="your-database-password"
 $env:API_KEY="your-rest-countries-api-key"
 ```
 
-| Variable | Meaning | Required by |
-| :--- | :--- | :--- |
-| `DATABASE_URL` | PostgreSQL address in JDBC format | Web app and administration |
-| `DATABASE_USER` | Database login | Web app and administration |
-| `DATABASE_PASSWORD` | Database password | Web app and administration |
-| `API_KEY` | REST Countries credential | Web app only |
-
-> **Session settings:** closing PowerShell loses these `$env:` assignments. Variables in an IntelliJ run configuration do not automatically reach another terminal. The application reads process environment variables; it does **not** automatically load `.env` files.
-
-Keep credentials out of source code and Git. Local `.env` variants are ignored; example files should contain placeholders only. Put credentials in their separate variables, not inside `DATABASE_URL`.
-
-<details>
-<summary><strong>Using Bash instead?</strong></summary>
+In Bash:
 
 ```bash
 export DATABASE_URL="jdbc:postgresql://localhost:5432/GeoQuestDB"
@@ -113,7 +147,7 @@ export DATABASE_PASSWORD="your-database-password"
 export API_KEY="your-rest-countries-api-key"
 ```
 
-Start the application from that same shell using the command below.
+These assignments apply to that shell session. The local `.env` option avoids repeating them.
 
 </details>
 
@@ -173,9 +207,20 @@ flowchart LR
 | `model/` | Represents countries, questions, sessions, and results; owns valid state and answer transitions. |
 | `service/` | Creates questions, coordinates rounds and retries, and performs ranking operations. |
 | `repository/` | Defines the persistence contract and implements PostgreSQL access through JDBC. |
-| `config/` and `api/` | Configure and inspect the database; fetch and parse country data. |
+| `config/` and `api/` | Load local/environment settings and inspect the database; fetch and parse country data. |
 
 The HTTP server comes from the JDK. JSON uses Jackson, and persistence uses JDBC. Dependency wiring is explicit Java, with no Spring dependency.
+
+The front end separates structure, presentation, and interaction. `index.html` defines the three
+screens and shared markup; HTML classes connect elements to external styles. `styles.css` imports
+base, layout, reusable component, and screen-specific styles. `src/app.js` initializes the controller,
+which owns browser state, request sequencing, retries, and navigation. Views update the DOM and bind
+input events; `service/game-service.js` handles HTTP communication without accessing the DOM.
+Java remains responsible for validating game rules and calculating scores.
+
+The browser keeps one document so changing screens preserves the active round. No front-end build
+or runtime dependency is required. The Java static-file allowlist explicitly includes each public
+module and stylesheet; test files and local configuration stay inaccessible through HTTP.
 
 <details>
 <summary><strong>Explore the source tree</strong></summary>
@@ -183,10 +228,21 @@ The HTTP server comes from the JDK. JSON uses Jackson, and persistence uses JDBC
 ```text
 frontend/
 ├── index.html
-├── styles.css
+├── assets/geoquest-icon.svg
+├── styles.css                 # Stylesheet entry point
+├── styles/
+│   ├── base.css
+│   ├── layout.css
+│   ├── components.css
+│   └── pages/                 # welcome.css, game.css, result.css
 ├── src/
-│   ├── app.js
-│   └── service/game-service.js
+│   ├── app.js                 # Initialization only
+│   ├── controller/game-controller.js
+│   ├── service/game-service.js
+│   └── view/
+│       ├── dom.js
+│       ├── shell-view.js
+│       └── pages/             # welcome-view.js, game-view.js, result-view.js
 └── tests/
 src/main/java/com/raibrs/geoquest/
 ├── WebApp.java
@@ -274,7 +330,7 @@ The game runs in the browser. A separate terminal handles local maintenance:
 mvn compile exec:java "-Dexec.mainClass=com.raibrs.geoquest.AdminApp"
 ```
 
-It uses the database variables above and does not need `API_KEY`.
+It reuses the database settings from `.env` or the process environment and does not need `API_KEY`.
 
 | Action | Behavior |
 | :--- | :--- |
@@ -295,7 +351,7 @@ This tool trusts the local operator with database credentials. It does not list 
 | Browser logic and API communication | `node --test frontend/tests/*.test.js` | No browser or network service needed. |
 | PostgreSQL integration | `.\scripts\test-postgres.ps1` | Uses installed PostgreSQL binaries to start an isolated instance. |
 
-Tests cover round termination, scoring, request replay, save retries, JSON contracts, administrative confirmation and cancellation, and preservation of ranking results. Front-end behavior tests use a minimal DOM adapter; they do not replace a visual review in a browser.
+Tests cover round termination, scoring, request replay, save retries, JSON contracts, administrative confirmation and cancellation, and preservation of ranking results. Front-end checks also exercise keyboard shortcuts, focus restoration, unsaved-result confirmation, and separate save/ranking retries. Front-end behavior tests use a minimal DOM adapter; they do not replace a visual review in a browser.
 
 Test packages follow the component they exercise. `controller/` tests each controller over local
 HTTP with controlled dependencies, while `http/` verifies static file access. `WebAppTest` keeps
@@ -337,7 +393,7 @@ Integration tests create and remove only their own randomly named schema. The pr
 
 | Symptom | What to check |
 | :--- | :--- |
-| `Set the DATABASE_URL environment variable` | Set the environment variables in the same terminal that launches Maven. |
+| Missing `DATABASE_*` or `API_KEY` setting | Fill in the local `.env` beside `pom.xml`, then run from that directory. Explicit process or IDE variables take precedence over the file. |
 | `Set TEST_DATABASE_URL and TEST_DATABASE_USER` | Run `.\scripts\test-postgres.ps1` from the project directory, or configure `TEST_DATABASE_*` for a dedicated test database in the terminal or IDE running the integration test. |
 | `501 Unsupported method ('POST')` | Stop the old static server and launch `WebApp`; Java must serve both the page and the API. |
 | Port 8080 is already in use | Stop the process currently serving that port before starting the game. |
@@ -351,7 +407,7 @@ Integration tests create and remove only their own randomly named schema. The pr
 - [x] Java-controlled scoring and PostgreSQL ranking.
 - [x] Layered backend with explicit controllers and shared HTTP handling.
 - [x] Local ranking maintenance and automated tests.
-- [ ] Refine the front-end visual design.
+- [x] Responsive blue interface with keyboard access and reduced-motion support.
 - [ ] Improve feedback, transitions, and game flow.
 - [ ] Expand question types and language support.
 

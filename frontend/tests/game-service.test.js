@@ -33,13 +33,29 @@ test("reports server errors and allows retrying a failed save", async () => {
   globalThis.fetch = async () => {
     attempts++;
     return attempts === 1
-      ? { ok: false, json: async () => ({ message: "Banco indisponível" }) }
+      ? { ok: false, json: async () => ({ message: "Leaderboard unavailable" }) }
       : { ok: true, json: async () => ({ saved: true }) };
   };
   try {
-    await assert.rejects(gameService.saveResult("round"), /Banco indisponível/);
+    await assert.rejects(gameService.saveResult("round"), /Leaderboard unavailable/);
     assert.deepEqual(await gameService.saveResult("round"), { saved: true });
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("handles a non-JSON server response without exposing parser details", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({ ok: false, json: async () => { throw new SyntaxError("private HTML body"); } });
+  try {
+    await assert.rejects(gameService.start("Rai"), /unexpected response/);
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("network failure produces an actionable user message", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => { throw new Error("private transport details"); };
+  try {
+    await assert.rejects(gameService.getRanking(), /Unable to connect/);
+  } finally { globalThis.fetch = originalFetch; }
 });

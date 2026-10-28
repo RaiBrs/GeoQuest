@@ -1,0 +1,13 @@
+.result-card h1 { margin-bottom: 12px; font-size: 32px; }
+.result-score { display: flex; align-items: baseline; gap: 6px; color: var(--blue); font-weight: 750; }
+#result-score { font-size: 64px; letter-spacing: -3px; line-height: 1.2; }
+#result-total { color: #6a82a0; font-size: 24px; }
+.save-status { min-height: 24px; font-size: 13px; color: #44678f; }
+.save-status[data-status="error"] { color: #923d42; }
+.ranking-header { display: flex; justify-content: space-between; align-items: baseline; margin-top: 32px; border-top: 1px solid var(--border); padding-top: 24px; }
+.ranking-header h2 { margin-bottom: 12px; font-size: 19px; }
+.ranking { padding: 0; margin: 0 0 24px; list-style: none; }
+.ranking li { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #edf2f8; }
+.rank-index { font-size: 12px; font-weight: 650; color: #526f91; }
+.ranking-name { min-width: 0; overflow-wrap: anywhere; }
+.ranking-score { font-size: 13px; font-weight: 650; color: #305e93; font-variant-numeric: tabular-nums; }

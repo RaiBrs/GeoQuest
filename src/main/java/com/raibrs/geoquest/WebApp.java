@@ -3,6 +3,7 @@ package com.raibrs.geoquest;
 import com.raibrs.geoquest.api.CountriesClient;
 import com.raibrs.geoquest.config.DatabaseCheck;
 import com.raibrs.geoquest.config.DatabaseConfig;
+import com.raibrs.geoquest.config.EnvironmentConfig;
 import com.raibrs.geoquest.controller.GameController;
 import com.raibrs.geoquest.controller.RankingController;
 import com.raibrs.geoquest.http.JsonHttp;
@@ -33,10 +34,11 @@ public final class WebApp {
     }
 
     public static void main(String[] args) throws Exception {
-        var source = DatabaseConfig.fromEnvironment();
+        var environment = EnvironmentConfig.load();
+        var source = DatabaseConfig.from(environment);
         DatabaseCheck.check(source, null, System.out);
         var ranking = new RankingService(new PostgresRankingRepository(source));
-        var games = new GameService(new CountriesClient(System.getenv("API_KEY")),
+        var games = new GameService(new CountriesClient(EnvironmentConfig.required(environment, "API_KEY")),
                 new QuestionService(), ranking);
         Path frontend = Path.of("frontend").toAbsolutePath();
         if (!Files.isRegularFile(frontend.resolve("index.html"))) {
@@ -64,7 +66,7 @@ public final class WebApp {
         }
         server.createContext(RankingController.ROUTE, new RankingController(ranking));
         server.createContext("/api/", exchange -> JsonHttp.handle(exchange,
-                () -> JsonHttp.error(exchange, 404, "Operação não encontrada.")));
+                () -> JsonHttp.error(exchange, 404, "Endpoint not found.")));
         server.createContext("/", new StaticFileHandler(frontend));
         return server;
     }

@@ -1,12 +1,23 @@
 async function request(path, data) {
-  const response = await fetch(`/api/${path}`, {
-    method: data === undefined ? "GET" : "POST",
-    headers: data === undefined ? {} : { "Content-Type": "application/json" },
-    body: data === undefined ? undefined : JSON.stringify(data)
-  });
-  const body = await response.json();
+  let response;
+  try {
+    response = await fetch(`/api/${path}`, {
+      method: data === undefined ? "GET" : "POST",
+      headers: data === undefined ? {} : { "Content-Type": "application/json" },
+      body: data === undefined ? undefined : JSON.stringify(data)
+    });
+  } catch {
+    throw new Error("Unable to connect. Check your connection and try again.");
+  }
+  let body;
+  try {
+    body = await response.json();
+  } catch {
+    throw new Error("The server sent an unexpected response. Please try again shortly.");
+  }
   if (!response.ok) {
-    throw new Error(body.message || "Não foi possível concluir a operação.");
+    throw new Error(typeof body?.message === "string"
+      ? body.message : "Unable to complete the operation. Please try again.");
   }
   return body;
 }
