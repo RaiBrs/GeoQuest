@@ -30,6 +30,13 @@
           <span class="card-label" data-i18n="WORLD CAPITALS">WORLD CAPITALS</span>
           <h2 data-i18n="Start your journey">Start your journey</h2>
           <p class="muted" data-i18n="Tell us what to call you during the game.">Tell us what to call you during the game.</p>
+          <div id="account-access" class="account-access">
+            <p id="account-status" class="muted" role="status"></p>
+            <div id="login-options" class="actions" hidden>
+              <a id="login-google" class="button secondary" href="/auth/login?provider=google" data-i18n="Continue with Google">Continue with Google</a>
+              <a id="login-github" class="button secondary" href="/auth/login?provider=github" data-i18n="Continue with GitHub">Continue with GitHub</a>
+            </div>
+          </div>
           <form id="player-form" novalidate>
             <label for="player-name" data-i18n="Your name">Your name</label>
             <input id="player-name" type="text" autocomplete="nickname"
@@ -67,6 +74,34 @@
             <button id="mode-timed" class="button primary" type="button" data-i18n="Play Against the clock">Play Against the clock</button>
           </article>
         </div>
+        <section id="profile-panel" class="card profile-panel" hidden>
+          <h2 data-i18n="Your account">Your account</h2>
+          <p id="profile-name"></p>
+          <p data-i18n="Completed rounds enter the ranking under your account name.">Completed rounds enter the ranking under your account name.</p>
+          <button id="logout" class="button secondary" type="button" data-i18n="Sign out">Sign out</button>
+          <details class="delete-account">
+            <summary data-i18n="Delete my account">Delete my account</summary>
+            <p data-i18n="This permanently deletes your GeoQuest profile, results and ranking entries. Your Google or GitHub account remains unchanged.">This permanently deletes your GeoQuest profile, results and ranking entries. Your Google or GitHub account remains unchanged.</p>
+            <form id="delete-account-form">
+              <label for="delete-confirmation" data-i18n="Type DELETE to confirm">Type DELETE to confirm</label>
+              <input id="delete-confirmation" autocomplete="off" required pattern="DELETE">
+              <button class="button danger" type="submit" data-i18n="Permanently delete my account">Permanently delete my account</button>
+            </form>
+          </details>
+        </section>
+        <section class="card leaderboard-panel" aria-labelledby="leaderboard-title">
+          <h2 id="leaderboard-title" data-i18n="Ranking">Ranking</h2>
+          <p data-i18n="Best completed round per player, separated by mode and question type.">Best completed round per player, separated by mode and question type.</p>
+          <div class="ranking-filters">
+            <label for="ranking-mode" data-i18n="Game mode">Game mode</label>
+            <select id="ranking-mode"><option value="CAPITALS" data-i18n="Capitals">Capitals</option><option value="SURVIVAL" data-i18n="Survival">Survival</option><option value="TIMED" data-i18n="Against the clock">Against the clock</option></select>
+            <label for="ranking-type" data-i18n="Question type">Question type</label>
+            <select id="ranking-type"><option value="CAPITAL" data-i18n="Find the capital">Find the capital</option><option value="COUNTRY" data-i18n="Find the country">Find the country</option></select>
+            <button id="load-ranking" class="button secondary" type="button" data-i18n="View ranking">View ranking</button>
+          </div>
+          <p id="ranking-status" role="status"></p>
+          <ol id="ranking-list"></ol>
+        </section>
         <button id="change-player" class="button secondary" type="button" data-i18n="Change player">Change player</button>
       </section>
 
@@ -108,6 +143,7 @@
     </main>
 
     <div class="system-feedback">
+      <p id="account-error" class="account-error" role="alert"></p>
       <p id="loading" class="loading" role="status" hidden>
         <span class="spinner" aria-hidden="true"></span><span id="loading-text"></span>
       </p>
@@ -116,6 +152,7 @@
         <button id="retry" class="button secondary" type="button" data-i18n="Try again">Try again</button>
       </div>
     </div>
+    <p class="muted"><a href="/privacy.html" data-i18n="Account data and privacy">Account data and privacy</a></p>
     <footer data-i18n="Your name. Your journey. Your mark on the world.">Your name. Your journey. Your mark on the world.</footer>
   </div>
 

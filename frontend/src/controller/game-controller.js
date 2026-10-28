@@ -7,13 +7,15 @@ import { welcomeView } from "../view/pages/welcome-view.js";
 import { shellView } from "../view/shell-view.js";
 import { hubView } from "../view/pages/hub-view.js";
 
-export function initializeGameController() {
+export function initializeGameController({ onStateChange = () => {} } = {}) {
   let screen = "welcome";
   let playerName = "";
+  let accountName;
   let state;
   let answer;
   let pendingAnswer;
   let busy = false;
+  let accountBusy = false;
   let retryTask;
   let selectedMode = "SURVIVAL";
   let timer;
@@ -63,15 +65,17 @@ export function initializeGameController() {
   }
 
   function updateControls() {
-    shellView.updateControls(busy, answer != null || pendingAnswer != null);
-    element("language").disabled = busy || screen === "game" || screen === "result";
-    element("question-type").disabled = busy;
+    shellView.updateControls(busy || accountBusy, answer != null || pendingAnswer != null);
+    element("language").disabled = busy || accountBusy || screen === "game" || screen === "result";
+    element("question-type").disabled = busy || accountBusy;
+    element("change-player").hidden = Boolean(accountName);
+    onStateChange({ screen, busy: busy || accountBusy });
   }
 
   function focusCurrentStep() { shellView.focusCurrentStep(screen, answer != null); }
 
   async function run(action, operation) {
-    if (busy) return;
+    if (busy || accountBusy) return;
     clearError();
     busy = true;
     shellView.showLoading(operation);
@@ -91,7 +95,7 @@ export function initializeGameController() {
 
   async function startGame(name) {
     const nextState = await gameService.start(selectedMode, selectedType, getLanguage());
-    playerName = name;
+    playerName = accountName || name;
     state = nextState;
     pendingAnswer = undefined;
     showScreen("game");
@@ -125,7 +129,7 @@ export function initializeGameController() {
   }
 
   function navigate(action) {
-    if (busy) return;
+    if (busy || accountBusy) return;
     clearError();
     action();
   }
@@ -147,7 +151,7 @@ export function initializeGameController() {
     showResult();
   }
 
-  function canUseShortcuts() { return screen === "game" && !busy; }
+  function canUseShortcuts() { return screen === "game" && !busy && !accountBusy; }
 
   function restartRound() {
     if (busy || !state?.finished) return;
@@ -157,7 +161,7 @@ export function initializeGameController() {
 
   welcomeView.bind({
     onSubmit() {
-      if (busy) return;
+      if (busy || accountBusy) return;
       const name = welcomeView.readPlayerName();
       if (name !== undefined) { playerName = name; showHub(); }
     },
@@ -184,15 +188,24 @@ export function initializeGameController() {
     if (screen === "hub") hubView.render(playerName);
     clearError();
     welcomeView.reset();
+    updateControls();
   });
   setLanguage("EN");
   hubView.bind({
     onSelectMode(mode) {
-      if (busy) return;
+      if (busy || accountBusy) return;
       selectedMode = mode;
       selectedType = element("question-type").value || "CAPITAL";
       run(() => startGame(playerName), "start");
     },
     onChangePlayer: () => navigate(resetPlayer)
   });
+  return {
+    useAccount(name) {
+      accountName = name;
+      if (screen === "welcome" || screen === "hub") { playerName = name; showHub(); }
+    },
+    clearAccount() { accountName = undefined; resetPlayer(); },
+    setAccountBusy(value) { accountBusy = value; updateControls(); }
+  };
 }

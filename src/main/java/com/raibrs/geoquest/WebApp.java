@@ -20,9 +20,15 @@ import java.util.concurrent.Executors;
 public final class WebApp {
     private final GameService games;
     private final Path frontend;
+    private final com.raibrs.geoquest.account.AccountController accounts;
 
     public WebApp(GameService games, Path frontend) {
+        this(games, frontend, new com.raibrs.geoquest.account.AccountController(null, null));
+    }
+
+    public WebApp(GameService games, Path frontend, com.raibrs.geoquest.account.AccountController accounts) {
         this.games = Objects.requireNonNull(games);
+        this.accounts = Objects.requireNonNull(accounts);
         this.frontend = Objects.requireNonNull(frontend);
     }
 
@@ -35,8 +41,14 @@ public final class WebApp {
             throw new IllegalStateException(
                     "Execute na pasta do pom.xml: frontend/index.html não encontrado.");
         }
-        var server = new WebApp(games, frontend)
-                .createServer(new InetSocketAddress("127.0.0.1", 8080));
+        var config = com.raibrs.geoquest.account.AccountConfig.from(environment);
+        var backend = config == null ? null : new com.raibrs.geoquest.account.PostgresAccounts(config,
+                new com.raibrs.geoquest.account.OAuthIdentity(config));
+        if (backend != null) backend.verifySchema();
+        var accounts = new com.raibrs.geoquest.account.AccountController(config, backend,
+                java.time.Clock.systemUTC(), games::removePlayerRounds);
+        var address = EnvironmentConfig.serverAddress(environment);
+        var server = new WebApp(games, frontend, accounts).createServer(address);
         var executor = Executors.newVirtualThreadPerTaskExecutor();
         var cleanup = Executors.newSingleThreadScheduledExecutor();
         cleanup.scheduleWithFixedDelay(() -> {
@@ -53,16 +65,17 @@ public final class WebApp {
             executor.close();
         }));
         server.start();
-        System.out.println("Geo Quest: http://localhost:8080");
+        System.out.println("Geo Quest listening on " + address.getHostString() + ":" + address.getPort());
     }
 
     // OS-selected ports keep integration tests independent of the user's running server.
     HttpServer createServer(InetSocketAddress address) throws IOException {
         HttpServer server = HttpServer.create(address, 0);
-        var gameController = new GameController(games);
+        var gameController = new GameController(games, accounts);
         for (String path : GameController.ROUTES) {
             server.createContext(path, gameController);
         }
+        for (String route : com.raibrs.geoquest.account.AccountController.ROUTES) server.createContext(route, accounts);
         server.createContext("/api/", exchange -> JsonHttp.handle(exchange,
                 () -> JsonHttp.error(exchange, 404, "Endpoint not found.")));
         server.createContext("/", new StaticFileHandler(frontend));
