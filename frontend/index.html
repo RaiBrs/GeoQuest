@@ -48,9 +48,12 @@
         <p id="player-label" class="muted player-label"></p>
         <h1 id="question" tabindex="-1"></h1>
         <div id="alternatives" class="alternatives" role="group" aria-labelledby="question"></div>
-        <p class="keyboard-hint">Press A–D to answer. After answering, press Space to continue.</p>
+        <p id="keyboard-hint" class="keyboard-hint">Press A–D to answer. After answering, press Space to continue.</p>
         <p id="feedback" class="answer-feedback" role="status"></p>
-        <button id="next" class="button primary" type="button" hidden>Next question</button>
+        <div class="round-actions">
+          <button id="next" class="button primary" type="button" hidden>Next question</button>
+          <button id="restart-round" class="button secondary" type="button" hidden>Play again</button>
+        </div>
       </section>
 
       <section id="result" class="screen card result-card" aria-labelledby="result-title" hidden>
@@ -60,7 +63,7 @@
         <p id="summary" class="muted"></p>
         <div class="actions">
           <button id="restart" class="button primary" type="button">Play again</button>
-          <button id="change-player" class="button secondary" type="button">Change player</button>
+          <button id="back-to-home" class="button secondary" type="button">Back to home</button>
         </div>
       </section>
     </main>

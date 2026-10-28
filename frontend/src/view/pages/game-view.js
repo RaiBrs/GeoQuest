@@ -5,11 +5,21 @@ function renderScore(score) {
 }
 
 export const gameView = {
-  bind({ onNext, canContinue, canAnswer }) {
+  bind({ onNext, onRestart, canRestart, canContinue, canAnswer }) {
     element("next").addEventListener("click", onNext);
+    element("restart-round").addEventListener("click", onRestart);
     document.addEventListener("keydown", event => {
       if (event.repeat || event.ctrlKey || event.altKey || event.metaKey) return;
       if (/^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName) || event.target.isContentEditable) return;
+
+      if (event.key.toLowerCase() === "r" && canRestart()) {
+        const restart = element("restart-round");
+        if (!restart.hidden && !restart.disabled) {
+          event.preventDefault();
+          restart.click();
+        }
+        return;
+      }
 
       if (event.key === " ") {
         const next = element("next");
@@ -38,6 +48,8 @@ export const gameView = {
     element("feedback").textContent = "";
     element("feedback").dataset.tone = "";
     element("next").hidden = true;
+    element("restart-round").hidden = true;
+    element("keyboard-hint").textContent = "Press A–D to answer. After answering, press Space to continue.";
     element("alternatives").replaceChildren();
     state.question.alternatives.forEach((choice, index) => {
       const button = document.createElement("button");
@@ -69,5 +81,9 @@ export const gameView = {
       : `Not this time, ${playerName}. The correct answer is ${answer.correctAnswer}.`;
     element("next").textContent = state.finished ? "View result" : "Next question →";
     element("next").hidden = false;
+    element("restart-round").hidden = !state.finished;
+    if (state.finished) {
+      element("keyboard-hint").textContent = "Press R to play again or Space to view your result.";
+    }
   }
 };
