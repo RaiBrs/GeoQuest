@@ -3,6 +3,7 @@ import { gameView } from "../view/pages/game-view.js";
 import { resultView } from "../view/pages/result-view.js";
 import { welcomeView } from "../view/pages/welcome-view.js";
 import { shellView } from "../view/shell-view.js";
+import { hubView } from "../view/pages/hub-view.js";
 
 export function initializeGameController() {
   let screen = "welcome";
@@ -12,6 +13,40 @@ export function initializeGameController() {
   let pendingAnswer;
   let busy = false;
   let retryTask;
+  let selectedMode = "SURVIVAL";
+  let timer;
+
+  function stopTimer() { clearInterval(timer); timer = undefined; }
+
+  function showHub() {
+    stopTimer();
+    state = answer = pendingAnswer = undefined;
+    hubView.render(playerName);
+    showScreen("hub");
+    updateControls();
+    focusCurrentStep();
+  }
+
+  function updateTimer() {
+    if (!state?.expiresAt || screen !== "game") return;
+    const seconds = Math.max(0, Math.ceil((state.expiresAt - Date.now()) / 1000));
+    gameView.renderTimer(seconds);
+    if (seconds === 0 && !busy && !shellView.hasError()) {
+      stopTimer();
+      run(async () => {
+        state = await gameService.status(state.gameId);
+        if (state.finished) showResult();
+        else timer = setInterval(updateTimer, 250);
+      }, "answer");
+    }
+  }
+
+  function showResult() {
+    stopTimer();
+    resultView.renderSummary(state, playerName);
+    showScreen("result");
+    focusCurrentStep();
+  }
 
   function showScreen(next) {
     screen = next;
@@ -49,12 +84,15 @@ export function initializeGameController() {
   }
 
   async function startGame(name) {
-    const nextState = await gameService.start();
+    const nextState = await gameService.start(selectedMode);
     playerName = name;
     state = nextState;
     pendingAnswer = undefined;
     showScreen("game");
     renderQuestion();
+    stopTimer();
+    gameView.renderMode(selectedMode, state.expiresAt != null);
+    if (state.expiresAt) { timer = setInterval(updateTimer, 250); updateTimer(); }
   }
 
   function renderQuestion() {
@@ -75,6 +113,8 @@ export function initializeGameController() {
     answer = await gameService.answer(submission);
     state = answer.state;
     pendingAnswer = undefined;
+    if (state.timedOut) { showResult(); return; }
+    if (state.finished) stopTimer();
     gameView.renderAnswer(answer, submission.choice, playerName);
   }
 
@@ -85,6 +125,7 @@ export function initializeGameController() {
   }
 
   function resetPlayer() {
+    stopTimer();
     state = answer = pendingAnswer = undefined;
     playerName = "";
     welcomeView.reset();
@@ -97,9 +138,7 @@ export function initializeGameController() {
     if (busy || !answer) return;
     clearError();
     if (!state.finished) { renderQuestion(); focusCurrentStep(); return; }
-    resultView.renderSummary(state, playerName);
-    showScreen("result");
-    focusCurrentStep();
+    showResult();
   }
 
   function canUseShortcuts() { return screen === "game" && !busy; }
@@ -114,7 +153,7 @@ export function initializeGameController() {
     onSubmit() {
       if (busy) return;
       const name = welcomeView.readPlayerName();
-      if (name !== undefined) run(() => startGame(name), "start");
+      if (name !== undefined) { playerName = name; showHub(); }
     },
     onInput: clearError
   });
@@ -127,10 +166,18 @@ export function initializeGameController() {
   });
   resultView.bind({
     onRestart: restartRound,
-    onBackToHome: () => navigate(resetPlayer)
+    onBackToHome: () => navigate(() => playerName ? showHub() : resetPlayer())
   });
   shellView.bind({
-    onHome: () => navigate(resetPlayer),
+    onHome: () => navigate(() => playerName ? showHub() : resetPlayer()),
     onRetry: () => { if (retryTask) run(retryTask.action, retryTask.operation); }
+  });
+  hubView.bind({
+    onSelectMode(mode) {
+      if (busy) return;
+      selectedMode = mode;
+      run(() => startGame(playerName), "start");
+    },
+    onChangePlayer: () => navigate(resetPlayer)
   });
 }

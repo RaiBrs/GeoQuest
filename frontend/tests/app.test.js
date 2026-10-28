@@ -25,8 +25,15 @@ class Element {
 
 
 test("uses names only for safe greetings and preserves keyboard flow and answer retries", async () => {
-  const original = { document: globalThis.document, window: globalThis.window, fetch: globalThis.fetch };
-  const ids = ["app", "home", "welcome", "game", "result", "player-form", "player-name",
+  const original = { document: globalThis.document, window: globalThis.window, fetch: globalThis.fetch,
+    setInterval: globalThis.setInterval, clearInterval: globalThis.clearInterval };
+  const originalNow = Date.now;
+  let now = 100000, tick;
+  Date.now = () => now;
+  globalThis.setInterval = callback => { tick = callback; return 1; };
+  globalThis.clearInterval = () => { tick = undefined; };
+  const ids = ["hub", "hub-title", "mode-capitals", "mode-survival", "mode-timed", "change-player", "mode-label", "timer",
+    "app", "home", "welcome", "game", "result", "player-form", "player-name",
     "error", "error-panel", "retry", "progress", "round-progress", "score", "player-label", "question",
     "feedback", "next", "restart-round", "keyboard-hint", "alternatives", "summary", "result-title", "result-score", "result-total",
     "restart", "back-to-home", "loading", "loading-text"];
@@ -47,6 +54,7 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
   const requests = [];
   let starts = 0, answers = 0;
   let failNextStart = false;
+  let expectedMode = "SURVIVAL", activeMode, expiresAt;
   const initial = { gameId: "round", number: 1, total: 2, score: 0, finished: false,
     question: { text: "Capital?", alternatives: ["A", "B", "C", "D"] } };
   globalThis.fetch = async (url, options) => {
@@ -54,22 +62,27 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
     requests.push({ url, body });
     let payload;
     if (url === "/api/games") {
-      assert.deepEqual(body, {}, "The greeting name must never be sent to Java");
+      assert.deepEqual(body, { mode: expectedMode }, "Only the selected mode is sent to Java");
       if (failNextStart) {
         failNextStart = false;
         return { ok: false, json: async () => ({ message: "Could not start a new round." }) };
       }
       starts++;
-      payload = { ...initial, gameId: "round-" + starts };
+      activeMode = body.mode;
+      expiresAt = activeMode === "TIMED" ? now + 60000 : null;
+      payload = { ...initial, gameId: "round-" + starts, mode: activeMode, expiresAt };
     } else if (url === "/api/answers") {
       answers++;
       if (answers === 1) throw new Error("Network response lost");
       const correct = body.choice === "B";
-      const finished = !correct || body.number === 2;
+      const finished = (!correct && activeMode === "SURVIVAL") || body.number === 2;
       payload = { correct, correctAnswer: "B", state: { ...initial, gameId: body.gameId,
         score: correct ? body.number : body.number - 1,
         number: finished ? body.number : body.number + 1, finished,
-        question: finished ? null : initial.question } };
+        question: finished ? null : initial.question, mode: activeMode, expiresAt } };
+    } else if (url === "/api/games/status") {
+      payload = { ...initial, gameId: body.gameId, mode: "TIMED", expiresAt,
+        finished: true, timedOut: true, question: null };
     } else {
       throw new Error("Unexpected API route: " + url);
     }
@@ -95,6 +108,10 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
     ui["player-name"].emit("input");
     ui["player-form"].emit("submit");
     ui["player-form"].emit("submit");
+    assert.equal(starts, 0, "Entering the hub must not start a round");
+    assert.equal(ui.hub.hidden, false);
+    assert.equal(ui["hub-title"].textContent, `Hello, ${name}!`);
+    ui["mode-survival"].click();
     await settle();
     assert.equal(starts, 1);
     assert.equal(ui.game.hidden, false);
@@ -187,9 +204,39 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
     await settle();
     press(" ", ui.next);
     ui["back-to-home"].click();
+    assert.equal(ui.hub.hidden, false, "Returning home preserves the player");
+    assert.equal(ui["hub-title"].textContent, `Hello, ${name}!`);
+    expectedMode = "CAPITALS";
+    ui["mode-capitals"].click();
+    await settle();
+    press("a");
+    await settle();
+    assert.equal(ui["restart-round"].hidden, true, "Capitals continues after a mistake");
+    press(" ", ui.next);
+    assert.equal(ui.progress.textContent, "QUESTION 2 OF 2");
+    assert.equal(ui["round-progress"].value, 1, "Progress counts answers, not correct answers");
+    ui.home.click();
+    assert.equal(ui.hub.hidden, false);
+    expectedMode = "TIMED";
+    ui["mode-timed"].click();
+    await settle();
+    assert.equal(ui.timer.hidden, false);
+    assert.match(ui.timer.textContent, /60s/);
+    now += 60000;
+    tick();
+    await settle();
+    assert.equal(ui.result.hidden, false, "The timer ends an idle round");
+    assert.equal(ui["result-title"].textContent, "Time is up!");
+    assert.equal(tick, undefined);
+    ui["back-to-home"].click();
+    ui["mode-timed"].click();
+    await settle();
+    ui.home.click();
+    assert.equal(tick, undefined, "Leaving a timed round cancels its timer");
+    ui["change-player"].click();
     assert.equal(ui.welcome.hidden, false);
     assert.equal(ui["player-name"].value, "");
     assert.equal(document.activeElement, ui["player-name"]);
     assert.ok(requests.every(request => !JSON.stringify(request.body).includes(name)));
-  } finally { Object.assign(globalThis, original); }
+  } finally { Object.assign(globalThis, original); Date.now = originalNow; }
 });

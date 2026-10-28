@@ -23,6 +23,7 @@ async function request(path, data) {
 }
 
 export const gameService = {
-  start() { return request("games", {}); },
+  start(mode) { return request("games", mode ? { mode } : {}); },
+  status(gameId) { return request("games/status", { gameId }); },
   answer(answer) { return request("answers", answer); }
 };

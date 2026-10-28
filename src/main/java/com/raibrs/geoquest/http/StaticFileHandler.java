@@ -17,7 +17,8 @@ public final class StaticFileHandler implements HttpHandler {
             "styles/pages/welcome.css", "styles/pages/game.css", "styles/pages/result.css",
             "src/app.js", "src/controller/game-controller.js", "src/service/game-service.js",
             "src/view/dom.js", "src/view/shell-view.js",
-            "src/view/pages/welcome-view.js", "src/view/pages/game-view.js", "src/view/pages/result-view.js");
+            "src/view/pages/welcome-view.js", "src/view/pages/hub-view.js",
+            "src/view/pages/game-view.js", "src/view/pages/result-view.js");
     private final Path frontend;
 
     public StaticFileHandler(Path frontend) {

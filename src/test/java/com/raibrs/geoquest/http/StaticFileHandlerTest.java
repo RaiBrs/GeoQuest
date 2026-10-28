@@ -30,7 +30,7 @@ class StaticFileHandlerTest {
                 "/styles/layout.css", "/styles/components.css", "/styles/pages/welcome.css",
                 "/styles/pages/game.css", "/styles/pages/result.css", "/src/app.js",
                 "/src/controller/game-controller.js", "/src/service/game-service.js",
-                "/src/view/dom.js", "/src/view/shell-view.js", "/src/view/pages/welcome-view.js",
+                "/src/view/dom.js", "/src/view/shell-view.js", "/src/view/pages/welcome-view.js", "/src/view/pages/hub-view.js",
                 "/src/view/pages/game-view.js", "/src/view/pages/result-view.js", "/assets/geoquest-icon.svg")) {
             var response = http.get(asset);
             assertEquals(200, response.statusCode(), asset);

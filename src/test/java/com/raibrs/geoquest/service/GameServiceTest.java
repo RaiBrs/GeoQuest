@@ -8,10 +8,38 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.util.NoSuchElementException;
 import java.util.UUID;
+import com.raibrs.geoquest.model.GameMode;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class GameServiceTest {
+    @Test
+    void deadlineEndsIdleRoundsAndLateAnswersCannotScore() throws Exception {
+        var time = new java.util.concurrent.atomic.AtomicReference<>(Instant.parse("2026-01-01T00:00:00Z"));
+        Clock clock = new Clock() {
+            public ZoneId getZone() { return ZoneOffset.UTC; }
+            public Clock withZone(ZoneId zone) { return this; }
+            public Instant instant() { return time.get(); }
+        };
+        var timedGames = new GameService(new TestCountriesClient(), new QuestionService(), clock);
+        var state = timedGames.start(GameMode.TIMED);
+        var request = correctRequest(state);
+        time.updateAndGet(now -> now.plusSeconds(60));
+        var status = timedGames.status(state.gameId());
+        assertTrue(status.finished());
+        assertTrue(status.timedOut());
+        assertNull(status.question());
+        var answer = timedGames.answer(request);
+        assertFalse(answer.correct());
+        assertEquals(0, answer.state().score());
+        assertEquals(status, answer.state());
+        assertEquals(answer, timedGames.answer(request));
+    }
+
     private final TestCountriesClient client = new TestCountriesClient();
     private final GameService games = new GameService(client, new QuestionService());
 

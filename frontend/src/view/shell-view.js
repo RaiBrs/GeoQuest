@@ -12,7 +12,7 @@ export const shellView = {
   },
 
   showScreen(next) {
-    for (const id of ["welcome", "game", "result"]) element(id).hidden = id !== next;
+    for (const id of ["welcome", "hub", "game", "result"]) element(id).hidden = id !== next;
   },
 
   clearError() {
@@ -42,5 +42,6 @@ export const shellView = {
     if (this.hasError()) element("retry").focus();
     else if (screen === "game") element(answered ? "next" : "question").focus();
     else if (screen === "result") element("result-title").focus();
+    else if (screen === "hub") element("hub-title").focus();
   }
 };

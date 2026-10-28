@@ -33,13 +33,42 @@
             <input id="player-name" type="text" autocomplete="nickname"
                    placeholder="What should we call you?" aria-describedby="name-help" required>
             <small id="name-help" class="muted">Up to 80 characters. Used only to greet you.</small>
-            <button class="button primary" type="submit">Start playing <span aria-hidden="true">→</span></button>
+            <button class="button primary" type="submit">Choose your challenge <span aria-hidden="true">→</span></button>
           </form>
-          <p class="entry-note">One mistake ends the round. Every correct answer counts.</p>
+          <p class="entry-note">Three ways to explore. Choose your challenge in the hub.</p>
         </div>
       </section>
 
+      <section id="hub" class="screen" aria-labelledby="hub-title" hidden>
+        <p class="eyebrow">YOUR WORLD OF CHALLENGES</p>
+        <h1 id="hub-title" tabindex="-1"></h1>
+        <p class="muted">Choose how you want to explore world capitals today.</p>
+        <div class="mode-grid">
+          <article class="card mode-card">
+            <span class="card-label">LEARN AT YOUR PACE</span>
+            <h2>Capitals</h2>
+            <p>Answer all 10 questions. Mistakes are part of the journey.</p>
+            <button id="mode-capitals" class="button primary" type="button">Play Capitals</button>
+          </article>
+          <article class="card mode-card">
+            <span class="card-label">MAKE EVERY ANSWER COUNT</span>
+            <h2>Survival</h2>
+            <p>One mistake ends the round. Can you get all 10 right?</p>
+            <button id="mode-survival" class="button primary" type="button">Play Survival</button>
+          </article>
+          <article class="card mode-card">
+            <span class="card-label">BEAT THE CLOCK</span>
+            <h2>Against the clock</h2>
+            <p>60 seconds. Up to 10 questions. Keep going after mistakes.</p>
+            <button id="mode-timed" class="button primary" type="button">Play Against the clock</button>
+          </article>
+        </div>
+        <button id="change-player" class="button secondary" type="button">Change player</button>
+      </section>
+
       <section id="game" class="screen card play-card" aria-labelledby="question" hidden>
+        <p id="mode-label" class="card-label"></p>
+        <p id="timer" class="score-pill" hidden></p>
         <div class="game-meta">
           <span id="progress" class="card-label"></span>
           <span id="score" class="score-pill"></span>
@@ -63,7 +92,7 @@
         <p id="summary" class="muted"></p>
         <div class="actions">
           <button id="restart" class="button primary" type="button">Play again</button>
-          <button id="back-to-home" class="button secondary" type="button">Back to home</button>
+          <button id="back-to-home" class="button secondary" type="button">Back to hub</button>
         </div>
       </section>
     </main>

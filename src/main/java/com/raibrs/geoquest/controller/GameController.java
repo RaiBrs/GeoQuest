@@ -2,6 +2,8 @@ package com.raibrs.geoquest.controller;
 
 import com.raibrs.geoquest.dto.GameDtos.AnswerRequest;
 import com.raibrs.geoquest.dto.GameDtos.StartRequest;
+import com.raibrs.geoquest.dto.GameDtos.StatusRequest;
+import com.raibrs.geoquest.model.GameMode;
 import com.raibrs.geoquest.http.JsonHttp;
 import com.raibrs.geoquest.service.GameService;
 import com.sun.net.httpserver.HttpExchange;
@@ -14,8 +16,9 @@ import java.util.Set;
 public final class GameController implements HttpHandler {
     private static final String GAMES = "/api/games";
     private static final String ANSWERS = "/api/answers";
+    private static final String STATUS = "/api/games/status";
     // The server and controller share these paths so registration cannot drift from routing.
-    public static final Set<String> ROUTES = Set.of(GAMES, ANSWERS);
+    public static final Set<String> ROUTES = Set.of(GAMES, ANSWERS, STATUS);
     private final GameService games;
 
     public GameController(GameService games) {
@@ -38,9 +41,12 @@ public final class GameController implements HttpHandler {
 
         switch (path) {
             case GAMES -> {
-                JsonHttp.read(exchange, StartRequest.class);
-                JsonHttp.send(exchange, 201, games.start());
+                var request = JsonHttp.read(exchange, StartRequest.class);
+                JsonHttp.send(exchange, 201, games.start(
+                        request.mode() == null ? GameMode.SURVIVAL : request.mode()));
             }
+            case STATUS -> JsonHttp.send(exchange, 200,
+                    games.status(JsonHttp.read(exchange, StatusRequest.class).gameId()));
             case ANSWERS -> {
                 var request = JsonHttp.read(exchange, AnswerRequest.class);
                 JsonHttp.send(exchange, 200, games.answer(request));

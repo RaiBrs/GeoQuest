@@ -7,9 +7,11 @@ import com.raibrs.geoquest.dto.GameDtos.GameView;
 import com.raibrs.geoquest.dto.GameDtos.QuestionView;
 import com.raibrs.geoquest.model.Country;
 import com.raibrs.geoquest.model.GameSession;
+import com.raibrs.geoquest.model.GameMode;
 import com.raibrs.geoquest.model.Question;
 
 import java.io.IOException;
+import java.time.Clock;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,13 +25,24 @@ public final class GameService {
     private final QuestionService questionService;
     private final Map<UUID, Round> rounds = new HashMap<>();
     private List<Country> countryCatalog;
+    private final Clock clock;
 
     public GameService(CountriesClient countriesClient, QuestionService questionService) {
+        this(countriesClient, questionService, Clock.systemUTC());
+    }
+
+    public GameService(CountriesClient countriesClient, QuestionService questionService, Clock clock) {
+        this.clock = Objects.requireNonNull(clock);
         this.countriesClient = Objects.requireNonNull(countriesClient);
         this.questionService = Objects.requireNonNull(questionService);
     }
 
     public synchronized GameView start() throws IOException, InterruptedException {
+        return start(GameMode.SURVIVAL);
+    }
+
+    public synchronized GameView start(GameMode mode) throws IOException, InterruptedException {
+        Objects.requireNonNull(mode);
         if (countryCatalog == null) {
             countryCatalog = countriesClient.fetchAllCountries(80);
         }
@@ -40,7 +53,7 @@ public final class GameService {
             countryCatalog = null;
             throw new IOException("Country catalog cannot produce a round.", exception);
         }
-        Round round = new Round(new GameSession(questions));
+        Round round = new Round(new GameSession(questions, mode, clock));
         rounds.put(round.id, round);
         return view(round);
     }
@@ -55,12 +68,20 @@ public final class GameService {
             return round.lastAnswer;
         }
         if (round.session.isFinished()) {
+            if (round.session.isTimedOut()) return new AnswerView(false, "", view(round));
             throw new IllegalStateException("This round has already ended.");
         }
         if (request.number() != round.session.getCurrentQuestionNumber()) {
             throw new IllegalStateException("This is not the current question.");
         }
-        GameSession.AnswerResult result = round.session.answer(request.choice());
+        GameSession.AnswerResult result;
+        try {
+            result = round.session.answer(request.choice());
+        } catch (IllegalStateException exception) {
+            // The deadline may pass between the checks above and accepting this answer.
+            if (round.session.isTimedOut()) return new AnswerView(false, "", view(round));
+            throw exception;
+        }
         round.lastRequest = request;
         round.lastAnswer = new AnswerView(result.correct(), result.correctAnswer(), view(round));
         return round.lastAnswer;
@@ -74,17 +95,24 @@ public final class GameService {
         return round;
     }
 
+    public synchronized GameView status(UUID gameId) {
+        return view(findRound(gameId));
+    }
+
     private GameView view(Round round) {
         QuestionView question = null;
-        if (!round.session.isFinished()) {
-            Question current = round.session.getCurrentQuestion();
+        Question current = round.session.getCurrentQuestionOrNull();
+        if (current != null) {
             // Never serialize the domain Question, which contains the answer key.
             question = new QuestionView(current.getText(), current.getAlternatives());
         }
         int total = round.session.getTotalQuestions();
         int score = round.session.getScore();
+        boolean finished = round.session.isFinished();
+        boolean timedOut = round.session.isTimedOut();
         return new GameView(round.id, round.session.getCurrentQuestionNumber(), total,
-                score, round.session.isFinished(), question);
+                score, finished, finished ? null : question, round.session.getMode(),
+                round.session.getExpiresAt(), timedOut);
     }
 
     private static final class Round {
