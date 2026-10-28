@@ -69,4 +69,3 @@ public final class AccountSessions {
         catch (NoSuchAlgorithmException exception) { throw new IllegalStateException(exception); }
     }
 }
-
