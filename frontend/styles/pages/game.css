@@ -19,7 +19,9 @@ progress::-moz-progress-bar { background: #397dc7; border-radius: 999px; }
 .answer-feedback { min-height: 26px; margin: 24px 0 14px; font-size: 14px; font-weight: 650; }
 .answer-feedback[data-tone="correct"] { color: #215c4c; }
 .answer-feedback[data-tone="wrong"] { color: #923d42; }
-#next { width: 100%; }
+.round-actions { display: flex; gap: 12px; }
+.round-actions .button { flex: 1; min-width: 0; }
 @media (max-width: 760px) {
   .alternatives { grid-template-columns: 1fr; }
+  .round-actions { flex-direction: column; }
 }

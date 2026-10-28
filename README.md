@@ -35,7 +35,7 @@ The name is a display preference used for messages such as **â€œYour turn, Rai.â
 
 - Any player can choose the same name; no uniqueness or name ownership is enforced.
 - The name stays in the browser's current JavaScript state. It is not sent to the API or stored in a database, cookie, or browser storage by the application.
-- Play again keeps the name. Change player, Home, or reloading the page clears it.
+- Play again keeps the name. Back to home, the header's Home button, or reloading the page clears it.
 - The form accepts up to 80 Unicode code points after trimming surrounding whitespace, and rejects blank names and control characters.
 - User-entered names are rendered with `textContent` so they remain plain text.
 
@@ -46,6 +46,8 @@ The name is a display preference used for messages such as **â€œYour turn, Rai.â
 - Java validates answers and calculates the score; the browser submits only the selected answer.
 - The correct answer is returned only after a choice is submitted.
 - Retrying the same answer returns its original response without counting it twice.
+- When a round ends, choose **Play again** directly from the answer screen or **View result**.
+- On the answer screen, **R** restarts a finished round with the same greeting name, while **Space** opens its result.
 - Rounds remain in server memory until shutdown; scores are shown for the current round and are not persisted.
 
 The interface is in English, uses a responsive blue design, supports **Aâ€“D to answer** and

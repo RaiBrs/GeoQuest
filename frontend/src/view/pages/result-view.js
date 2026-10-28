@@ -1,9 +1,9 @@
 import { element } from "../dom.js";
 
 export const resultView = {
-  bind({ onRestart, onChangePlayer }) {
+  bind({ onRestart, onBackToHome }) {
     element("restart").addEventListener("click", onRestart);
-    element("change-player").addEventListener("click", onChangePlayer);
+    element("back-to-home").addEventListener("click", onBackToHome);
   },
 
   renderSummary(state, playerName) {

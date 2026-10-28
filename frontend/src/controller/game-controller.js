@@ -95,6 +95,7 @@ export function initializeGameController() {
 
   function continueRound() {
     if (busy || !answer) return;
+    clearError();
     if (!state.finished) { renderQuestion(); focusCurrentStep(); return; }
     resultView.renderSummary(state, playerName);
     showScreen("result");
@@ -102,6 +103,12 @@ export function initializeGameController() {
   }
 
   function canUseShortcuts() { return screen === "game" && !busy; }
+
+  function restartRound() {
+    if (busy || !state?.finished) return;
+    const name = playerName;
+    run(() => startGame(name), "start");
+  }
 
   welcomeView.bind({
     onSubmit() {
@@ -113,15 +120,14 @@ export function initializeGameController() {
   });
   gameView.bind({
     onNext: continueRound,
+    onRestart: restartRound,
+    canRestart: () => canUseShortcuts() && state?.finished,
     canContinue: () => canUseShortcuts() && answer != null && !shellView.hasError(),
     canAnswer: () => canUseShortcuts() && !answer && !pendingAnswer
   });
   resultView.bind({
-    onRestart: () => navigate(() => {
-      const name = playerName;
-      run(() => startGame(name), "start");
-    }),
-    onChangePlayer: () => navigate(resetPlayer)
+    onRestart: restartRound,
+    onBackToHome: () => navigate(resetPlayer)
   });
   shellView.bind({
     onHome: () => navigate(resetPlayer),

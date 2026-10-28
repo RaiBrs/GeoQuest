@@ -28,14 +28,14 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
   const original = { document: globalThis.document, window: globalThis.window, fetch: globalThis.fetch };
   const ids = ["app", "home", "welcome", "game", "result", "player-form", "player-name",
     "error", "error-panel", "retry", "progress", "round-progress", "score", "player-label", "question",
-    "feedback", "next", "alternatives", "summary", "result-title", "result-score", "result-total",
-    "restart", "change-player", "loading", "loading-text"];
+    "feedback", "next", "restart-round", "keyboard-hint", "alternatives", "summary", "result-title", "result-score", "result-total",
+    "restart", "back-to-home", "loading", "loading-text"];
   const ui = Object.fromEntries(ids.map(id => [id, new Element(id)]));
   ui["player-name"].tagName = "INPUT";
   ui.home.tagName = "BUTTON";
   ui.next.tagName = "BUTTON";
-  for (const id of ["game", "result", "error-panel", "loading", "next"]) ui[id].hidden = true;
-  const staticButtons = ["home", "retry", "next", "restart", "change-player"].map(id => ui[id]);
+  for (const id of ["game", "result", "error-panel", "loading", "next", "restart-round"]) ui[id].hidden = true;
+  const staticButtons = ["home", "retry", "next", "restart-round", "restart", "back-to-home"].map(id => ui[id]);
   const documentHandlers = {}, windowHandlers = {};
   globalThis.document = {
     getElementById: id => ui[id], createElement: name => new Element("", name.toUpperCase()),
@@ -46,6 +46,7 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
   ui["player-form"].onReset = () => { ui["player-name"].value = ""; };
   const requests = [];
   let starts = 0, answers = 0;
+  let failNextStart = false;
   const initial = { gameId: "round", number: 1, total: 2, score: 0, finished: false,
     question: { text: "Capital?", alternatives: ["A", "B", "C", "D"] } };
   globalThis.fetch = async (url, options) => {
@@ -53,8 +54,12 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
     requests.push({ url, body });
     let payload;
     if (url === "/api/games") {
-      starts++;
       assert.deepEqual(body, {}, "The greeting name must never be sent to Java");
+      if (failNextStart) {
+        failNextStart = false;
+        return { ok: false, json: async () => ({ message: "Could not start a new round." }) };
+      }
+      starts++;
       payload = { ...initial, gameId: "round-" + starts };
     } else if (url === "/api/answers") {
       answers++;
@@ -93,6 +98,8 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
     await settle();
     assert.equal(starts, 1);
     assert.equal(ui.game.hidden, false);
+    assert.equal(ui["restart-round"].hidden, true);
+    assert.equal(press("r"), false, "Cannot restart an unanswered round with R");
     assert.equal(document.activeElement, ui.question);
     assert.equal(ui["player-label"].textContent, `Your turn, ${name}.`);
     assert.equal(press(" "), false);
@@ -112,6 +119,7 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
     assert.equal(document.activeElement, ui.next);
     assert.equal(ui.feedback.textContent, `Well done, ${name}! Correct answer.`);
     assert.equal(ui.score.textContent, "Correct answers: 1");
+    assert.equal(ui["restart-round"].hidden, true, "Continue normally after a correct non-final answer");
     assert.equal(press(" ", ui.home), false);
     assert.equal(press(" ", ui.question, { repeat: true }), false);
     for (const modifier of ["ctrlKey", "altKey", "metaKey", "shiftKey"]) {
@@ -123,21 +131,62 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
     press("a");
     await settle();
     assert.equal(ui.feedback.textContent, `Not this time, ${name}. The correct answer is B.`);
+    assert.equal(ui["restart-round"].hidden, false);
+    assert.match(ui["keyboard-hint"].textContent, /Press R to play again/);
+    assert.equal(press("r", ui.question, { repeat: true }), false);
+    assert.equal(press("r", ui.question, { ctrlKey: true }), false);
+    assert.equal(press("r", ui["player-name"]), false);
+    failNextStart = true;
+    assert.equal(press("r"), true, "Restart directly after a wrong answer without opening the result");
+    assert.equal(press("r"), false, "Do not create a second round while restarting");
+    await settle();
+    assert.equal(starts, 1, "A failed restart must preserve the completed round");
+    assert.equal(ui.game.hidden, false);
+    assert.equal(ui.score.textContent, "Correct answers: 1");
+    assert.equal(ui["error-panel"].hidden, false);
+    ui.next.click();
+    assert.equal(ui.result.hidden, false, "The old result remains available after a failed restart");
+    assert.equal(ui["error-panel"].hidden, true);
+    assert.equal(ui.summary.textContent, `${name}, you answered 1 out of 2 questions correctly.`);
+    ui.restart.click();
+    await settle();
+    assert.equal(starts, 2);
+    assert.equal(ui.result.hidden, true);
+    assert.equal(ui.progress.textContent, "QUESTION 1 OF 2");
+    assert.equal(ui.score.textContent, "Correct answers: 0");
+    assert.equal(ui["player-label"].textContent, `Your turn, ${name}.`);
+    assert.equal(ui["restart-round"].hidden, true);
+    assert.match(ui["keyboard-hint"].textContent, /Press A–D to answer/);
+    press("a");
+    await settle();
+    assert.equal(ui["restart-round"].hidden, false, "Offer restart even after the first wrong answer");
+    ui["restart-round"].click();
+    ui["restart-round"].click();
+    await settle();
+    assert.equal(starts, 3, "Double clicking Play again must start only one round");
+    assert.equal(ui.result.hidden, true);
+    assert.equal(document.activeElement, ui.question);
+    press("b");
+    await settle();
+    press(" ", ui.next);
+    press("b");
+    await settle();
+    assert.equal(ui["restart-round"].hidden, false, "A completed perfect round offers the same actions");
     const callsBeforeResult = requests.length;
     assert.equal(press(" ", ui.next), true);
     assert.equal(ui.result.hidden, false);
     assert.equal(document.activeElement, ui["result-title"]);
     assert.equal(requests.length, callsBeforeResult, "Showing the result must not save or fetch a ranking");
-    assert.equal(ui.summary.textContent, `${name}, you answered 1 out of 2 questions correctly.`);
+    assert.equal(ui.summary.textContent, `${name}, you answered 2 out of 2 questions correctly.`);
     assert.equal(windowHandlers.beforeunload, undefined, "There is no unsaved-result warning");
     ui.restart.click();
     await settle();
-    assert.equal(starts, 2);
+    assert.equal(starts, 4);
     assert.equal(ui["player-label"].textContent, `Your turn, ${name}.`);
     press("a");
     await settle();
     press(" ", ui.next);
-    ui["change-player"].click();
+    ui["back-to-home"].click();
     assert.equal(ui.welcome.hidden, false);
     assert.equal(ui["player-name"].value, "");
     assert.equal(document.activeElement, ui["player-name"]);
