@@ -22,17 +22,17 @@
         <div class="intro">
           <p class="eyebrow">YOUR NEXT CHALLENGE</p>
           <h1 id="welcome-title">Explore the world.<br><span>Make your mark.</span></h1>
-          <p class="intro-copy">Put your knowledge of world capitals to the test and find your place on the leaderboard.</p>
+          <p class="intro-copy">Put your knowledge of world capitals to the test, one answer at a time.</p>
         </div>
         <div class="card entry-card">
           <span class="card-label">WORLD CAPITALS</span>
           <h2>Start your journey</h2>
-          <p class="muted">Choose how you'll appear on the leaderboard.</p>
+          <p class="muted">Tell us what to call you during the game.</p>
           <form id="player-form" novalidate>
             <label for="player-name">Your name</label>
-            <input id="player-name" name="playerName" type="text" autocomplete="nickname"
+            <input id="player-name" type="text" autocomplete="nickname"
                    placeholder="What should we call you?" aria-describedby="name-help" required>
-            <small id="name-help" class="muted">Up to 80 characters. No sign-up.</small>
+            <small id="name-help" class="muted">Up to 80 characters. Used only to greet you.</small>
             <button class="button primary" type="submit">Start playing <span aria-hidden="true">→</span></button>
           </form>
           <p class="entry-note">One mistake ends the round. Every correct answer counts.</p>
@@ -58,10 +58,6 @@
         <h1 id="result-title" tabindex="-1">Round complete</h1>
         <div class="result-score"><span id="result-score">0</span><span id="result-total"></span></div>
         <p id="summary" class="muted"></p>
-        <p id="save-status" class="save-status" role="status"></p>
-        <div class="ranking-header"><h2>Leaderboard</h2><span class="card-label">TOP 10</span></div>
-        <p id="ranking-status" class="muted" role="status"></p>
-        <ol id="ranking" class="ranking" role="list" aria-label="Top scores"></ol>
         <div class="actions">
           <button id="restart" class="button primary" type="button">Play again</button>
           <button id="change-player" class="button secondary" type="button">Change player</button>
@@ -81,15 +77,5 @@
     <footer>Your name. Your journey. Your mark on the world.</footer>
   </div>
 
-  <dialog id="discard-dialog" aria-labelledby="discard-title" aria-describedby="discard-description">
-    <form method="dialog">
-      <h2 id="discard-title">Your result hasn't been saved yet</h2>
-      <p id="discard-description" class="muted">You can try saving again or discard this result to continue.</p>
-      <div class="actions">
-        <button class="button primary" value="cancel" autofocus>Stay here</button>
-        <button class="button secondary" value="discard">Discard result</button>
-      </div>
-    </form>
-  </dialog>
 </body>
 </html>

@@ -51,7 +51,7 @@ export const gameView = {
     });
   },
 
-  renderAnswer(answer, choice) {
+  renderAnswer(answer, choice, playerName) {
     const state = answer.state;
     renderScore(state.score);
     element("round-progress").value = state.score + (answer.correct ? 0 : 1);
@@ -65,7 +65,8 @@ export const gameView = {
     }
     element("feedback").dataset.tone = answer.correct ? "correct" : "wrong";
     element("feedback").textContent = answer.correct
-      ? "Well done! Correct answer." : `The correct answer is ${answer.correctAnswer}.`;
+      ? `Well done, ${playerName}! Correct answer.`
+      : `Not this time, ${playerName}. The correct answer is ${answer.correctAnswer}.`;
     element("next").textContent = state.finished ? "View result" : "Next question →";
     element("next").hidden = false;
   }

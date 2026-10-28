@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
@@ -19,7 +18,7 @@ public final class JsonHttp {
 
     @FunctionalInterface
     public interface Action {
-        void run() throws IOException, SQLException, InterruptedException;
+        void run() throws IOException, InterruptedException;
     }
 
     public static void handle(HttpExchange exchange, Action action) throws IOException {
@@ -34,9 +33,6 @@ public final class JsonHttp {
             error(exchange, 404, exception.getMessage());
         } catch (IllegalStateException exception) {
             error(exchange, 409, exception.getMessage());
-        } catch (SQLException exception) {
-            LOGGER.log(System.Logger.Level.WARNING, "Ranking database operation failed.", exception);
-            error(exchange, 503, "Unable to access the leaderboard. Please try again.");
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             error(exchange, 503, "The operation was interrupted. Please try again.");

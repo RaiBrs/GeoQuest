@@ -7,9 +7,9 @@ import java.util.UUID;
 public final class GameDtos {
     private GameDtos() {}
 
-    public record StartRequest(String playerName) {}
+    // Display names belong to browser greetings and are never part of API requests.
+    public record StartRequest() {}
     public record AnswerRequest(UUID gameId, int number, String choice) {}
-    public record ResultRequest(UUID gameId) {}
     public record QuestionView(String text, List<String> alternatives) {}
     public record GameView(UUID gameId, int number, int total, int score,
                            boolean finished, QuestionView question) {}

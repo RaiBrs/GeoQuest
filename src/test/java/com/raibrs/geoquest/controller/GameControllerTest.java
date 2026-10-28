@@ -2,8 +2,6 @@ package com.raibrs.geoquest.controller;
 
 import com.raibrs.geoquest.service.GameService;
 import com.raibrs.geoquest.service.QuestionService;
-import com.raibrs.geoquest.service.RankingService;
-import com.raibrs.geoquest.support.InMemoryRankingRepository;
 import com.raibrs.geoquest.support.TestCountriesClient;
 import com.raibrs.geoquest.support.TestHttpServer;
 import org.junit.jupiter.api.AfterEach;
@@ -18,24 +16,18 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class GameControllerTest {
     private final TestCountriesClient countries = new TestCountriesClient();
-    private final InMemoryRankingRepository repository = new InMemoryRankingRepository();
-    private final GameService games = new GameService(countries, new QuestionService(),
-            new RankingService(repository));
+    private final GameService games = new GameService(countries, new QuestionService());
     private TestHttpServer http;
 
     @BeforeEach
-    void startServer() throws Exception {
-        http = TestHttpServer.start(new GameController(games));
-    }
+    void startServer() throws Exception { http = TestHttpServer.start(new GameController(games)); }
 
     @AfterEach
-    void stopServer() {
-        if (http != null) http.close();
-    }
+    void stopServer() { if (http != null) http.close(); }
 
     @Test
-    void startsARoundWithoutExposingTheAnswerKey() throws Exception {
-        var response = http.post("/api/games", Map.of("playerName", "Rai"));
+    void startsAnAnonymousRoundWithoutExposingTheAnswerKey() throws Exception {
+        var response = http.post("/api/games", Map.of());
         assertEquals(201, response.statusCode());
         var state = http.readJson(response);
         assertDoesNotThrow(() -> UUID.fromString(state.get("gameId").asText()));
@@ -43,11 +35,13 @@ class GameControllerTest {
         assertEquals(0, state.get("score").asInt());
         assertEquals(4, state.get("question").get("alternatives").size());
         assertFalse(state.get("question").has("correctAnswer"));
+        assertFalse(state.has("playerName"));
     }
 
     @Test
-    void rejectsMalformedMissingOversizedAndInvalidPlayerInput() throws Exception {
-        for (String body : List.of("{", "null", "{}", "{\"playerName\":\" \"}", "x".repeat(4097))) {
+    void rejectsMalformedMissingOversizedAndUnexpectedStartData() throws Exception {
+        for (String body : List.of("{", "null", "{\"playerName\":\"Rai\"}",
+                "{\"score\":10}", "x".repeat(4097))) {
             assertEquals(400, http.postRaw("/api/games", body, "application/json").statusCode());
         }
     }
@@ -58,42 +52,40 @@ class GameControllerTest {
     }
 
     @Test
-    void rejectsSavingUnfinishedUnknownAndClientControlledResults() throws Exception {
-        var state = games.start("Rai");
-        assertEquals(409, http.post("/api/results", Map.of("gameId", state.gameId())).statusCode());
-        assertEquals(400, http.post("/api/results", Map.of("gameId", state.gameId(), "score", 10)).statusCode());
-        assertEquals(404, http.post("/api/results", Map.of("gameId", UUID.randomUUID())).statusCode());
+    void rejectsUnknownOutOfOrderAndClientControlledAnswers() throws Exception {
+        var state = games.start();
+        assertEquals(404, http.post("/api/answers",
+                Map.of("gameId", UUID.randomUUID(), "number", 1, "choice", "invalid")).statusCode());
+        assertEquals(409, http.post("/api/answers",
+                Map.of("gameId", state.gameId(), "number", 2, "choice", "invalid")).statusCode());
+        assertEquals(400, http.post("/api/answers",
+                Map.of("gameId", state.gameId(), "number", 1, "choice", "invalid", "score", 10)).statusCode());
     }
 
     @Test
-    void repeatedAnswerAndSaveRequestsKeepTheirOriginalResult() throws Exception {
-        var state = games.start("Rai");
+    void repeatedAnswerRequestsKeepTheirOriginalResult() throws Exception {
+        var state = games.start();
         String correct = TestCountriesClient.answerFor(state.question().text());
         String wrong = state.question().alternatives().stream()
                 .filter(choice -> !choice.equals(correct)).findFirst().orElseThrow();
         var submission = Map.of("gameId", state.gameId(), "number", 1, "choice", wrong);
-
         var response = http.post("/api/answers", submission);
         assertEquals(200, response.statusCode());
         assertEquals(response.body(), http.post("/api/answers", submission).body());
         assertTrue(http.readJson(response).get("state").get("finished").asBoolean());
-        var save = Map.of("gameId", state.gameId());
-        assertEquals(200, http.post("/api/results", save).statusCode());
-        assertEquals(200, http.post("/api/results", save).statusCode());
-        assertEquals(1, repository.allEntries().size());
-        assertEquals(0, repository.allEntries().getFirst().getScore());
+        assertEquals(0, http.readJson(response).get("state").get("score").asInt());
     }
 
     @Test
     void countryFailureIsRecoverableAndDoesNotExposeTechnicalDetails() throws Exception {
         countries.failing = true;
-        var response = http.post("/api/games", Map.of("playerName", "Rai"));
+        var response = http.post("/api/games", Map.of());
         assertEquals(503, response.statusCode());
         assertFalse(response.body().contains("Test country service"));
         assertEquals("Unable to complete the operation. Please try again.",
                 http.readJson(response).get("message").asText());
         countries.failing = false;
-        assertEquals(201, http.post("/api/games", Map.of("playerName", "Rai")).statusCode());
+        assertEquals(201, http.post("/api/games", Map.of()).statusCode());
     }
 
     @Test
@@ -106,12 +98,10 @@ class GameControllerTest {
         assertEquals("Method not allowed.", http.readJson(http.get("/api/games"))
                 .get("message").asText());
         assertEquals("Round not found. Start a new game.",
-                http.readJson(http.post("/api/results", Map.of("gameId", UUID.randomUUID())))
+                http.readJson(http.post("/api/answers",
+                        Map.of("gameId", UUID.randomUUID(), "number", 1, "choice", "invalid")))
                         .get("message").asText());
-        var state = games.start("Rai");
-        assertEquals("This round has not ended yet.",
-                http.readJson(http.post("/api/results", Map.of("gameId", state.gameId())))
-                        .get("message").asText());
+        var state = games.start();
         assertEquals("Invalid answer choice.", http.readJson(http.post("/api/answers",
                 Map.of("gameId", state.gameId(), "number", 1, "choice", "invalid")))
                 .get("message").asText());

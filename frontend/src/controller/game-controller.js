@@ -12,8 +12,6 @@ export function initializeGameController() {
   let pendingAnswer;
   let busy = false;
   let retryTask;
-  let saveState = "idle";
-  let pendingNavigation;
 
   function showScreen(next) {
     screen = next;
@@ -51,12 +49,10 @@ export function initializeGameController() {
   }
 
   async function startGame(name) {
-    const nextState = await gameService.start(name);
+    const nextState = await gameService.start();
     playerName = name;
     state = nextState;
-    saveState = "idle";
     pendingAnswer = undefined;
-    resultView.clearRanking();
     showScreen("game");
     renderQuestion();
   }
@@ -79,45 +75,17 @@ export function initializeGameController() {
     answer = await gameService.answer(submission);
     state = answer.state;
     pendingAnswer = undefined;
-    if (state.finished) saveState = "pending";
-    gameView.renderAnswer(answer, submission.choice);
+    gameView.renderAnswer(answer, submission.choice, playerName);
   }
-
-  async function loadResult(gameId) {
-    if (saveState !== "saved") {
-      resultView.showSaveStatus("saving");
-      try {
-        await gameService.saveResult(gameId);
-        saveState = "saved";
-      } catch (error) {
-        resultView.showSaveStatus("error");
-        throw error;
-      }
-    }
-    resultView.showSaveStatus("saved");
-    resultView.showRankingLoading();
-    let ranking;
-    try {
-      ranking = await gameService.getRanking();
-    } catch (error) {
-      resultView.showRankingError();
-      throw error;
-    }
-    resultView.renderRanking(ranking);
-  }
-
-  function hasUnsavedResult() { return state?.finished && saveState === "pending"; }
 
   function navigate(action) {
     if (busy) return;
-    if (!hasUnsavedResult()) { clearError(); action(); return; }
-    pendingNavigation = action;
-    shellView.requestDiscard();
+    clearError();
+    action();
   }
 
   function resetPlayer() {
     state = answer = pendingAnswer = undefined;
-    saveState = "idle";
     playerName = "";
     welcomeView.reset();
     showScreen("welcome");
@@ -130,11 +98,10 @@ export function initializeGameController() {
     if (!state.finished) { renderQuestion(); focusCurrentStep(); return; }
     resultView.renderSummary(state, playerName);
     showScreen("result");
-    const gameId = state.gameId;
-    run(() => loadResult(gameId), "result");
+    focusCurrentStep();
   }
 
-  function canUseShortcuts() { return screen === "game" && !busy && !shellView.isDiscardOpen(); }
+  function canUseShortcuts() { return screen === "game" && !busy; }
 
   welcomeView.bind({
     onSubmit() {
@@ -158,16 +125,6 @@ export function initializeGameController() {
   });
   shellView.bind({
     onHome: () => navigate(resetPlayer),
-    onRetry: () => { if (retryTask) run(retryTask.action, retryTask.operation); },
-    onDiscard(discarded) {
-      const action = pendingNavigation;
-      pendingNavigation = undefined;
-      if (!discarded || !action) return;
-      clearError();
-      saveState = "discarded";
-      resultView.showSaveStatus("discarded");
-      action();
-    },
-    hasUnsavedResult
+    onRetry: () => { if (retryTask) run(retryTask.action, retryTask.operation); }
   });
 }

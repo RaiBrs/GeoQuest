@@ -15,47 +15,47 @@ class EnvironmentConfigTest {
 
     @Test
     void worksWithOnlyProcessSettingsWhenTheLocalFileIsMissing() {
-        var environment = Map.of("DATABASE_USER", "test-user");
+        var environment = Map.of("EXAMPLE_NAME", "test-user");
         assertEquals(environment, EnvironmentConfig.load(directory.resolve("missing"), environment));
     }
 
     @Test
     void readsUtf8BomCommentsAndWhitespace() throws Exception {
-        Path file = file("\uFEFF# Local settings\n\n DATABASE_USER = Jogador \nDATABASE_URL=jdbc:postgresql://localhost/test\n");
+        Path file = file("\uFEFF# Local settings\n\n EXAMPLE_NAME = Jogador \nEXAMPLE_URL=https://example.test/api\n");
         var environment = EnvironmentConfig.load(file, Map.of());
-        assertEquals("Jogador", environment.get("DATABASE_USER"));
-        assertEquals("jdbc:postgresql://localhost/test", environment.get("DATABASE_URL"));
+        assertEquals("Jogador", environment.get("EXAMPLE_NAME"));
+        assertEquals("https://example.test/api", environment.get("EXAMPLE_URL"));
     }
 
     @Test
     void preservesQuotedSecretsAndTreatsTheirContentsAsLiteralData() throws Exception {
-        Path file = file("DATABASE_PASSWORD=\"  fake#password=with\\slashes$HOME\"inside  \"\n"
+        Path file = file("EXAMPLE_SECRET=\"  fake#password=with\\slashes$HOME\"inside  \"\n"
                 + "API_KEY='fake=key#literal'\n");
         var environment = EnvironmentConfig.load(file, Map.of());
-        assertEquals("  fake#password=with\\slashes$HOME\"inside  ", environment.get("DATABASE_PASSWORD"));
+        assertEquals("  fake#password=with\\slashes$HOME\"inside  ", environment.get("EXAMPLE_SECRET"));
         assertEquals("fake=key#literal", environment.get("API_KEY"));
     }
 
     @Test
     void preservesUnquotedHashesEqualsAndBackslashes() throws Exception {
-        var environment = EnvironmentConfig.load(file("DATABASE_PASSWORD=fake#secret=a\\b\n"), Map.of());
-        assertEquals("fake#secret=a\\b", environment.get("DATABASE_PASSWORD"));
+        var environment = EnvironmentConfig.load(file("EXAMPLE_SECRET=fake#secret=a\\b\n"), Map.of());
+        assertEquals("fake#secret=a\\b", environment.get("EXAMPLE_SECRET"));
     }
 
     @Test
     void explicitEnvironmentOverridesLocalDefaults() throws Exception {
-        var environment = EnvironmentConfig.load(file("DATABASE_USER=local\nAPI_KEY=local-key\n"),
-                Map.of("DATABASE_USER", "deployment", "EXTRA", "external"));
-        assertEquals("deployment", environment.get("DATABASE_USER"));
+        var environment = EnvironmentConfig.load(file("EXAMPLE_NAME=local\nAPI_KEY=local-key\n"),
+                Map.of("EXAMPLE_NAME", "deployment", "EXTRA", "external"));
+        assertEquals("deployment", environment.get("EXAMPLE_NAME"));
         assertEquals("local-key", environment.get("API_KEY"));
         assertEquals("external", environment.get("EXTRA"));
     }
 
     @Test
     void emptyValuesAreValidatedWithoutExposingSecrets() throws Exception {
-        var environment = EnvironmentConfig.load(file("DATABASE_PASSWORD=\nAPI_KEY=\"\"\n"), Map.of());
+        var environment = EnvironmentConfig.load(file("EXAMPLE_SECRET=\nAPI_KEY=\"\"\n"), Map.of());
         assertThrows(IllegalArgumentException.class,
-                () -> EnvironmentConfig.required(environment, "DATABASE_PASSWORD"));
+                () -> EnvironmentConfig.required(environment, "EXAMPLE_SECRET"));
         assertThrows(IllegalArgumentException.class,
                 () -> EnvironmentConfig.required(environment, "API_KEY"));
     }

@@ -2,9 +2,9 @@ async function request(path, data) {
   let response;
   try {
     response = await fetch(`/api/${path}`, {
-      method: data === undefined ? "GET" : "POST",
-      headers: data === undefined ? {} : { "Content-Type": "application/json" },
-      body: data === undefined ? undefined : JSON.stringify(data)
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
     });
   } catch {
     throw new Error("Unable to connect. Check your connection and try again.");
@@ -23,8 +23,6 @@ async function request(path, data) {
 }
 
 export const gameService = {
-  start(playerName) { return request("games", { playerName }); },
-  answer(answer) { return request("answers", answer); },
-  saveResult(gameId) { return request("results", { gameId }); },
-  getRanking() { return request("ranking"); }
+  start() { return request("games", {}); },
+  answer(answer) { return request("answers", answer); }
 };
