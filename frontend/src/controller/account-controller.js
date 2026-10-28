@@ -1,19 +1,6 @@
+import { request } from "../service/http-client.js";
 import { element, span } from "../view/dom.js";
 import { t } from "../i18n.js";
-
-async function request(path, data) {
-  let response;
-  try {
-    response = await fetch(path, data === undefined ? { credentials: "same-origin" } : {
-      method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data)
-    });
-  } catch { throw new Error("Unable to connect. Check your connection and try again."); }
-  let body;
-  try { body = await response.json(); }
-  catch { throw new Error("The server sent an unexpected response. Please try again shortly."); }
-  if (!response.ok) throw new Error(body.message || "Unable to complete the operation.");
-  return body;
-}
 
 export function initializeAccounts(game) {
   let account = { enabled: false, user: null, providers: [] };

@@ -31,7 +31,7 @@ class GameControllerTest {
     private TestHttpServer http;
 
     @BeforeEach
-    void startServer() throws Exception { http = TestHttpServer.start(new GameController(games)); }
+    void startServer() throws Exception { http = TestHttpServer.start(new GameController(games, new com.raibrs.geoquest.account.AccountSessions(null, null))); }
 
     @AfterEach
     void stopServer() { if (http != null) http.close(); }

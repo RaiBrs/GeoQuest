@@ -92,13 +92,14 @@ The interface supports English and Brazilian Portuguese, uses a responsive blue 
 
 ### Optional accounts and ranking
 
-Sign in directly with Google or GitHub to keep a profile and completed results in PostgreSQL.
+Sign in with Google or GitHub through Spring Security OAuth2 Client to keep a profile and completed results in PostgreSQL.
 The hub shows a top-20 ranking filtered by mode and question type, with each player's best result.
 A recently signed-in player can delete their GeoQuest account, sessions and results using the
 confirmation form. Visitor rounds remain available and do not enter the ranking.
 
 Accounts are opt-in with `ACCOUNTS_ENABLED=true`; only configured providers are shown.
-Apply `database/001_accounts.sql` before enabling them. See
+Apply `database/001_accounts.sql` and `database/002_oauth_profile.sql` before enabling them. Existing
+profiles, scores and seven-day database sessions are preserved. See
 [Render + Neon deployment](docs/DEPLOYMENT.md) for credentials, provider callbacks, security behavior,
 local database tests and the public deployment checklist. All identity secrets remain on the Java server.
 
@@ -141,7 +142,7 @@ syntax. Duplicate or malformed entries report a line number without printing the
 ### 02 — Start the game
 
 ```powershell
-mvn compile exec:java "-Dexec.mainClass=com.raibrs.geoquest.WebApp"
+mvn spring-boot:run
 ```
 
 Open **[localhost:8080](http://localhost:8080)** when the startup message appears. Keep the terminal
@@ -154,23 +155,25 @@ Run these commands from the folder containing `pom.xml` and `Dockerfile`:
 
 ```powershell
 docker build -t geoquest .
-docker run --rm --name geoquest -p 127.0.0.1:8080:8080 --env-file .env geoquest
+docker run --rm --name geoquest -p 127.0.0.1:8080:8080 --mount "type=bind,source=${PWD}\.env,target=/app/.env,readonly" geoquest
 ```
 
 Open http://localhost:8080. Stop with Ctrl+C. Docker Desktop must be running in Linux-container mode.
 The image builds and runs Java tests in a Maven/JDK 25 stage, then copies the application JAR,
-runtime dependencies, localization resources, and frontend to a Java 25 JRE image. It runs as a
+localization resources and frontend to a Java 25 JRE image. Runtime dependencies are inside the
+executable Spring Boot JAR, launched with `java -jar app.jar`. It runs as a
 non-root user. Tests do not call the real country API.
 
-The local `.env` never enters the build context or image. Pass `API_KEY` at runtime through
-`--env-file` or the hosting platform's environment settings. Use a Docker-compatible env file
-with unquoted `NAME=value` entries; Docker env-file parsing differs from the app's local parser.
+The local `.env` never enters the build context or image. The local command mounts it read-only at
+runtime so Java's existing parser handles optional quotes consistently. For public hosting, use the
+platform's environment settings. As an alternative, Docker's `--env-file` accepts a separate file
+with unquoted `NAME=value` entries: Docker preserves quotes as part of the value.
 
 The image sets `HOST=0.0.0.0` and `PORT=8080` so published ports can reach Java. For a custom
 container port, change both the environment and the port mapping:
 
 ```powershell
-docker run --rm --name geoquest -p 127.0.0.1:8081:10000 --env-file .env -e HOST=0.0.0.0 -e PORT=10000 geoquest
+docker run --rm --name geoquest -p 127.0.0.1:8081:10000 --mount "type=bind,source=${PWD}\.env,target=/app/.env,readonly" -e HOST=0.0.0.0 -e PORT=10000 geoquest
 ```
 
 Without Docker, the defaults remain `HOST=127.0.0.1` and `PORT=8080`. Invalid ports fail at startup.
@@ -205,7 +208,12 @@ flowchart LR
 | `service/` | Creates questions, coordinates rounds, and preserves answer retry behavior. |
 | `config/` and `api/` | Load the API key from local/environment settings and fetch country data. |
 
-The HTTP server comes from the JDK and JSON uses Jackson. Dependency wiring is explicit Java.
+Spring Boot 3.5.16 starts embedded Tomcat and wires the existing Java services through constructor
+injection and explicit beans. Spring MVC handles JSON/HTTP, Jackson handles serialization, and
+Spring Security 6.5.11 handles OAuth2/OIDC, state, nonce, PKCE and CSRF. Domain rules remain plain Java.
+`PersistentSessionFilter` loads the existing hashed database session once for an authenticated API
+request. The framework's temporary session is only for the login handshake and is discarded afterward.
+No JWT or Basic Auth is enabled. See [authentication review and migration](docs/SPRING_OAUTH_REVIEW.md).
 
 The front end separates structure, presentation, and interaction. `index.html` defines the three
 screens and shared markup; HTML classes connect elements to external styles. `styles.css` imports
@@ -264,12 +272,16 @@ src/test/java/com/raibrs/geoquest/
 ## HTTP API
 
 Routes use the same origin as the browser page. Request bodies must use `Content-Type: application/json`.
+All POST requests also require the CSRF cookie and the `X-XSRF-TOKEN` header obtained from `/api/csrf`.
 
 | Method | Endpoint | Request | Result |
 | :--- | :--- | :--- | :--- |
 | `GET` | `/api/account` | — | Returns provider availability and the current display name. |
-| `GET` | `/auth/login` | provider query parameter | Starts Google/GitHub sign-in with PKCE and state. |
-| `GET` | `/auth/callback` | provider callback | Exchanges the code and creates an opaque session cookie. |
+| `GET` | `/oauth2/authorization/google` | — | Starts Google login through Spring Security. |
+| `GET` | `/oauth2/authorization/github` | — | Starts GitHub login through Spring Security. |
+| `GET` | `/login/oauth2/code/{registrationId}` | provider callback | Spring validates the callback and the application creates a game session. |
+| `GET` | `/api/me` | authenticated session | Returns name, optional email/avatar, provider and provider ID. |
+| `GET` | `/api/csrf` | — | Returns the CSRF token/header for subsequent mutations. |
 | `POST` | `/api/logout` | `{}` | Revokes the current session. |
 | `POST` | `/api/account/delete` | `confirmation: "DELETE"` | Deletes account data after recent sign-in. |
 | `GET` | `/api/leaderboard` | mode, questionType query parameters | Returns the top 20 best results. |
