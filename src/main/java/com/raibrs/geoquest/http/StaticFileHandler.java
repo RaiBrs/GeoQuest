@@ -31,7 +31,12 @@ public final class StaticFileHandler implements HttpHandler {
     }
 
     private void serve(HttpExchange exchange) throws IOException {
-        if (!JsonHttp.requireMethod(exchange, "GET")) return;
+        String method = exchange.getRequestMethod();
+        if (!"GET".equals(method) && !"HEAD".equals(method)) {
+            exchange.getResponseHeaders().set("Allow", "GET, HEAD");
+            JsonHttp.error(exchange, 405, "Method not allowed.");
+            return;
+        }
         String requestPath = exchange.getRequestURI().getPath();
         String relativePath = requestPath.equals("/") ? "index.html" : requestPath.substring(1);
         if (!FILES.contains(relativePath) || !Files.isRegularFile(frontend.resolve(relativePath))) {
@@ -44,9 +49,6 @@ public final class StaticFileHandler implements HttpHandler {
         else if (relativePath.endsWith(".svg")) contentType = "image/svg+xml";
 
         byte[] body = Files.readAllBytes(frontend.resolve(relativePath));
-        exchange.getResponseHeaders().set("Content-Type", contentType + "; charset=UTF-8");
-        exchange.getResponseHeaders().set("Cache-Control", "no-store");
-        exchange.sendResponseHeaders(200, body.length);
-        exchange.getResponseBody().write(body);
+        JsonHttp.sendBytes(exchange, 200, contentType + "; charset=UTF-8", body);
     }
 }
