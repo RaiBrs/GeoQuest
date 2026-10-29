@@ -7,10 +7,10 @@
 .header-divider { color: var(--geo-border); font-size: 24px; font-weight: 300; }
 .section-label { color: var(--geo-text-secondary); font-weight: 500; }
 .header-actions { display: flex; align-items: center; gap: 16px; margin-left: auto; min-width: 0; }
-.language-control select { min-height: 44px; padding: 8px; background: var(--geo-bg-primary); font-size: 16px; }
+.language-control select { min-height: 44px; padding: 8px; background: var(--geo-bg-primary); font-size: 14px; font-weight: 500; }
 .user-button { display: inline-flex; align-items: center; gap: 8px; padding: 0; min-width: 44px; min-height: 44px; border: 0; color: var(--geo-text-primary); background: none; }
 .user-initial { display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--geo-border); border-radius: 50%; background: var(--geo-bg-hover); font-weight: 600; }
-#user-label { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#user-label { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
 .sidebar { position: fixed; z-index: 20; inset: calc(var(--geo-header-height) + env(safe-area-inset-top, 0px)) auto 0 0; width: var(--geo-sidebar-width); display: flex; flex-direction: column; padding: 24px 16px max(16px, env(safe-area-inset-bottom, 0px)); background: var(--geo-bg-primary); border-right: 1px solid var(--geo-border); overflow-y: auto; overscroll-behavior: contain; }
 .sidebar-heading { display: none; }
 .nav-label { margin: 0 12px 8px; color: var(--geo-text-secondary); font-size: 12px; font-weight: 600; }
@@ -57,6 +57,7 @@ main { width: 100%; }
   .page-heading { align-items: start; flex-direction: column; gap: 20px; padding-bottom: 20px; margin-bottom: 20px; }
   .app-footer { align-items: start; flex-direction: column; gap: 0; padding-top: 32px; }
 }
+@media (pointer: coarse), (max-width: 599px) { .language-control select { font-size: 16px; } }
 @media (max-width: 359px) {
   .app-header { gap: 6px; padding-inline: 10px; }
   .brand { gap: 6px; font-size: 14px; }

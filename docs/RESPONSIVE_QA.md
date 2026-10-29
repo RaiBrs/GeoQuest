@@ -42,3 +42,13 @@ Dark tokens keep semantic feedback colors. Normal text/primary button contrast w
 focus remains available, and the global prefers-reduced-motion rule is retained. Device-native keyboard,
 zoom, cutouts, touch focus, and OAuth return navigation still need checking on physical iOS/iPadOS and
 Android devices; viewport overrides do not reproduce all of those behaviors.
+
+## Interaction polish
+
+The welcome view with its globe and three-step guide was checked at 320, 375, 480, 768, 1024,
+and 1440 px without horizontal overflow. Hovering each mode card highlighted only its own button;
+the other two remained gray. Keyboard focus uses the same blue emphasis. Correct/wrong answer
+effects were checked after real local API responses, including reset on the next question and the
+Space shortcut. The existing global reduced-motion override covers all added animations.
+Computed font families matched for headings, language/question selects, and the header user label.
+Return to challenges now appears inside the entry card; profile initials remain unchanged.

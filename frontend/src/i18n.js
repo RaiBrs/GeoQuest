@@ -1,4 +1,11 @@
 const portuguese = {
+  "How to play": "Como jogar",
+  "Choose your route": "Escolha sua rota",
+  "Pick a mode and find capitals or countries.": "Escolha um modo e descubra capitais ou países.",
+  "Take the challenge": "Encare o desafio",
+  "Play at your pace, avoid mistakes in Survival, or race the 60-second clock.": "Jogue no seu ritmo, evite erros na sobrevivência ou vença o relógio de 60 segundos.",
+  "Learn from each round": "Aprenda com cada rodada",
+  "Review your mistakes and try a new round.": "Revise seus erros e tente uma nova rodada.",
   "Skip to content": "Pular para o conteúdo",
   "Geographic challenges": "Desafios geográficos",
   "Toggle navigation": "Abrir ou fechar navegação",
