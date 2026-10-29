@@ -7,6 +7,8 @@ import { welcomeView } from "../view/pages/welcome-view.js";
 import { shellView } from "../view/shell-view.js";
 import { hubView } from "../view/pages/hub-view.js";
 
+const TIMED_FEEDBACK_MS = 700;
+
 export function initializeGameController({ onStateChange = () => {} } = {}) {
   let screen = "login";
   let entered = false;
@@ -19,14 +21,17 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
   let retryTask;
   let selectedMode = "SURVIVAL";
   let timer;
+  let autoAdvance;
   let selectedType = "CAPITAL";
 
   function playerName() { return accountName || t("Guest"); }
 
   function stopTimer() { clearInterval(timer); timer = undefined; }
+  function stopAutoAdvance() { clearTimeout(autoAdvance); autoAdvance = undefined; }
 
   function leaveRound() {
     stopTimer();
+    stopAutoAdvance();
     state = answer = pendingAnswer = undefined;
   }
 
@@ -44,6 +49,7 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
     gameView.renderTimer(seconds);
     if (seconds === 0 && !busy && !shellView.hasError()) {
       stopTimer();
+      stopAutoAdvance();
       run(async () => {
         state = await gameService.status(state.gameId);
         if (state.finished) showResult();
@@ -54,6 +60,7 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
 
   function showResult() {
     stopTimer();
+    stopAutoAdvance();
     resultView.renderSummary(state, playerName());
     showScreen("result");
     focusCurrentStep();
@@ -112,6 +119,7 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
   }
 
   function renderQuestion() {
+    stopAutoAdvance();
     answer = undefined;
     gameView.renderQuestion(state, playerName(), chooseAnswer);
     updateControls();
@@ -132,6 +140,7 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
     if (state.timedOut) { showResult(); return; }
     if (state.finished) stopTimer();
     gameView.renderAnswer(answer, submission.choice, playerName());
+    if (state.mode === "TIMED") autoAdvance = setTimeout(continueRound, TIMED_FEEDBACK_MS);
   }
 
   function navigate(action) {
@@ -149,8 +158,10 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
   }
 
   function continueRound() {
-    if (busy || !answer) return;
+    if (screen !== "game" || busy || accountBusy || !answer) return;
+    stopAutoAdvance();
     clearError();
+    if (state.mode === "TIMED" && Date.now() >= state.expiresAt) { updateTimer(); return; }
     if (!state.finished) { renderQuestion(); focusCurrentStep(); return; }
     showResult();
   }

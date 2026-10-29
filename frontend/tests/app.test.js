@@ -29,12 +29,25 @@ class Element {
 
 test("supports anonymous entry, safe provider names, keyboard flow and answer retries", async () => {
   const original = { document: globalThis.document, window: globalThis.window, fetch: globalThis.fetch,
-    setInterval: globalThis.setInterval, clearInterval: globalThis.clearInterval };
+    setInterval: globalThis.setInterval, clearInterval: globalThis.clearInterval,
+    setTimeout: globalThis.setTimeout, clearTimeout: globalThis.clearTimeout };
   const originalNow = Date.now;
   let now = 100000, tick;
   Date.now = () => now;
   globalThis.setInterval = callback => { tick = callback; return 1; };
   globalThis.clearInterval = () => { tick = undefined; };
+  let nextTimeout = 0;
+  const timeouts = new Map();
+  globalThis.setTimeout = (callback, delay) => { timeouts.set(++nextTimeout, { callback, delay }); return nextTimeout; };
+  globalThis.clearTimeout = id => { timeouts.delete(id); };
+  function advanceAfterFeedback() {
+    assert.equal(timeouts.size, 1, "Only one automatic advance is scheduled");
+    const { callback, delay } = timeouts.values().next().value;
+    assert.equal(delay, 700, "Feedback remains visible for a short, predictable pause");
+    now += delay;
+    callback();
+    assert.equal(timeouts.size, 0);
+  }
   const ids = ["mistake-review", "mistake-list", "review-note","language", "question-type", "time-warning","hub", "hub-title", "mode-capitals", "mode-survival", "mode-timed", "change-player", "mode-label", "timer",
     "app", "home", "welcome", "game", "result", "login", "login-title", "continue-guest", "test-input",
     "error", "error-panel", "retry", "progress", "round-progress", "score", "player-label", "question",
@@ -60,6 +73,7 @@ test("supports anonymous entry, safe provider names, keyboard flow and answer re
   const requests = [];
   let starts = 0, answers = 0;
   let failNextStart = false;
+  let failNextAnswer = false;
   let timedAnswered = 0;
   let expectedMode = "SURVIVAL", expectedType = "CAPITAL", expectedLanguage = "EN", activeMode, expiresAt;
   const initial = { gameId: "round", number: 1, total: 2, score: 0, finished: false,
@@ -82,7 +96,10 @@ test("supports anonymous entry, safe provider names, keyboard flow and answer re
       payload = { ...initial, gameId: "round-" + starts, mode: activeMode, expiresAt, total: activeMode === "TIMED" ? null : initial.total, answered: 0 };
     } else if (url === "/api/answers") {
       answers++;
-      if (answers === 1) throw new Error("Network response lost");
+      if (answers === 1 || failNextAnswer) {
+        failNextAnswer = false;
+        throw new Error("Network response lost");
+      }
       const correct = body.choice === "B";
       const finished = activeMode !== "TIMED" && ((!correct && activeMode === "SURVIVAL") || body.number === 2);
       if (activeMode === "TIMED") timedAnswered++;
@@ -241,6 +258,7 @@ test("supports anonymous entry, safe provider names, keyboard flow and answer re
     press("a");
     await settle();
     assert.equal(ui["restart-round"].hidden, true, "Capitals continues after a mistake");
+    assert.equal(timeouts.size, 0, "Untimed modes still wait for the player to continue");
     press(" ", ui.next);
     assert.equal(ui.progress.textContent, "QUESTION 2 OF 2");
     assert.equal(ui["round-progress"].value, 1, "Progress counts answers, not correct answers");
@@ -251,14 +269,25 @@ test("supports anonymous entry, safe provider names, keyboard flow and answer re
     await settle();
     assert.equal(ui.timer.hidden, false);
     assert.match(ui.timer.textContent, /60s/);
+    assert.match(ui["keyboard-hint"].textContent, /automatically/);
     for (let i = 0; i < 12; i++) {
       press("b");
       await settle();
-      press(" ", ui.next);
+      assert.equal(ui.next.hidden, true, "Timed mode never requires a Next question click");
+      assert.equal(ui.game.dataset.feedback, "correct");
+      assert.equal(document.activeElement, ui.feedback);
+      assert.equal(ui.progress.textContent, `QUESTION ${i + 1}`, "Show feedback before advancing");
+      const answersBefore = answers;
+      assert.equal(press("b"), false, "Do not submit another answer during feedback");
+      assert.equal(press(" ", ui.next), false, "Space cannot skip feedback in timed mode");
+      assert.equal(answers, answersBefore);
+      advanceAfterFeedback();
+      assert.equal(ui.feedback.textContent, "");
+      assert.equal(document.activeElement, ui.question);
     }
     assert.equal(ui.progress.textContent, "QUESTION 13");
     assert.equal(ui["round-progress"].max, 60);
-    assert.equal(ui["round-progress"].value, 60);
+    assert.equal(ui["round-progress"].value, Math.ceil((expiresAt - now) / 1000));
     now += 60000;
     tick();
     await settle();
@@ -270,8 +299,50 @@ test("supports anonymous entry, safe provider names, keyboard flow and answer re
     ui["back-to-home"].click();
     ui["mode-timed"].click();
     await settle();
+    press("a");
+    await settle();
+    assert.equal(ui.game.dataset.feedback, "wrong");
+    assert.match(ui.feedback.textContent, /The correct answer is B/);
+    assert.equal(ui.next.hidden, true);
+    advanceAfterFeedback();
+    assert.equal(ui.progress.textContent, "QUESTION 2", "Mistakes also advance automatically");
+    failNextAnswer = true;
+    press("b");
+    await settle();
+    assert.equal(timeouts.size, 0, "A failed request must not advance before its correction arrives");
+    assert.equal(ui["error-panel"].hidden, false);
+    const timedSubmission = requests.at(-1).body;
+    ui.retry.click();
+    await settle();
+    assert.deepEqual(requests.at(-1).body, timedSubmission, "Retry the same timed submission");
+    assert.equal(timeouts.size, 1);
     ui["nav-hub"].click();
     assert.equal(tick, undefined, "Leaving a timed round cancels its timer");
+    assert.equal(timeouts.size, 0, "Leaving during feedback cancels the pending advance");
+    assert.equal(ui.hub.hidden, false);
+    ui["mode-timed"].click();
+    await settle();
+    now = expiresAt - 100;
+    press("b");
+    await settle();
+    advanceAfterFeedback();
+    assert.equal(ui.progress.textContent, "QUESTION 1", "Never display a new question after the deadline");
+    await settle();
+    assert.equal(ui.result.hidden, false, "Expiry during feedback shows the server-confirmed result");
+    assert.equal(timeouts.size, 0);
+    assert.equal(tick, undefined);
+    ui["back-to-home"].click();
+    ui["mode-timed"].click();
+    await settle();
+    now = expiresAt - 100;
+    press("b");
+    await settle();
+    assert.equal(timeouts.size, 1);
+    now = expiresAt;
+    tick();
+    await settle();
+    assert.equal(ui.result.hidden, false);
+    assert.equal(timeouts.size, 0, "The countdown cancels automatic advance when time runs out");
     game.clearAccount();
     assert.equal(ui.login.hidden, false);
     assert.equal(document.activeElement, ui["continue-guest"]);

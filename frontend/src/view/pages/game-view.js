@@ -71,7 +71,9 @@ export const gameView = {
     element("feedback").dataset.tone = "";
     element("next").hidden = true;
     element("restart-round").hidden = true;
-    element("keyboard-hint").textContent = t("Press A–D to answer. After answering, press Space to continue.");
+    element("keyboard-hint").textContent = t(timed
+      ? "Press A–D to answer. The next question appears automatically."
+      : "Press A–D to answer. After answering, press Space to continue.");
     element("alternatives").replaceChildren();
     state.question.alternatives.forEach((choice, index) => {
       const button = document.createElement("button");
@@ -104,9 +106,9 @@ export const gameView = {
       ? t("Well done, {name}! Correct answer.", { name: playerName })
       : t("Not this time, {name}. The correct answer is {answer}.", { name: playerName, answer: answer.correctAnswer });
     element("next").textContent = t(state.finished ? "View result" : "Next question →");
-    element("next").hidden = false;
+    element("next").hidden = state.mode === "TIMED";
     element("restart-round").hidden = !state.finished;
-    if (state.finished) {
+    if (state.finished && state.mode !== "TIMED") {
       element("keyboard-hint").textContent = t("Press R to play again or Space to view your result.");
     }
   }
