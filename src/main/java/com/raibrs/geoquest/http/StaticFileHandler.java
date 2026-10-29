@@ -12,7 +12,8 @@ public final class StaticFileHandler {
     public StaticFileHandler(Path frontend) { this.frontend = frontend; }
     // The MVC mappings are the allowlist; unmapped requests retain normal 404/405 behavior.
     @GetMapping({"/", "/index.html", "/privacy.html", "/styles.css", "/assets/geoquest-icon.svg",
-            "/styles/base.css", "/styles/layout.css", "/styles/components.css",
+            "/styles/tokens.css", "/styles/base.css", "/styles/layout.css", "/styles/components.css",
+            "/styles/pages/hub.css", "/src/view/pages/account-view.js",
             "/styles/pages/welcome.css", "/styles/pages/game.css", "/styles/pages/result.css",
             "/src/controller/account-controller.js", "/src/i18n.js", "/src/app.js", "/src/controller/game-controller.js",
             "/src/service/game-service.js", "/src/service/http-client.js", "/src/view/dom.js", "/src/view/shell-view.js",

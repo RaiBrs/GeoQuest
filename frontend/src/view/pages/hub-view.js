@@ -10,6 +10,6 @@ export const hubView = {
   },
 
   render(playerName) {
-    element("hub-title").textContent = t("Hello, {name}!", { name: playerName });
+    element("hub-greeting").textContent = t("Hello, {name}!", { name: playerName });
   }
 };
