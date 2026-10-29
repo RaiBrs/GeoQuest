@@ -2,19 +2,20 @@
 
 # GeoQuest
 
-**A browser geography game. Pick a name, explore the world, and enjoy the challenge.**
+**Geographic challenges in your browser. Find capitals, identify countries, and race the clock.**
 
-<img src="docs/assets/geoquest-banner.svg" alt="GeoQuest — Explore the world. Make your mark. Pick a name, play, and discover world capitals." width="1200">
+<img src="docs/assets/geoquest-banner.svg" alt="GeoQuest — dark geography challenge banner. Capitals, Survival, and unlimited questions in 60 seconds." width="1200">
 
 <br>
-<br>
 
-![Java 25](https://img.shields.io/badge/Java-25-2F6CA6?style=flat-square&logo=openjdk&logoColor=white)
-![Vanilla JavaScript](https://img.shields.io/badge/Frontend-Vanilla_JS-2F6CA6?style=flat-square&logo=javascript&logoColor=white)
-![JUnit 6](https://img.shields.io/badge/Tests-JUnit_6-2F6CA6?style=flat-square)
-![MVP](https://img.shields.io/badge/Status-MVP-9ACDF5?style=flat-square)
+![Java 25](https://img.shields.io/badge/Java-25-161b22?style=for-the-badge&labelColor=010409&logo=openjdk&logoColor=58a6ff)
+![Spring Boot 3.5.16](https://img.shields.io/badge/Spring_Boot-3.5.16-161b22?style=for-the-badge&labelColor=010409&logo=springboot&logoColor=3fb950)
+![Vanilla JavaScript](https://img.shields.io/badge/Frontend-Vanilla_JS-161b22?style=for-the-badge&labelColor=010409&logo=javascript&logoColor=e3b341)
+![PostgreSQL](https://img.shields.io/badge/Data-PostgreSQL-161b22?style=for-the-badge&labelColor=010409&logo=postgresql&logoColor=58a6ff)
+![JUnit 6](https://img.shields.io/badge/Tests-JUnit_6-161b22?style=for-the-badge&labelColor=010409&logo=junit5&logoColor=3fb950)
+![MVP](https://img.shields.io/badge/Status-MVP-161b22?style=for-the-badge&labelColor=010409)
 
-[The game](#the-game) &nbsp;·&nbsp; [Run locally](#run-locally) &nbsp;·&nbsp; [Architecture](#architecture) &nbsp;·&nbsp; [API](#http-api) &nbsp;·&nbsp; [Testing](#testing)
+[The game](#the-game) &nbsp;·&nbsp; [Run locally](#run-locally) &nbsp;·&nbsp; [Docker](#run-with-docker) &nbsp;·&nbsp; [Architecture](#architecture) &nbsp;·&nbsp; [API](#http-api) &nbsp;·&nbsp; [Testing](#testing)
 
 </div>
 
@@ -22,11 +23,19 @@
 
 ## The game
 
-GeoQuest is a capital-city quiz built with a Java backend and a lightweight HTML, CSS, and JavaScript interface.
+GeoQuest is a geography challenge application built with Java/Spring Boot and modular HTML, CSS,
+and vanilla JavaScript. Play as a visitor, or sign in with Google or GitHub to save completed results
+and participate in the ranking. The interface and questions support English and Brazilian Portuguese.
 
 | Pick a name | Take the challenge | See your result |
 | :--- | :--- | :--- |
 | Your name personalizes greetings in the hub and game. | Choose Capitals, Survival, or Against the clock. | The final screen shows the score for that round. |
+
+<p align="center">
+  <img src="docs/assets/redesign/desktop-hub.png" alt="Current GeoQuest dashboard with dark sidebar, Capitals, Survival, Against the clock, and Logout." width="1200">
+  <br>
+  <sub>The current challenge dashboard — choose a question type and a game mode.</sub>
+</p>
 
 ### Visitor names are only for greetings
 
@@ -35,7 +44,8 @@ The name is a display preference used for messages such as **“Your turn, Rai.�
 
 - Any player can choose the same name; no uniqueness or name ownership is enforced.
 - The visitor name stays in the browser's current JavaScript state. It is not sent to the API or stored in a database, cookie, or browser storage by the application.
-- Play again keeps the name and selected mode. Back to hub and the header's Home button keep the name; the visitor Logout button or reloading the page clears it.
+- Play again keeps the name and selected mode. Back to hub and the GeoQuest logo keep the name; the visitor **Logout** button or reloading the page clears it.
+- Home in the sidebar opens the entry view without clearing the current identity. **Return to challenges** opens the hub again.
 - The form accepts up to 80 Unicode code points after trimming surrounding whitespace, and rejects blank names and control characters.
 - User-entered names are rendered with `textContent` so they remain plain text.
 
@@ -57,7 +67,7 @@ rounds and is kept in session memory. Retries do not duplicate errors; unanswere
 not counted as mistakes. A round without mistakes displays a clear empty state.
 
 The final ten seconds show a warning; results distinguish perfect rounds, survival endings, and timeouts.
-Screen transitions respect reduced-motion preferences.
+The countdown uses two-digit seconds, and motion effects respect reduced-motion preferences.
 
 ### Round rules
 
@@ -79,7 +89,7 @@ Returning to the hub leaves the current round; choosing a mode starts a new roun
 Timed rounds show their result when the deadline is reached, even without submitting an answer.
 
 - Country and capital data comes from REST Countries.
-- Every displayed capital appears at most once within a round, including distractors.
+- Answer labels are unique within each generated batch, including distractors. Timed rounds can reuse labels across batches.
 - Java validates answers and calculates the score; the browser submits only the selected answer.
 - The correct answer is returned only after a choice is submitted.
 - Retrying the same answer returns its original response without counting it twice.
@@ -103,26 +113,17 @@ move the answers when the final ten seconds begin.
 This is a responsive browser interface. See [responsive verification](docs/RESPONSIVE_QA.md)
 for tested viewports and remaining device checks.
 
-### Application interface
-
-GeoQuest uses a GitHub Dark-inspired application shell with its own blue identity: a fixed header,
-collapsible desktop sidebar, and an accessible mobile/tablet drawer. Home, Challenges, Ranking,
-and My account share the same document; the existing controller switches views without a router.
-Ranking and account management have dedicated areas, leaving the challenge hub focused on play.
-Learn and Explore are disabled **Coming soon** entries; they have no pages, data, or API calls.
-
-![GeoQuest challenge hub in the dark application shell](docs/assets/redesign/desktop-hub.png)
-
-Semantic color tokens live in `frontend/styles/tokens.css`. The shell owns navigation and drawer
-focus; account views render profile/ranking data as plain text; controllers keep orchestration and
-the existing HTTP service retains CSRF handling. See [redesign decisions and validation](docs/REDESIGN.md).
-
 ### Optional accounts and ranking
 
 Sign in with Google or GitHub through Spring Security OAuth2 Client to keep a profile and completed results in PostgreSQL.
-The hub shows a top-20 ranking filtered by mode and question type, with each player's best result.
+Open **Ranking** from the sidebar to compare each player's best result by mode and question type.
 A recently signed-in player can delete their GeoQuest account, sessions and results using the
 confirmation form. Visitor rounds remain available and do not enter the ranking.
+
+The visitor **Logout** button in Challenges clears the browser greeting and returns to Home.
+For an authenticated player, **Sign out** in My account revokes the server session. Account deletion
+requires recent sign-in and the literal confirmation `DELETE`; it removes the GeoQuest profile,
+identities, sessions, and results, while preserving the Google/GitHub account itself.
 
 Accounts are opt-in with `ACCOUNTS_ENABLED=true`; only configured providers are shown.
 Apply `database/001_accounts.sql` and `database/002_oauth_profile.sql` before enabling them. Existing
@@ -176,6 +177,13 @@ Open **[localhost:8080](http://localhost:8080)** when the startup message appear
 running; press `Ctrl+C` to stop. Restart the server after Java changes and refresh with `Ctrl+F5`
 after browser-file changes. Opening the HTML through the IDE's static preview does not provide the API.
 
+To build and run the executable JAR instead:
+
+```powershell
+mvn verify
+java -jar target/Geo-Quest-1.0-SNAPSHOT.jar
+```
+
 ## Run with Docker
 
 Run these commands from the folder containing `pom.xml` and `Dockerfile`:
@@ -185,7 +193,7 @@ docker build -t geoquest .
 docker run --rm --name geoquest -p 127.0.0.1:8080:8080 --mount "type=bind,source=${PWD}\.env,target=/app/.env,readonly" geoquest
 ```
 
-Open http://localhost:8080. Stop with Ctrl+C. Docker Desktop must be running in Linux-container mode.
+Open [localhost:8080](http://localhost:8080). Stop with `Ctrl+C`. Docker Desktop must be running in Linux-container mode.
 The image builds and runs Java tests in a Maven/JDK 25 stage, then copies the application JAR,
 localization resources and frontend to a Java 25 JRE image. Runtime dependencies are inside the
 executable Spring Boot JAR, launched with `java -jar app.jar`. It runs as a
@@ -205,19 +213,25 @@ docker run --rm --name geoquest -p 127.0.0.1:8081:10000 --mount "type=bind,sourc
 
 Without Docker, the defaults remain `HOST=127.0.0.1` and `PORT=8080`. Invalid ports fail at startup.
 The image runs frontend and API together. On a hosting platform, configure the listening port and
-`API_KEY`; no local `.env` is needed. PostgreSQL and OAuth settings are required only when enabling accounts. Keep one instance while sessions are in memory.
-Docker packaging does not make sessions shared: deploying this container to Vercel Functions still
-requires shared session storage to handle requests across instances. Restarts discard active rounds.
+`API_KEY`; no local `.env` is needed. PostgreSQL and OAuth settings are required only when enabling
+accounts. Keep one instance while active rounds are in memory: round state is not shared between
+containers. Restarts discard active rounds while PostgreSQL-backed profiles, results, and account
+sessions persist. See the [Render + Neon guide](docs/DEPLOYMENT.md) for public hosting and OAuth setup.
 
 ## Architecture
 
-**Models protect game state. Services coordinate rounds. Controllers handle HTTP. Views render the interface.**
+**Views render the interface. Browser controllers coordinate interaction. Java models and services own game rules.**
 
 ```mermaid
 flowchart LR
-    Name[Display name · browser only] --> Views[Browser views]
-    Views --> Controller[GameController]
-    Controller --> Service[GameService]
+    subgraph Browser
+        Views[Shell and page views] <--> UI[Game and account controllers]
+        UI --> Client[HTTP client and CSRF]
+    end
+    Client --> MVC[Spring MVC controllers]
+    MVC --> Service[GameService]
+    MVC --> Accounts[AccountSessions and PostgresAccounts]
+    Accounts --> DB[(PostgreSQL)]
     Service --> Countries[CountriesClient]
     Countries --> API[REST Countries]
     Service --> Questions[QuestionService]
@@ -226,14 +240,15 @@ flowchart LR
 
 | Part | Responsibility |
 | :--- | :--- |
-| `WebApp` | Wires dependencies, registers handlers, and manages the HTTP server lifecycle. |
+| `WebApp` | Starts Spring Boot and defines the existing game/account service beans. |
 | `controller/` | Reads JSON requests and selects game operations. |
 | `account/` | Handles provider sign-in, cookie sessions, PostgreSQL profiles, ranking, and deletion. |
-| `http/` | Shares JSON handling, error responses, and cleanup; serves an explicit static-file allowlist. |
+| `http/` | Handles API errors and JSON body limits; serves an explicit static-file allowlist. |
 | `dto/` | Defines anonymous API input and output records. |
 | `model/` | Represents countries, questions, and sessions; owns scoring and answer transitions. |
 | `service/` | Creates questions, coordinates rounds, and preserves answer retry behavior. |
-| `config/` and `api/` | Load the API key from local/environment settings and fetch country data. |
+| `config/` | Loads settings, configures Spring Security/OAuth, and schedules expired-round cleanup. |
+| `api/` | Fetches and parses the country catalog. |
 
 Spring Boot 3.5.16 starts embedded Tomcat and wires the existing Java services through constructor
 injection and explicit beans. Spring MVC handles JSON/HTTP, Jackson handles serialization, and
@@ -242,15 +257,29 @@ Spring Security 6.5.11 handles OAuth2/OIDC, state, nonce, PKCE and CSRF. Domain 
 request. The framework's temporary session is only for the login handshake and is discarded afterward.
 No JWT or Basic Auth is enabled. See [authentication review and migration](docs/SPRING_OAUTH_REVIEW.md).
 
-The front end separates structure, presentation, and interaction. `index.html` defines the three
-screens and shared markup; HTML classes connect elements to external styles. `styles.css` imports
-base, layout, reusable component, and screen-specific styles. `src/app.js` initializes the controller,
-which owns browser state, request sequencing, retries, and navigation. Views update the DOM and bind
-input events; `service/game-service.js` handles HTTP communication without accessing the DOM.
+The front end separates structure, presentation, and interaction:
 
-The browser keeps one document so changing screens preserves the active round. Java sessions use
-random `gameId` values and contain no display name. The Java static-file allowlist explicitly includes
-each public module and stylesheet; test files and local configuration stay inaccessible through HTTP.
+| Frontend part | Responsibility |
+| :--- | :--- |
+| `index.html` | The application shell and six views: welcome, hub, game, result, ranking, and account. |
+| `styles.css` and `styles/` | Semantic dark tokens, shared layout/components, and page-specific styles. |
+| `src/app.js` | Initializes game and account controllers and connects their availability updates. |
+| `controller/` | Owns browser state, request sequencing, retries, identity changes, and navigation. |
+| `view/shell-view.js` | Switches visible views, marks active navigation, and manages drawer/focus behavior. |
+| `view/pages/` | Renders questions, results, mistake review, greetings, account details, and ranking as safe DOM text. |
+| `service/` | Handles game requests and shared HTTP/CSRF communication without accessing the DOM. |
+| `i18n.js` | Applies EN/PT-BR interface translations; question data is localized on the server. |
+
+The main play flow remains **welcome → hub → game → result**. Ranking and account management are
+accessible through the shared shell. Returning to the hub or another navigation area leaves the
+current round and stops its client timer; selecting a mode starts a new round. Screen changes
+preserve the current player unless Logout, account sign-out/deletion, or a page reload clears it.
+After reload, an existing authenticated account can be restored from its server session.
+
+Java rounds use random `gameId` values and contain no visitor display name. Active rounds stay in
+process memory; account sessions, profiles, and completed signed-in results live in PostgreSQL.
+The static-file allowlist explicitly includes each public module and stylesheet; test files and
+local configuration stay inaccessible through HTTP.
 
 <details>
 <summary><strong>Explore the source tree</strong></summary>
@@ -258,25 +287,33 @@ each public module and stylesheet; test files and local configuration stay inacc
 ```text
 frontend/
 ├── index.html
+├── privacy.html
 ├── assets/geoquest-icon.svg
 ├── styles.css                 # Stylesheet entry point
 ├── styles/
+│   ├── tokens.css             # Semantic colors and frame dimensions
 │   ├── base.css
 │   ├── layout.css
 │   ├── components.css
-│   └── pages/                 # welcome.css, game.css, result.css
+│   └── pages/                 # welcome.css, hub.css, game.css, result.css
 ├── src/
 │   ├── app.js                 # Initialization only
-│   ├── controller/game-controller.js
-│   ├── service/game-service.js
+│   ├── i18n.js
+│   ├── controller/
+│   │   ├── game-controller.js
+│   │   └── account-controller.js
+│   ├── service/
+│   │   ├── game-service.js
+│   │   └── http-client.js
 │   └── view/
 │       ├── dom.js
 │       ├── shell-view.js
-│       └── pages/             # welcome-view.js, game-view.js, result-view.js
+│       └── pages/             # welcome, hub, game, result, and account views
 └── tests/
 src/main/java/com/raibrs/geoquest/
 ├── WebApp.java
 ├── controller/
+├── account/
 ├── http/
 ├── dto/
 ├── model/
@@ -285,6 +322,7 @@ src/main/java/com/raibrs/geoquest/
 └── api/
 src/test/java/com/raibrs/geoquest/
 ├── WebAppTest.java
+├── account/                   # OAuth, account HTTP, and PostgreSQL tests
 ├── controller/
 ├── http/
 ├── model/
@@ -328,7 +366,7 @@ Content-Type: application/json
 
 Optional start fields: `questionType` is `CAPITAL` or `COUNTRY` (default `CAPITAL`); `language` is `EN` or `PT_BR` (default `EN`). Unknown values return HTTP 400.
 
-The response includes a `gameId`, question number, total, score, finished flag, question alternatives,
+The response includes a `gameId`, question number, total, score, answered count, finished flag, question alternatives,
 `mode`, `expiresAt` (Unix milliseconds, or null for untimed modes), `timedOut`, and `mistakes`.
 `mistakes` is empty during play; after completion it contains `number`, `text`, `selectedAnswer`, and `correctAnswer`.
 It contains neither a name nor an answer key. When a round ends, the answer response already contains
@@ -342,10 +380,21 @@ the final server-calculated score; the browser displays it without another reque
 | PostgreSQL account integration | `mvn test` with `TEST_DATABASE_URL` | Dedicated disposable PostgreSQL database; see the deployment guide. |
 | Browser logic and API communication | `node --test frontend/tests/*.test.js` | No browser or network service needed. |
 
-Tests cover anonymous independent rounds, scoring, first-mistake termination, answer replay, JSON
-contracts, English errors, and public static-file access. They also verify that legacy ranking routes remain unavailable. Account and leaderboard routes have their own tests. Front-end checks cover greeting-only names, plain-text rendering, keyboard
-navigation, focus restoration, player reset, and retries without sending the display name to Java.
-Front-end behavior tests use a minimal DOM adapter; visual and native keyboard checks use a browser.
+Java tests cover independent rounds, scoring, first-mistake termination, unlimited timed batches,
+deadlines, answer replay, mistake review, localization, JSON contracts, and static-file access.
+Account tests cover OAuth/security, session ownership, ranking, and deletion; the database suite
+uses a dedicated disposable PostgreSQL database and is skipped when `TEST_DATABASE_URL` is absent.
+
+Frontend tests cover greeting-only names, safe text rendering, CSRF requests, retries, all three
+modes, keyboard shortcuts, results, error review, navigation, drawer focus/Escape/overlay behavior,
+logout/deletion, ranking filter invalidation, static translations, and unique document IDs.
+They use small DOM adapters; browser checks separately exercise layout and native keyboard behavior.
+
+Recorded validation on **2026-10-28**: **12 frontend tests and 130 Java tests passed**. The five
+PostgreSQL tests ran against a disposable local database. Visual checks covered 1440, 1024, 768,
+480, and 375 px widths, with extra small-phone and landscape checks. Physical iOS/Android behavior
+and real Google/GitHub consent still require manual verification. See the
+[responsive check report](docs/RESPONSIVE_QA.md) and [redesign report](docs/REDESIGN.md).
 
 ## Troubleshooting
 
@@ -353,11 +402,14 @@ Front-end behavior tests use a minimal DOM adapter; visual and native keyboard c
 | :--- | :--- |
 | Missing `API_KEY` setting | Fill in `.env` beside `pom.xml`; explicit process/IDE variables take precedence. |
 | `404` from `/api/games` on port 63342 | Start `WebApp` and open `localhost:8080` instead of the IDE's static preview. |
-| `405` when opening `/api/games` directly | This is a POST API route. Open the home page and use Start playing. |
+| `405` when opening `/api/games` directly | This is a POST API route. Open the application, enter as a visitor or sign in, and choose a mode in Challenges. |
 | Port 8080 is already in use | Stop the previous server before starting the current `WebApp`. |
 | Missing icon, CSS, or JavaScript module | Restart Java to load the current static-file allowlist, then refresh with `Ctrl+F5`. |
 | Countries cannot be loaded | Check the REST Countries API key and network availability, then retry. |
 | `frontend/index.html` not found | Run from the directory containing `pom.xml`. |
+| Google reports `redirect_uri_mismatch` | Match the provider callback exactly to `APP_URL` plus `/login/oauth2/code/google`; see the deployment guide. |
+| Ranking is empty after changing filters | Click View ranking to load the selected category. An empty category is a valid result. |
+| Visitor name is requested after reload | Visitor names are held only in browser memory; sign in to restore an account identity across visits. |
 
 ## Roadmap
 
@@ -365,11 +417,13 @@ Front-end behavior tests use a minimal DOM adapter; visual and native keyboard c
 - [x] Display names used only for browser greetings.
 - [x] Separate controllers, views, API service, and styles.
 - [x] Responsive dark application shell, keyboard access, and reduced-motion support.
+- [x] Accessible mobile/tablet drawer and dedicated Ranking / My account views.
 - [x] Visitor rounds without a database dependency.
 - [x] Optional Google/GitHub accounts, PostgreSQL ranking, and account deletion.
 - [x] Refine feedback, transitions, and question types.
 - [x] Add session cleanup and improve concurrency before public hosting.
 - [x] Support English and Brazilian Portuguese.
+- [ ] Real Learn and Explore modules with educational content; current navigation entries remain disabled.
 
 The server defaults to `127.0.0.1:8080`; `HOST` and `PORT` can override it (the Docker image uses `0.0.0.0:8080`). A cleanup task runs every minute and stops during server shutdown.
 Requests also check expiration before using a round. Each round has its own lock for answer validation,
