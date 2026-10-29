@@ -5,6 +5,7 @@ export const accountView = {
   render({ account, pending, gameBusy, screen, errorKey }) {
     const unavailable = pending || gameBusy || screen === "game";
     const user = account.user;
+    element("entry-card").hidden = Boolean(user);
     element("account-access").hidden = screen !== "welcome";
     element("login-options").hidden = !account.enabled || Boolean(user);
     element("login-google").hidden = !account.providers.includes("google");
