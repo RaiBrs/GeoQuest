@@ -51,4 +51,13 @@ the other two remained gray. Keyboard focus uses the same blue emphasis. Correct
 effects were checked after real local API responses, including reset on the next question and the
 Space shortcut. The existing global reduced-motion override covers all added animations.
 Computed font families matched for headings, language/question selects, and the header user label.
-Return to challenges now appears inside the entry card; profile initials remain unchanged.
+The former entry card has been replaced by the separate login screen; profile initials remain unchanged.
+
+## Separate entry and Home
+
+Login and the How to play Home view were checked at 320, 375, 480, 768, 1024, and 1440 px without
+horizontal overflow. The sidebar stayed hidden on login at every width. Continue as a guest entered
+Home without an input field or a name request. A local visitor round used Visitante, accepted an
+answer, continued with Space, and returned to login on Logout. Browser console contained no errors.
+Frontend tests also cover restored provider identity, guest-name translation, re-entry, and drawer
+behavior across login and application views. Actual provider consent was not repeated.

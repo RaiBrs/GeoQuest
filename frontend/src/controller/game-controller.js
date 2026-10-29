@@ -1,4 +1,4 @@
-import { getLanguage, setLanguage } from "../i18n.js";
+import { getLanguage, setLanguage, t } from "../i18n.js";
 import { element } from "../view/dom.js";
 import { gameService } from "../service/game-service.js";
 import { gameView } from "../view/pages/game-view.js";
@@ -8,8 +8,8 @@ import { shellView } from "../view/shell-view.js";
 import { hubView } from "../view/pages/hub-view.js";
 
 export function initializeGameController({ onStateChange = () => {} } = {}) {
-  let screen = "welcome";
-  let playerName = "";
+  let screen = "login";
+  let entered = false;
   let accountName;
   let state;
   let answer;
@@ -21,6 +21,8 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
   let timer;
   let selectedType = "CAPITAL";
 
+  function playerName() { return accountName || t("Guest"); }
+
   function stopTimer() { clearInterval(timer); timer = undefined; }
 
   function leaveRound() {
@@ -30,7 +32,7 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
 
   function showHub() {
     leaveRound();
-    hubView.render(playerName);
+    hubView.render(playerName());
     showScreen("hub");
     updateControls();
     focusCurrentStep();
@@ -52,7 +54,7 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
 
   function showResult() {
     stopTimer();
-    resultView.renderSummary(state, playerName);
+    resultView.renderSummary(state, playerName());
     showScreen("result");
     focusCurrentStep();
   }
@@ -73,7 +75,7 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
     element("language").disabled = busy || accountBusy || screen === "game" || screen === "result";
     element("question-type").disabled = busy || accountBusy;
     element("change-player").hidden = Boolean(accountName);
-    element("resume-player").hidden = !playerName;
+    element("resume-player").hidden = !entered;
     onStateChange({ screen, busy: busy || accountBusy });
   }
 
@@ -98,9 +100,8 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
     }
   }
 
-  async function startGame(name) {
+  async function startGame() {
     const nextState = await gameService.start(selectedMode, selectedType, getLanguage());
-    playerName = accountName || name;
     state = nextState;
     pendingAnswer = undefined;
     showScreen("game");
@@ -112,7 +113,7 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
 
   function renderQuestion() {
     answer = undefined;
-    gameView.renderQuestion(state, playerName, chooseAnswer);
+    gameView.renderQuestion(state, playerName(), chooseAnswer);
     updateControls();
   }
 
@@ -130,7 +131,7 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
     pendingAnswer = undefined;
     if (state.timedOut) { showResult(); return; }
     if (state.finished) stopTimer();
-    gameView.renderAnswer(answer, submission.choice, playerName);
+    gameView.renderAnswer(answer, submission.choice, playerName());
   }
 
   function navigate(action) {
@@ -141,9 +142,8 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
 
   function resetPlayer() {
     leaveRound();
-    playerName = "";
-    welcomeView.reset();
-    showScreen("welcome");
+    entered = false;
+    showScreen("login");
     updateControls();
     welcomeView.focus();
   }
@@ -159,18 +159,21 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
 
   function restartRound() {
     if (busy || !state?.finished) return;
-    const name = playerName;
-    run(() => startGame(name), "start");
+    run(startGame, "start");
   }
 
-  welcomeView.bind({
-    onSubmit() {
-      if (busy || accountBusy) return;
-      const name = welcomeView.readPlayerName();
-      if (name !== undefined) { playerName = name; showHub(); }
-    },
-    onInput: clearError
-  });
+  function showHome() {
+    leaveRound();
+    showScreen("welcome");
+    updateControls();
+    focusCurrentStep();
+  }
+
+  welcomeView.bind({ onContinue() {
+    if (busy || accountBusy || entered) return;
+    entered = true;
+    showHome();
+  } });
   gameView.bind({
     onNext: continueRound,
     onRestart: restartRound,
@@ -180,12 +183,13 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
   });
   resultView.bind({
     onRestart: restartRound,
-    onBackToHome: () => navigate(() => playerName ? showHub() : resetPlayer())
+    onBackToHome: () => navigate(() => entered ? showHub() : resetPlayer())
   });
   shellView.bind({
-    onHome: () => navigate(() => playerName ? showHub() : resetPlayer()),
+    onHome: () => navigate(() => entered ? showHome() : resetPlayer()),
     onNavigate: next => navigate(() => {
-      if (next === "hub") { playerName ? showHub() : resetPlayer(); return; }
+      if (next === "login" || !entered) { resetPlayer(); return; }
+      if (next === "hub") { showHub(); return; }
       leaveRound();
       showScreen(next);
       updateControls();
@@ -197,27 +201,31 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
     if (busy || screen === "game" || screen === "result") return;
     setLanguage(element("language").value);
     shellView.showScreen(screen);
-    if (screen === "hub") hubView.render(playerName);
+    if (screen === "hub") hubView.render(playerName());
     clearError();
-    welcomeView.reset();
     updateControls();
   });
   setLanguage("EN");
   hubView.bind({
     onSelectMode(mode) {
-      if (busy || accountBusy) return;
+      if (busy || accountBusy || !entered) return;
       selectedMode = mode;
       selectedType = element("question-type").value || "CAPITAL";
-      run(() => startGame(playerName), "start");
+      run(startGame, "start");
     },
     onChangePlayer: () => navigate(resetPlayer)
   });
   return {
     useAccount(name) {
       accountName = name;
-      if (screen === "welcome" || screen === "hub") { playerName = name; showHub(); }
+      entered = true;
+      if (["login", "welcome", "hub"].includes(screen)) showHome();
     },
     clearAccount() { accountName = undefined; resetPlayer(); },
-    setAccountBusy(value) { accountBusy = value; updateControls(); }
+    setAccountBusy(value) {
+      accountBusy = value;
+      updateControls();
+      if (!value) focusCurrentStep();
+    }
   };
 }

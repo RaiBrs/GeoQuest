@@ -6,7 +6,7 @@ import { accountView } from "../view/pages/account-view.js";
 export function initializeAccounts(game) {
   let account = { enabled: false, user: null, providers: [] };
   let leaders = [], rankingLoaded = false, errorKey = "";
-  let pending = false, screen = "welcome", gameBusy = false;
+  let pending = false, screen = "login", gameBusy = false;
 
   function render() {
     accountView.render({ account, pending, gameBusy, screen, errorKey });
