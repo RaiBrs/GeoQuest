@@ -81,6 +81,7 @@ The hub offers three modes, all using world-capital questions:
 | Against the clock (`TIMED`) | Unlimited questions for 60 seconds, continuing after mistakes. The Java server enforces the deadline. |
 
 Timed rounds load fresh batches as needed, keep the original deadline, and have no question limit.
+After each answer, timed rounds show the correction for 700 ms and advance automatically, without a Next question button.
 Questions and alternatives can repeat across batches when drawing again from the finite country catalog.
 Their progress bar shows remaining time; their result reports correct and submitted answers without a fixed denominator.
 The API returns `total: null` for timed rounds and an `answered` count for every mode.
@@ -99,7 +100,7 @@ Timed rounds show their result when the deadline is reached, even without submit
 - Rounds stay in server memory: idle rounds expire after 30 minutes, and finished rounds are retained for 5 minutes to support network retries. Completed signed-in results are persisted; visitor scores are not.
 
 The interface supports English and Brazilian Portuguese, uses a responsive dark design, supports **A–D to answer** and
-**Space to continue**, restores keyboard focus after requests, and respects reduced-motion preferences.
+**Space to continue** in Capitals and Survival (timed rounds advance automatically), restores keyboard focus after requests, and respects reduced-motion preferences.
 
 ### Mobile and tablet browsers
 

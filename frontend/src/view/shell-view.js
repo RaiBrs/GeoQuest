@@ -118,7 +118,10 @@ export const shellView = {
   focusCurrentStep(screen, answered) {
     if (element("app-header").inert) return;
     if (this.hasError()) element("retry").focus();
-    else if (screen === "game") element(answered ? "next" : "question").focus();
+    else if (screen === "game") {
+      const answerTarget = element("next").hidden ? "feedback" : "next";
+      element(answered ? answerTarget : "question").focus();
+    }
     else if (screen === "result") element("result-title").focus();
     else if (screen === "hub") element("hub-title").focus();
     else if (screen === "ranking") element("leaderboard-title").focus();

@@ -117,6 +117,7 @@ const portuguese = {
   "SURVIVAL · ONE MISTAKE ENDS THE ROUND": "SOBREVIVÊNCIA · UM ERRO ENCERRA A RODADA",
   "AGAINST THE CLOCK · 60 SECONDS": "CONTRA O TEMPO · 60 SEGUNDOS",
   "Press A–D to answer. After answering, press Space to continue.": "Pressione A–D para responder. Após responder, use Espaço para continuar.",
+  "Press A–D to answer. The next question appears automatically.": "Pressione A–D para responder. A próxima pergunta aparece automaticamente.",
   "Press R to play again or Space to view your result.": "Pressione R para jogar novamente ou Espaço para ver o resultado.",
   "✓ Correct": "✓ Correta",
   "Your answer": "Sua resposta",
