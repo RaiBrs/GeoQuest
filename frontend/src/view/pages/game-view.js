@@ -7,6 +7,7 @@ function renderScore(score) {
 
 export const gameView = {
   renderMode(mode, timed) {
+    element("game").dataset.mode = mode;
     element("mode-label").textContent = {
       CAPITALS: "CAPITALS · 10 QUESTIONS", SURVIVAL: "SURVIVAL · ONE MISTAKE ENDS THE ROUND",
       TIMED: "AGAINST THE CLOCK · 60 SECONDS"
@@ -17,7 +18,7 @@ export const gameView = {
   },
 
   renderTimer(seconds) {
-    element("timer").textContent = t("Time remaining: {seconds}s", { seconds });
+    element("timer").textContent = t("Time remaining: {seconds}s", { seconds: String(seconds).padStart(2, "0") });
     element("round-progress").value = seconds;
     element("timer").dataset.urgent = String(seconds <= 10);
     element("time-warning").textContent = seconds > 0 && seconds <= 10 ? t("Only {seconds} seconds left!", { seconds }) : "";

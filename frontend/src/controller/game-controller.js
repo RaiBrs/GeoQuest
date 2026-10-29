@@ -23,9 +23,13 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
 
   function stopTimer() { clearInterval(timer); timer = undefined; }
 
-  function showHub() {
+  function leaveRound() {
     stopTimer();
     state = answer = pendingAnswer = undefined;
+  }
+
+  function showHub() {
+    leaveRound();
     hubView.render(playerName);
     showScreen("hub");
     updateControls();
@@ -69,6 +73,7 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
     element("language").disabled = busy || accountBusy || screen === "game" || screen === "result";
     element("question-type").disabled = busy || accountBusy;
     element("change-player").hidden = Boolean(accountName);
+    element("resume-player").hidden = !playerName;
     onStateChange({ screen, busy: busy || accountBusy });
   }
 
@@ -135,8 +140,7 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
   }
 
   function resetPlayer() {
-    stopTimer();
-    state = answer = pendingAnswer = undefined;
+    leaveRound();
     playerName = "";
     welcomeView.reset();
     showScreen("welcome");
@@ -180,11 +184,19 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
   });
   shellView.bind({
     onHome: () => navigate(() => playerName ? showHub() : resetPlayer()),
+    onNavigate: next => navigate(() => {
+      if (next === "hub") { playerName ? showHub() : resetPlayer(); return; }
+      leaveRound();
+      showScreen(next);
+      updateControls();
+      focusCurrentStep();
+    }),
     onRetry: () => { if (retryTask) run(retryTask.action, retryTask.operation); }
   });
   element("language").addEventListener("change", () => {
     if (busy || screen === "game" || screen === "result") return;
     setLanguage(element("language").value);
+    shellView.showScreen(screen);
     if (screen === "hub") hubView.render(playerName);
     clearError();
     welcomeView.reset();

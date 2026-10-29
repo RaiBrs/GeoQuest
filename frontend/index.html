@@ -1,160 +1,632 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#2766b3">
-  <title>GeoQuest — Explore the world</title>
-  <link rel="icon" type="image/svg+xml" href="./assets/geoquest-icon.svg">
-  <link rel="stylesheet" href="./styles.css">
-  <script type="module" src="./src/app.js"></script>
-</head>
-<body>
-  <div class="shell">
-    <header class="app-header">
-      <button id="home" class="brand" type="button" aria-label="GeoQuest: back to home" data-i18n-aria="GeoQuest: back to home">
-        <img class="brand-mark" src="./assets/geoquest-icon.svg" width="42" height="42" alt="" aria-hidden="true"> GeoQuest
-      </button>
-      <div class="language-control"><label data-i18n="Language" for="language">Language</label>
-      <select id="language"><option value="EN">English</option><option value="PT_BR">Português</option></select></div>
-    </header>
-
-    <main id="app" aria-busy="false">
-      <section id="welcome" class="screen welcome-layout" aria-labelledby="welcome-title">
-        <div class="intro">
-          <p class="eyebrow" data-i18n="YOUR NEXT CHALLENGE">YOUR NEXT CHALLENGE</p>
-          <h1 id="welcome-title"><span data-i18n="Explore the world.">Explore the world.</span><br><span data-i18n="Make your mark.">Make your mark.</span></h1>
-          <p class="intro-copy" data-i18n="Put your knowledge of world capitals to the test, one answer at a time.">Put your knowledge of world capitals to the test, one answer at a time.</p>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0d1117">
+    <title>
+      GeoQuest — Explore the world
+    </title>
+    <link rel="icon" type="image/svg+xml" href="./assets/geoquest-icon.svg">
+    <link rel="stylesheet" href="./styles.css">
+    <script type="module" src="./src/app.js">
+    </script>
+  </head>
+  <body>
+    <svg class="icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <symbol id="icon-menu" viewBox="0 0 24 24">
+        <path d="M4 6h16M4 12h16M4 18h16"/>
+      </symbol>
+      <symbol id="icon-close" viewBox="0 0 24 24">
+        <path d="m6 6 12 12M18 6 6 18"/>
+      </symbol>
+      <symbol id="icon-home" viewBox="0 0 24 24">
+        <path d="m3 10 9-7 9 7M5 9v12h5v-7h4v7h5V9"/>
+      </symbol>
+      <symbol id="icon-target" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9"/>
+        <circle cx="12" cy="12" r="5"/>
+        <circle cx="12" cy="12" r="1"/>
+      </symbol>
+      <symbol id="icon-trophy" viewBox="0 0 24 24">
+        <path d="M8 3h8v7a4 4 0 0 1-8 0ZM8 5H4v3a4 4 0 0 0 4 4m8-7h4v3a4 4 0 0 1-4 4M12 14v7m-4 0h8"/>
+      </symbol>
+      <symbol id="icon-book" viewBox="0 0 24 24">
+        <path d="M12 5v16M3 3c4-1 7 0 9 2 2-2 5-3 9-2v16c-4-1-7 0-9 2-2-2-5-3-9-2Z"/>
+      </symbol>
+      <symbol id="icon-compass" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9"/>
+        <path d="m16 8-3 5-5 3 3-5Z"/>
+      </symbol>
+      <symbol id="icon-user" viewBox="0 0 24 24">
+        <circle cx="12" cy="8" r="4"/>
+        <path d="M4 21a8 8 0 0 1 16 0"/>
+      </symbol>
+      <symbol id="icon-heart" viewBox="0 0 24 24">
+        <path d="M20 5a5 5 0 0 0-8 1 5 5 0 0 0-8-1c-4 5 2 10 8 15 6-5 12-10 8-15Z"/>
+      </symbol>
+      <symbol id="icon-clock" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9"/>
+        <path d="M12 7v5l3 2"/>
+      </symbol>
+    </svg>
+    <a class="skip-link" href="#app" data-i18n="Skip to content">
+      Skip to content
+    </a>
+    <div id="app-shell" class="app-shell" data-sidebar="closed" data-screen="welcome">
+      <header id="app-header" class="app-header">
+        <button id="menu-toggle" class="icon-button" type="button" data-shell-control aria-controls="sidebar" aria-expanded="false" aria-label="Toggle navigation" data-i18n-aria="Toggle navigation">
+          <svg class="icon" aria-hidden="true">
+            <use href="#icon-menu"/>
+          </svg>
+        </button>
+        <button id="home" class="brand" type="button" aria-label="GeoQuest: back to home" data-i18n-aria="GeoQuest: back to home">
+          <img class="brand-mark" src="./assets/geoquest-icon.svg" width="32" height="32" alt="" aria-hidden="true">
+          <span>
+            GeoQuest
+          </span>
+        </button>
+        <span class="header-divider" aria-hidden="true">
+          /
+        </span>
+        <span id="section-label" class="section-label" data-i18n="Geographic challenges">
+          Geographic challenges
+        </span>
+        <div class="header-actions">
+          <div class="language-control">
+            <label class="visually-hidden" data-i18n="Language" for="language">
+              Language
+            </label>
+            <select id="language">
+              <option value="EN">
+                EN
+              </option>
+              <option value="PT_BR">
+                PT-BR
+              </option>
+            </select>
+          </div>
+          <button id="header-account" class="user-button" type="button" aria-label="My account" data-i18n-aria="My account">
+            <span id="user-initial" class="user-initial" aria-hidden="true">
+              <svg class="icon">
+                <use href="#icon-user"/>
+              </svg>
+            </span>
+            <span id="user-label" data-i18n="Guest">
+              Guest
+            </span>
+          </button>
         </div>
-        <div class="card entry-card">
-          <span class="card-label" data-i18n="WORLD CAPITALS">WORLD CAPITALS</span>
-          <h2 data-i18n="Start your journey">Start your journey</h2>
-          <p class="muted" data-i18n="Tell us what to call you during the game.">Tell us what to call you during the game.</p>
-          <div id="account-access" class="account-access">
-            <p id="account-status" class="muted" role="status"></p>
-            <div id="login-options" class="actions" hidden>
-              <a id="login-google" class="button secondary" href="/oauth2/authorization/google" data-i18n="Continue with Google">Continue with Google</a>
-              <a id="login-github" class="button secondary" href="/oauth2/authorization/github" data-i18n="Continue with GitHub">Continue with GitHub</a>
+      </header>
+      <button id="sidebar-overlay" class="sidebar-overlay" type="button" data-shell-control tabindex="-1" aria-label="Close navigation" data-i18n-aria="Close navigation" hidden>
+      </button>
+      <aside id="sidebar" class="sidebar" aria-label="Main navigation" data-i18n-aria="Main navigation" hidden>
+        <div class="sidebar-heading">
+          <span data-i18n="Navigation">
+            Navigation
+          </span>
+          <button id="menu-close" class="icon-button" type="button" data-shell-control aria-label="Close navigation" data-i18n-aria="Close navigation">
+            <svg class="icon" aria-hidden="true">
+              <use href="#icon-close"/>
+            </svg>
+          </button>
+        </div>
+        <nav aria-label="Main" data-i18n-aria="Main">
+          <p class="nav-label" data-i18n="Main">
+            Main
+          </p>
+          <button id="nav-welcome" class="sidebar-item" type="button" data-screen="welcome">
+            <svg class="icon" aria-hidden="true">
+              <use href="#icon-home"/>
+            </svg>
+            <span data-i18n="Home">
+              Home
+            </span>
+          </button>
+          <button id="nav-hub" class="sidebar-item" type="button" data-screen="hub">
+            <svg class="icon" aria-hidden="true">
+              <use href="#icon-target"/>
+            </svg>
+            <span data-i18n="Challenges">
+              Challenges
+            </span>
+          </button>
+          <button id="nav-ranking" class="sidebar-item" type="button" data-screen="ranking">
+            <svg class="icon" aria-hidden="true">
+              <use href="#icon-trophy"/>
+            </svg>
+            <span data-i18n="Ranking">
+              Ranking
+            </span>
+          </button>
+          <div class="nav-group">
+            <p class="nav-label" data-i18n="Coming soon">
+              Coming soon
+            </p>
+            <div class="sidebar-item unavailable" aria-disabled="true">
+              <svg class="icon" aria-hidden="true">
+                <use href="#icon-book"/>
+              </svg>
+              <span data-i18n="Learn">
+                Learn
+              </span>
+              <span class="badge" data-i18n="Soon">
+                Soon
+              </span>
+            </div>
+            <div class="sidebar-item unavailable" aria-disabled="true">
+              <svg class="icon" aria-hidden="true">
+                <use href="#icon-compass"/>
+              </svg>
+              <span data-i18n="Explore">
+                Explore
+              </span>
+              <span class="badge" data-i18n="Soon">
+                Soon
+              </span>
             </div>
           </div>
-          <form id="player-form" novalidate>
-            <label for="player-name" data-i18n="Your name">Your name</label>
-            <input id="player-name" type="text" autocomplete="nickname"
-                   placeholder="What should we call you?" data-i18n-placeholder="What should we call you?" aria-describedby="name-help" required>
-            <small id="name-help" class="muted" data-i18n="Up to 80 characters. Used only to greet you.">Up to 80 characters. Used only to greet you.</small>
-            <button class="button primary" type="submit"><span data-i18n="Choose your challenge">Choose your challenge</span> <span aria-hidden="true">→</span></button>
-          </form>
-          <p class="entry-note" data-i18n="Three ways to explore. Choose your challenge in the hub.">Three ways to explore. Choose your challenge in the hub.</p>
-        </div>
-      </section>
-
-      <section id="hub" class="screen" aria-labelledby="hub-title" hidden>
-        <p class="eyebrow" data-i18n="YOUR WORLD OF CHALLENGES">YOUR WORLD OF CHALLENGES</p>
-        <h1 id="hub-title" tabindex="-1"></h1>
-        <p class="muted" data-i18n="Choose how you want to explore world capitals today.">Choose how you want to explore world capitals today.</p>
-        <div class="question-type-control"><label data-i18n="Question type" for="question-type">Question type</label>
-          <select id="question-type"><option value="CAPITAL" data-i18n="Find the capital">Find the capital</option><option value="COUNTRY" data-i18n="Find the country">Find the country</option></select></div>
-        <div class="mode-grid">
-          <article class="card mode-card">
-            <span class="card-label" data-i18n="LEARN AT YOUR PACE">LEARN AT YOUR PACE</span>
-            <h2 data-i18n="Capitals">Capitals</h2>
-            <p data-i18n="Answer all 10 questions. Mistakes are part of the journey.">Answer all 10 questions. Mistakes are part of the journey.</p>
-            <button id="mode-capitals" class="button primary" type="button" data-i18n="Play Capitals">Play Capitals</button>
-          </article>
-          <article class="card mode-card">
-            <span class="card-label" data-i18n="MAKE EVERY ANSWER COUNT">MAKE EVERY ANSWER COUNT</span>
-            <h2 data-i18n="Survival">Survival</h2>
-            <p data-i18n="One mistake ends the round. Can you get all 10 right?">One mistake ends the round. Can you get all 10 right?</p>
-            <button id="mode-survival" class="button primary" type="button" data-i18n="Play Survival">Play Survival</button>
-          </article>
-          <article class="card mode-card">
-            <span class="card-label" data-i18n="BEAT THE CLOCK">BEAT THE CLOCK</span>
-            <h2 data-i18n="Against the clock">Against the clock</h2>
-            <p data-i18n="60 seconds. Unlimited questions. Keep going after mistakes.">60 seconds. Unlimited questions. Keep going after mistakes.</p>
-            <button id="mode-timed" class="button primary" type="button" data-i18n="Play Against the clock">Play Against the clock</button>
-          </article>
-        </div>
-        <section id="profile-panel" class="card profile-panel" hidden>
-          <h2 data-i18n="Your account">Your account</h2>
-          <p id="profile-name"></p>
-          <p data-i18n="Completed rounds enter the ranking under your account name.">Completed rounds enter the ranking under your account name.</p>
-          <button id="logout" class="button secondary" type="button" data-i18n="Sign out">Sign out</button>
-          <details class="delete-account">
-            <summary data-i18n="Delete my account">Delete my account</summary>
-            <p data-i18n="This permanently deletes your GeoQuest profile, results and ranking entries. Your Google or GitHub account remains unchanged.">This permanently deletes your GeoQuest profile, results and ranking entries. Your Google or GitHub account remains unchanged.</p>
-            <form id="delete-account-form">
-              <label for="delete-confirmation" data-i18n="Type DELETE to confirm">Type DELETE to confirm</label>
-              <input id="delete-confirmation" autocomplete="off" required pattern="DELETE">
-              <button class="button danger" type="submit" data-i18n="Permanently delete my account">Permanently delete my account</button>
-            </form>
-          </details>
-        </section>
-        <section class="card leaderboard-panel" aria-labelledby="leaderboard-title">
-          <h2 id="leaderboard-title" data-i18n="Ranking">Ranking</h2>
-          <p data-i18n="Best completed round per player, separated by mode and question type.">Best completed round per player, separated by mode and question type.</p>
-          <div class="ranking-filters">
-            <label for="ranking-mode" data-i18n="Game mode">Game mode</label>
-            <select id="ranking-mode"><option value="CAPITALS" data-i18n="Capitals">Capitals</option><option value="SURVIVAL" data-i18n="Survival">Survival</option><option value="TIMED" data-i18n="Against the clock">Against the clock</option></select>
-            <label for="ranking-type" data-i18n="Question type">Question type</label>
-            <select id="ranking-type"><option value="CAPITAL" data-i18n="Find the capital">Find the capital</option><option value="COUNTRY" data-i18n="Find the country">Find the country</option></select>
-            <button id="load-ranking" class="button secondary" type="button" data-i18n="View ranking">View ranking</button>
+          <div class="nav-group">
+            <p class="nav-label" data-i18n="Account">
+              Account
+            </p>
+            <button id="nav-account" class="sidebar-item" type="button" data-screen="account">
+              <svg class="icon" aria-hidden="true">
+                <use href="#icon-user"/>
+              </svg>
+              <span data-i18n="My account">
+                My account
+              </span>
+            </button>
           </div>
-          <p id="ranking-status" role="status"></p>
-          <ol id="ranking-list"></ol>
-        </section>
-        <button id="change-player" class="button secondary" type="button" data-i18n="Change player">Change player</button>
-      </section>
-
-      <section id="game" class="screen card play-card" aria-labelledby="question" hidden>
-        <p id="mode-label" class="card-label"></p>
-        <p id="timer" class="score-pill" hidden></p>
-        <p id="time-warning" role="status" class="time-warning"></p>
-        <div class="game-meta">
-          <span id="progress" class="card-label"></span>
-          <span id="score" class="score-pill"></span>
+        </nav>
+        <div class="sidebar-footer">
+          <img src="./assets/geoquest-icon.svg" width="20" height="20" alt="" aria-hidden="true">
+          <span>
+            GeoQuest
+          </span>
+          <span class="badge" data-i18n="Geography">
+            Geography
+          </span>
         </div>
-        <progress id="round-progress" value="0" max="1" aria-label="Questions answered" data-i18n-aria="Questions answered"></progress>
-        <p id="player-label" class="muted player-label"></p>
-        <h1 id="question" tabindex="-1"></h1>
-        <div id="alternatives" class="alternatives" role="group" aria-labelledby="question"></div>
-        <p id="keyboard-hint" class="keyboard-hint" data-i18n="Press A–D to answer. After answering, press Space to continue.">Press A–D to answer. After answering, press Space to continue.</p>
-        <p id="feedback" class="answer-feedback" role="status"></p>
-        <div class="round-actions">
-          <button id="next" class="button primary" type="button" hidden data-i18n="Next question">Next question</button>
-          <button id="restart-round" class="button secondary" type="button" hidden data-i18n="Play again">Play again</button>
+      </aside>
+      <div id="main-content" class="main-content">
+        <main id="app" aria-busy="false" tabindex="-1">
+          <section id="welcome" class="screen welcome-layout" aria-labelledby="welcome-title">
+            <div class="intro">
+              <span class="badge accent" data-i18n="Geographic challenges">
+                Geographic challenges
+              </span>
+              <h1 id="welcome-title" tabindex="-1">
+                <span data-i18n="Explore the world.">
+                  Explore the world.
+                </span>
+                <br>
+                <span class="muted" data-i18n="Make your mark.">
+                  Make your mark.
+                </span>
+              </h1>
+              <p class="intro-copy" data-i18n="Test your knowledge of countries and capitals, one challenge at a time.">
+                Test your knowledge of countries and capitals, one challenge at a time.
+              </p>
+              <div class="welcome-modes">
+                <span>
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#icon-target"/>
+                  </svg>
+                  <span data-i18n="Capitals">
+                    Capitals
+                  </span>
+                </span>
+                <span>
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#icon-heart"/>
+                  </svg>
+                  <span data-i18n="Survival">
+                    Survival
+                  </span>
+                </span>
+                <span>
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#icon-clock"/>
+                  </svg>
+                  <span data-i18n="Against the clock">
+                    Against the clock
+                  </span>
+                </span>
+              </div>
+              <button id="resume-player" class="button secondary" type="button" hidden data-i18n="Return to challenges">
+                Return to challenges
+              </button>
+            </div>
+            <div class="card entry-card">
+              <div class="panel-heading">
+                <h2 data-i18n="Start your journey">
+                  Start your journey
+                </h2>
+                <p class="muted" data-i18n="Choose how to continue.">
+                  Choose how to continue.
+                </p>
+              </div>
+              <div id="account-access" class="account-access">
+                <p id="account-status" class="muted" role="status">
+                </p>
+                <div id="login-options" class="login-options" hidden>
+                  <a id="login-google" class="button secondary" href="/oauth2/authorization/google" data-i18n="Continue with Google">
+                    Continue with Google
+                  </a>
+                  <a id="login-github" class="button secondary" href="/oauth2/authorization/github" data-i18n="Continue with GitHub">
+                    Continue with GitHub
+                  </a>
+                </div>
+              </div>
+              <div id="guest-entry">
+                <p class="form-divider" data-i18n="or play as a guest">
+                  or play as a guest
+                </p>
+                <form id="player-form" novalidate>
+                  <label for="player-name" data-i18n="Your name">
+                    Your name
+                  </label>
+                  <input id="player-name" type="text" autocomplete="nickname" enterkeyhint="go" autocapitalize="words" spellcheck="false" placeholder="What should we call you?" data-i18n-placeholder="What should we call you?" aria-describedby="name-help" required>
+                  <small id="name-help" class="muted" data-i18n="Up to 80 characters. Used only to greet you.">
+                    Up to 80 characters. Used only to greet you.
+                  </small>
+                  <button class="button primary" type="submit">
+                    <span data-i18n="Choose your challenge">
+                      Choose your challenge
+                    </span>
+                    <span aria-hidden="true">
+                      →
+                    </span>
+                  </button>
+                </form>
+              </div>
+            </div>
+          </section>
+          <section id="hub" class="screen" aria-labelledby="hub-title" hidden>
+            <div class="page-heading">
+              <div>
+                <p id="hub-greeting" class="muted">
+                </p>
+                <h1 id="hub-title" tabindex="-1" data-i18n="Challenges">
+                  Challenges
+                </h1>
+                <p class="muted" data-i18n="Choose how you want to explore the world today.">
+                  Choose how you want to explore the world today.
+                </p>
+              </div>
+              <div class="question-type-control">
+                <label data-i18n="Question type" for="question-type">
+                  Question type
+                </label>
+                <select id="question-type">
+                  <option value="CAPITAL" data-i18n="Find the capital">
+                    Find the capital
+                  </option>
+                  <option value="COUNTRY" data-i18n="Find the country">
+                    Find the country
+                  </option>
+                </select>
+              </div>
+            </div>
+            <div class="mode-grid">
+              <article class="card mode-card">
+                <div class="mode-icon accent">
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#icon-target"/>
+                  </svg>
+                </div>
+                <h2 data-i18n="Capitals">
+                  Capitals
+                </h2>
+                <span class="badge" data-i18n="10 questions">
+                  10 questions
+                </span>
+                <p class="muted" data-i18n="Mistakes do not end the round.">
+                  Mistakes do not end the round.
+                </p>
+                <button id="mode-capitals" class="button primary" type="button">
+                  <span data-i18n="Play Capitals">
+                    Play Capitals
+                  </span>
+                  <span aria-hidden="true">
+                    →
+                  </span>
+                </button>
+              </article>
+              <article class="card mode-card">
+                <div class="mode-icon success">
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#icon-heart"/>
+                  </svg>
+                </div>
+                <h2 data-i18n="Survival">
+                  Survival
+                </h2>
+                <span class="badge" data-i18n="Up to 10 questions">
+                  Up to 10 questions
+                </span>
+                <p class="muted" data-i18n="One mistake ends the round.">
+                  One mistake ends the round.
+                </p>
+                <button id="mode-survival" class="button secondary" type="button">
+                  <span data-i18n="Play Survival">
+                    Play Survival
+                  </span>
+                  <span aria-hidden="true">
+                    →
+                  </span>
+                </button>
+              </article>
+              <article class="card mode-card">
+                <div class="mode-icon warning">
+                  <svg class="icon" aria-hidden="true">
+                    <use href="#icon-clock"/>
+                  </svg>
+                </div>
+                <h2 data-i18n="Against the clock">
+                  Against the clock
+                </h2>
+                <span class="badge" data-i18n="60 seconds">
+                  60 seconds
+                </span>
+                <p class="muted" data-i18n="Unlimited questions. Keep going after mistakes.">
+                  Unlimited questions. Keep going after mistakes.
+                </p>
+                <button id="mode-timed" class="button secondary" type="button">
+                  <span data-i18n="Play Against the clock">
+                    Play Against the clock
+                  </span>
+                  <span aria-hidden="true">
+                    →
+                  </span>
+                </button>
+              </article>
+            </div>
+            <div class="hub-footer">
+              <p class="muted">
+                <svg class="icon" aria-hidden="true">
+                  <use href="#icon-compass"/>
+                </svg>
+                <span data-i18n="A new journey with every round.">
+                  A new journey with every round.
+                </span>
+              </p>
+              <button id="change-player" class="button secondary" type="button" data-i18n="Logout">
+                Logout
+              </button>
+            </div>
+          </section>
+          <section id="ranking" class="screen" aria-labelledby="leaderboard-title" hidden>
+            <div class="page-heading">
+              <div>
+                <p class="eyebrow" data-i18n="Top 20 players">
+                  Top 20 players
+                </p>
+                <h1 id="leaderboard-title" tabindex="-1" data-i18n="Ranking">
+                  Ranking
+                </h1>
+                <p class="muted" data-i18n="Best completed round per player, separated by mode and question type.">
+                  Best completed round per player, separated by mode and question type.
+                </p>
+              </div>
+            </div>
+            <div class="card leaderboard-panel">
+              <div class="ranking-filters">
+                <div class="filter-field">
+                  <label for="ranking-mode" data-i18n="Game mode">
+                    Game mode
+                  </label>
+                  <select id="ranking-mode">
+                    <option value="CAPITALS" data-i18n="Capitals">
+                      Capitals
+                    </option>
+                    <option value="SURVIVAL" data-i18n="Survival">
+                      Survival
+                    </option>
+                    <option value="TIMED" data-i18n="Against the clock">
+                      Against the clock
+                    </option>
+                  </select>
+                </div>
+                <div class="filter-field">
+                  <label for="ranking-type" data-i18n="Question type">
+                    Question type
+                  </label>
+                  <select id="ranking-type">
+                    <option value="CAPITAL" data-i18n="Find the capital">
+                      Find the capital
+                    </option>
+                    <option value="COUNTRY" data-i18n="Find the country">
+                      Find the country
+                    </option>
+                  </select>
+                </div>
+                <button id="load-ranking" class="button secondary" type="button" data-i18n="View ranking">
+                  View ranking
+                </button>
+              </div>
+              <p id="ranking-status" class="empty-state muted" role="status">
+              </p>
+              <table id="ranking-table" hidden>
+                <caption class="visually-hidden" data-i18n="Ranking">
+                  Ranking
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col" class="ranking-position">
+                      <span aria-hidden="true">
+                        #
+                      </span>
+                      <span class="visually-hidden" data-i18n="Position">
+                        Position
+                      </span>
+                    </th>
+                    <th scope="col" data-i18n="Player">
+                      Player
+                    </th>
+                    <th scope="col" class="ranking-score" data-i18n="Score">
+                      Score
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="ranking-list">
+                </tbody>
+              </table>
+            </div>
+          </section>
+          <section id="account" class="screen" aria-labelledby="account-title" hidden>
+            <div class="page-heading">
+              <div>
+                <h1 id="account-title" tabindex="-1" data-i18n="My account">
+                  My account
+                </h1>
+                <p class="muted" data-i18n="Manage your identity and data.">
+                  Manage your identity and data.
+                </p>
+              </div>
+            </div>
+            <div id="account-guest" class="card profile-panel">
+              <h2 data-i18n="You are playing as a guest">
+                You are playing as a guest
+              </h2>
+              <p class="muted" data-i18n="Sign in from Home to save completed rounds and join the ranking.">
+                Sign in from Home to save completed rounds and join the ranking.
+              </p>
+              <button id="account-sign-in" class="button primary" type="button" data-i18n="Go to Home">
+                Go to Home
+              </button>
+            </div>
+            <section id="profile-panel" class="card profile-panel" aria-labelledby="profile-title" hidden>
+              <h2 id="profile-title" data-i18n="Your account">
+                Your account
+              </h2>
+              <p id="profile-name">
+              </p>
+              <p class="muted" data-i18n="Completed rounds enter the ranking under your account name.">
+                Completed rounds enter the ranking under your account name.
+              </p>
+              <button id="logout" class="button secondary" type="button" data-i18n="Sign out">
+                Sign out
+              </button>
+              <details class="delete-account">
+                <summary data-i18n="Delete my account">
+                  Delete my account
+                </summary>
+                <p class="muted" data-i18n="This permanently deletes your GeoQuest profile, results and ranking entries. Your Google or GitHub account remains unchanged.">
+                  This permanently deletes your GeoQuest profile, results and ranking entries. Your Google or GitHub account remains unchanged.
+                </p>
+                <form id="delete-account-form">
+                  <label for="delete-confirmation" data-i18n="Type DELETE to confirm">
+                    Type DELETE to confirm
+                  </label>
+                  <input id="delete-confirmation" autocomplete="off" required pattern="DELETE">
+                  <button class="button danger" type="submit" data-i18n="Permanently delete my account">
+                    Permanently delete my account
+                  </button>
+                </form>
+              </details>
+            </section>
+          </section>
+          <section id="game" class="screen card play-card" aria-labelledby="question" hidden>
+            <div class="round-header">
+              <p id="mode-label" class="card-label">
+              </p>
+              <p id="timer" class="timer" hidden>
+              </p>
+            </div>
+            <p id="time-warning" role="status" class="time-warning">
+            </p>
+            <div class="game-meta">
+              <span id="progress" class="card-label">
+              </span>
+              <span id="score" class="score-pill">
+              </span>
+            </div>
+            <progress id="round-progress" value="0" max="1" aria-label="Questions answered" data-i18n-aria="Questions answered">
+            </progress>
+            <p id="player-label" class="muted player-label">
+            </p>
+            <h1 id="question" tabindex="-1">
+            </h1>
+            <div id="alternatives" class="alternatives" role="group" aria-labelledby="question">
+            </div>
+            <p id="keyboard-hint" class="keyboard-hint" data-i18n="Press A–D to answer. After answering, press Space to continue.">
+              Press A–D to answer. After answering, press Space to continue.
+            </p>
+            <p id="feedback" class="answer-feedback" role="status">
+            </p>
+            <div class="round-actions">
+              <button id="next" class="button primary" type="button" hidden data-i18n="Next question">
+                Next question
+              </button>
+              <button id="restart-round" class="button secondary" type="button" hidden data-i18n="Play again">
+                Play again
+              </button>
+            </div>
+          </section>
+          <section id="result" class="screen card result-card" aria-labelledby="result-title" hidden>
+            <p class="eyebrow" data-i18n="ANOTHER JOURNEY AROUND THE WORLD">
+              ANOTHER JOURNEY AROUND THE WORLD
+            </p>
+            <h1 id="result-title" tabindex="-1" data-i18n="Round complete">
+              Round complete
+            </h1>
+            <div class="result-score">
+              <span id="result-score">
+                0
+              </span>
+              <span id="result-total">
+              </span>
+            </div>
+            <p id="summary" class="muted">
+            </p>
+            <div class="actions">
+              <button id="restart" class="button primary" type="button" data-i18n="Play again">
+                Play again
+              </button>
+              <button id="back-to-home" class="button secondary" type="button" data-i18n="Back to hub">
+                Back to hub
+              </button>
+            </div>
+            <p id="review-note" class="muted">
+            </p>
+            <details id="mistake-review" class="mistake-review" hidden>
+              <summary data-i18n="See where I went wrong">
+                See where I went wrong
+              </summary>
+              <ol id="mistake-list" class="mistake-list">
+              </ol>
+            </details>
+          </section>
+        </main>
+        <div class="system-feedback">
+          <p id="account-error" class="account-error" role="alert">
+          </p>
+          <p id="loading" class="loading" role="status" hidden>
+            <span class="spinner" aria-hidden="true">
+            </span>
+            <span id="loading-text">
+            </span>
+          </p>
+          <div id="error-panel" class="error-panel" hidden>
+            <p id="error" role="alert">
+            </p>
+            <button id="retry" class="button secondary" type="button" data-i18n="Try again">
+              Try again
+            </button>
+          </div>
         </div>
-      </section>
-
-      <section id="result" class="screen card result-card" aria-labelledby="result-title" hidden>
-        <p class="eyebrow" data-i18n="ANOTHER JOURNEY AROUND THE WORLD">ANOTHER JOURNEY AROUND THE WORLD</p>
-        <h1 id="result-title" tabindex="-1" data-i18n="Round complete">Round complete</h1>
-        <div class="result-score"><span id="result-score">0</span><span id="result-total"></span></div>
-        <p id="summary" class="muted"></p>
-        <p id="review-note" class="muted"></p>
-        <details id="mistake-review" class="mistake-review" hidden>
-          <summary data-i18n="See where I went wrong">See where I went wrong</summary>
-          <ol id="mistake-list" class="mistake-list"></ol>
-        </details>
-        <div class="actions">
-          <button id="restart" class="button primary" type="button" data-i18n="Play again">Play again</button>
-          <button id="back-to-home" class="button secondary" type="button" data-i18n="Back to hub">Back to hub</button>
-        </div>
-      </section>
-    </main>
-
-    <div class="system-feedback">
-      <p id="account-error" class="account-error" role="alert"></p>
-      <p id="loading" class="loading" role="status" hidden>
-        <span class="spinner" aria-hidden="true"></span><span id="loading-text"></span>
-      </p>
-      <div id="error-panel" class="error-panel" hidden>
-        <p id="error" role="alert"></p>
-        <button id="retry" class="button secondary" type="button" data-i18n="Try again">Try again</button>
+        <footer class="app-footer">
+          <span data-i18n="Your name. Your journey. Your mark on the world.">
+            Your name. Your journey. Your mark on the world.
+          </span>
+          <a class="privacy-link" href="/privacy.html" data-i18n="Account data and privacy">
+            Account data and privacy
+          </a>
+        </footer>
       </div>
     </div>
-    <p class="muted"><a href="/privacy.html" data-i18n="Account data and privacy">Account data and privacy</a></p>
-    <footer data-i18n="Your name. Your journey. Your mark on the world.">Your name. Your journey. Your mark on the world.</footer>
-  </div>
-
-</body>
+  </body>
 </html>

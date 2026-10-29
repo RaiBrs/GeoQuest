@@ -12,10 +12,11 @@ class Element {
   emit(name) { return this.handlers[name]?.({ preventDefault() {} }); }
   set innerHTML(value) { throw new Error("Identity and ranking data must remain plain text"); }
 }
+const ids = ["account-access","login-options","login-google","login-github","account-status","profile-panel","profile-name",
+  "load-ranking","logout","ranking-mode","ranking-type","delete-confirmation","delete-account-form","ranking-status","ranking-list","account-error",
+  "guest-entry","account-guest","user-label","user-initial","ranking-table"];
 test("account UI restores identity, renders ranking safely and deletes only after confirmation", async () => {
   const original = { document: globalThis.document, window: globalThis.window, fetch: globalThis.fetch };
-  const ids = ["account-access","login-options","login-google","login-github","account-status","profile-panel","profile-name",
-    "load-ranking","logout","ranking-mode","ranking-type","delete-confirmation","delete-account-form","ranking-status","ranking-list","account-error"];
   const ui = Object.fromEntries(ids.map(id => [id, new Element()]));
   globalThis.document = { documentElement: {}, getElementById: id => ui[id], querySelectorAll: () => [], createElement: () => new Element() };
   globalThis.window = { location: { search: "" } };
@@ -39,7 +40,17 @@ test("account UI restores identity, renders ranking safely and deletes only afte
     controller.updateAvailability({ screen: "hub", busy: false });
     ui["ranking-mode"].value = "CAPITALS"; ui["ranking-type"].value = "CAPITAL";
     ui["load-ranking"].emit("click"); await settle();
-    assert.equal(ui["ranking-list"].children[0].children[0].textContent, "Other<script> — 9 acertos");
+    const row = ui["ranking-list"].children[0];
+    assert.equal(row.children[0].textContent, "1");
+    assert.equal(row.children[1].textContent, "Other<script>");
+    assert.equal(row.children[2].children[0].textContent, "9");
+    assert.equal(row.children[2].children[1].textContent, "10 respondidas");
+    assert.equal(ui["ranking-table"].hidden, false);
+    ui["ranking-mode"].value = "TIMED";
+    ui["ranking-mode"].emit("change");
+    assert.equal(ui["ranking-list"].children.length, 0, "Do not display results belonging to the previous filters");
+    assert.equal(ui["ranking-table"].hidden, true);
+    assert.equal(ui["user-label"].textContent, "Rai<script>");
     ui["delete-confirmation"].value = "wrong";
     ui["delete-account-form"].emit("submit"); await settle();
     assert.equal(calls.some(c => c.path === "/api/account/delete"), false);
@@ -50,4 +61,39 @@ test("account UI restores identity, renders ranking safely and deletes only afte
     assert.equal(ui["profile-panel"].hidden, true);
     assert.equal(ui["ranking-list"].children.length, 0);
   } finally { setLanguage("EN"); Object.assign(globalThis, original); }
+});
+
+test("account mutations are blocked during a round and sign-out restores guest presentation", async () => {
+  const original = { document: globalThis.document, window: globalThis.window, fetch: globalThis.fetch };
+  const ui = Object.fromEntries(ids.map(id => [id, new Element()]));
+  globalThis.document = { documentElement: {}, getElementById: id => ui[id], querySelectorAll: () => [], createElement: () => new Element() };
+  globalThis.window = { location: { search: "" } };
+  const calls = [];
+  let cleared = 0;
+  globalThis.fetch = async (path, options) => {
+    calls.push({ path, options });
+    return { ok: true, json: async () => path === "/api/csrf" ? { token: "test-token", headerName: "X-XSRF-TOKEN" }
+      : path === "/api/account" ? { enabled: true, user: { displayName: "Player" }, providers: ["google", "github"] } : { ok: true } };
+  };
+  const settle = () => new Promise(resolve => setImmediate(resolve));
+  try {
+    const controller = initializeAccounts({ useAccount() {}, clearAccount() { cleared++; }, setAccountBusy() {} });
+    await settle();
+    controller.updateAvailability({ screen: "game", busy: false });
+    ui["logout"].emit("click");
+    ui["delete-confirmation"].value = "DELETE";
+    ui["delete-account-form"].emit("submit");
+    await settle();
+    assert.equal(calls.some(call => call.path === "/api/logout" || call.path === "/api/account/delete"), false);
+    controller.updateAvailability({ screen: "account", busy: false });
+    ui["logout"].emit("click");
+    await settle();
+    const logout = calls.find(call => call.path === "/api/logout");
+    assert.deepEqual(JSON.parse(logout.options.body), {});
+    assert.equal(logout.options.headers["X-XSRF-TOKEN"], "test-token");
+    assert.equal(cleared, 1);
+    assert.equal(ui["profile-panel"].hidden, true);
+    assert.equal(ui["account-guest"].hidden, false);
+    assert.equal(ui["user-label"].textContent, "Guest");
+  } finally { Object.assign(globalThis, original); }
 });

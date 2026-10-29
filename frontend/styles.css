@@ -1,7 +1,9 @@
 /* Load shared styles before screen-specific rules. */
+@import url("./styles/tokens.css");
 @import url("./styles/base.css");
 @import url("./styles/layout.css");
 @import url("./styles/components.css");
 @import url("./styles/pages/welcome.css");
+@import url("./styles/pages/hub.css");
 @import url("./styles/pages/game.css");
 @import url("./styles/pages/result.css");
