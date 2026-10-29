@@ -1,4 +1,5 @@
 :root {
+  --geo-font-sans: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
   color-scheme: dark;
   --geo-bg-primary: #0d1117;
   --geo-bg-secondary: #161b22;

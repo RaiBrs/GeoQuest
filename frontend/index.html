@@ -194,9 +194,12 @@
         <main id="app" aria-busy="false" tabindex="-1">
           <section id="welcome" class="screen welcome-layout" aria-labelledby="welcome-title">
             <div class="intro">
-              <span class="badge accent" data-i18n="Geographic challenges">
-                Geographic challenges
-              </span>
+              <div class="welcome-identity">
+                <img src="./assets/geoquest-icon.svg" width="80" height="80" alt="" aria-hidden="true">
+                <span class="badge accent" data-i18n="Geographic challenges">
+                  Geographic challenges
+                </span>
+              </div>
               <h1 id="welcome-title" tabindex="-1">
                 <span data-i18n="Explore the world.">
                   Explore the world.
@@ -235,9 +238,6 @@
                   </span>
                 </span>
               </div>
-              <button id="resume-player" class="button secondary" type="button" hidden data-i18n="Return to challenges">
-                Return to challenges
-              </button>
             </div>
             <div class="card entry-card">
               <div class="panel-heading">
@@ -260,6 +260,9 @@
                   </a>
                 </div>
               </div>
+              <button id="resume-player" class="button primary" type="button" hidden data-i18n="Return to challenges">
+                Return to challenges
+              </button>
               <div id="guest-entry">
                 <p class="form-divider" data-i18n="or play as a guest">
                   or play as a guest
@@ -283,6 +286,26 @@
                 </form>
               </div>
             </div>
+            <section class="welcome-guide" aria-labelledby="guide-title">
+              <h2 id="guide-title" data-i18n="How to play">How to play</h2>
+              <ol class="guide-steps">
+                <li>
+                  <span class="guide-number" aria-hidden="true">1</span>
+                  <strong data-i18n="Choose your route">Choose your route</strong>
+                  <p data-i18n="Pick a mode and find capitals or countries.">Pick a mode and find capitals or countries.</p>
+                </li>
+                <li>
+                  <span class="guide-number" aria-hidden="true">2</span>
+                  <strong data-i18n="Take the challenge">Take the challenge</strong>
+                  <p data-i18n="Play at your pace, avoid mistakes in Survival, or race the 60-second clock.">Play at your pace, avoid mistakes in Survival, or race the 60-second clock.</p>
+                </li>
+                <li>
+                  <span class="guide-number" aria-hidden="true">3</span>
+                  <strong data-i18n="Learn from each round">Learn from each round</strong>
+                  <p data-i18n="Review your mistakes and try a new round.">Review your mistakes and try a new round.</p>
+                </li>
+              </ol>
+            </section>
           </section>
           <section id="hub" class="screen" aria-labelledby="hub-title" hidden>
             <div class="page-heading">
@@ -326,7 +349,7 @@
                 <p class="muted" data-i18n="Mistakes do not end the round.">
                   Mistakes do not end the round.
                 </p>
-                <button id="mode-capitals" class="button primary" type="button">
+                <button id="mode-capitals" class="button secondary" type="button">
                   <span data-i18n="Play Capitals">
                     Play Capitals
                   </span>

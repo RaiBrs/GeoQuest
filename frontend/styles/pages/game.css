@@ -31,6 +31,18 @@ progress::-moz-progress-bar { background: var(--geo-success); border-radius: 3px
 .answer-feedback[data-tone="wrong"] { color: var(--geo-danger); }
 .round-actions { display: flex; gap: 12px; }
 .round-actions .button { flex: 1; min-width: 0; }
+.alternative { animation: answer-enter 180ms ease-out both; }
+.alternative[data-outcome="correct"] { animation: correct-reveal 360ms ease-out; }
+.alternative[data-outcome="wrong"] { animation: wrong-nudge 260ms ease-out; }
+.answer-feedback[data-tone="correct"], .answer-feedback[data-tone="wrong"] { animation: feedback-enter 220ms ease-out; }
+.play-card[data-feedback="correct"] .score-pill { animation: score-pop 300ms ease-out; }
+progress::-webkit-progress-value { transition: width 180ms ease-out; }
+progress::-moz-progress-bar { transition: width 180ms ease-out; }
+@keyframes answer-enter { from { opacity: .5; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes correct-reveal { 50% { box-shadow: 0 0 0 3px var(--geo-success-bg); } }
+@keyframes wrong-nudge { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+@keyframes feedback-enter { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes score-pop { 50% { transform: scale(1.08); } }
 @media (max-width: 699px) { .alternatives { grid-template-columns: 1fr; } }
 @media (max-width: 599px) {
   .play-card { padding: 20px; }

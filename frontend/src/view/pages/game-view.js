@@ -58,6 +58,7 @@ export const gameView = {
   },
 
   renderQuestion(state, playerName, onAnswer) {
+    element("game").dataset.feedback = "";
     const timed = state.mode === "TIMED";
     element("progress").textContent = t(timed ? "QUESTION {number}" : "QUESTION {number} OF {total}", state);
     renderScore(state.score);
@@ -85,6 +86,7 @@ export const gameView = {
   },
 
   renderAnswer(answer, choice, playerName) {
+    element("game").dataset.feedback = answer.correct ? "correct" : "wrong";
     const state = answer.state;
     renderScore(state.score);
     if (state.mode !== "TIMED") element("round-progress").value = Math.min(state.total,

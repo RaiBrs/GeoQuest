@@ -2,7 +2,13 @@
 .question-type-control { display: grid; gap: 8px; flex: 0 0 auto; }
 .mode-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .mode-card { display: flex; flex-direction: column; align-items: start; min-width: 0; padding: 24px; transition: border-color 120ms ease, background-color 120ms ease; }
-@media (hover: hover) { .mode-card:hover { border-color: var(--geo-text-secondary); background: var(--geo-bg-hover); } }
+@media (hover: hover) {
+  .mode-card:hover:not(:has(button:disabled)) { border-color: var(--geo-accent); background: var(--geo-accent-subtle); }
+  .mode-card:hover .button:not(:disabled) { color: var(--geo-on-emphasis); background: var(--geo-accent-emphasis); border-color: var(--geo-accent-emphasis); }
+}
+.mode-card:has(.button:focus-visible) { border-color: var(--geo-accent); background: var(--geo-accent-subtle); }
+.mode-card .button:focus-visible { color: var(--geo-on-emphasis); background: var(--geo-accent-emphasis); border-color: var(--geo-accent-emphasis); }
+.mode-card .button:active:not(:disabled) { background: var(--geo-accent-emphasis); color: var(--geo-on-emphasis); }
 .mode-icon { display: grid; place-items: center; width: 40px; height: 40px; margin-bottom: 20px; border: 1px solid var(--geo-border); border-radius: var(--geo-radius); background: var(--geo-bg-primary); }
 .mode-card h2 { margin: 0 0 12px; }
 .mode-card p { flex: 1; margin: 16px 0 24px; font-size: 13px; line-height: 1.6; }
