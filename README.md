@@ -27,9 +27,9 @@ GeoQuest is a geography challenge application built with Java/Spring Boot and mo
 and vanilla JavaScript. Play as a visitor, or sign in with Google or GitHub to save completed results
 and participate in the ranking. The interface and questions support English and Brazilian Portuguese.
 
-| Pick a name | Take the challenge | See your result |
+| Choose how to enter | Take the challenge | See your result |
 | :--- | :--- | :--- |
-| Your name personalizes greetings in the hub and game. | Choose Capitals, Survival, or Against the clock. | The final screen shows the score for that round. |
+| Use Google/GitHub or continue as a guest without entering a name. | Choose Capitals, Survival, or Against the clock. | The final screen shows the score for that round. |
 
 <p align="center">
   <img src="docs/assets/redesign/desktop-hub.png" alt="Current GeoQuest dashboard with dark sidebar, Capitals, Survival, Against the clock, and Logout." width="1200">
@@ -37,17 +37,18 @@ and participate in the ranking. The interface and questions support English and 
   <sub>The current challenge dashboard — choose a question type and a game mode.</sub>
 </p>
 
-### Visitor names are only for greetings
+### Guest play and account identity
 
-The name is a display preference used for messages such as **“Your turn, Rai.”** and
-**“Well done, Rai! Correct answer.”** For visitors, it does not identify an account or a ranking entry. Signed-in players use the provider profile name.
+The entry screen has Google, GitHub, and **Continue as a guest**, without the application sidebar.
+Guests enter immediately, without choosing a name. Their greeting uses **Guest / Visitante** in the
+selected language. A personal display name is used only after Google/GitHub authentication.
 
-- Any player can choose the same name; no uniqueness or name ownership is enforced.
-- The visitor name stays in the browser's current JavaScript state. It is not sent to the API or stored in a database, cookie, or browser storage by the application.
-- Play again keeps the name and selected mode. Back to hub and the GeoQuest logo keep the name; the visitor **Logout** button or reloading the page clears it.
-- Home in the sidebar opens the entry view without clearing the current identity. **Return to challenges** opens the hub again.
-- The form accepts up to 80 Unicode code points after trimming surrounding whitespace, and rejects blank names and control characters.
-- User-entered names are rendered with `textContent` so they remain plain text.
+- Guest entry stays in browser memory and is cleared by Logout or a page reload.
+- No display name or client-calculated score is sent with game requests.
+- Signed-in identities come from the provider; their existing server session can restore them after reload.
+- User/provider names are rendered with `textContent`, as plain text.
+- After entry, Home shows **How to play**, while Challenges opens the mode selector. The sidebar appears
+  only inside the application. Signing out returns to the separate entry screen.
 
 ### Languages and question types
 
@@ -120,7 +121,7 @@ Open **Ranking** from the sidebar to compare each player's best result by mode a
 A recently signed-in player can delete their GeoQuest account, sessions and results using the
 confirmation form. Visitor rounds remain available and do not enter the ranking.
 
-The visitor **Logout** button in Challenges clears the browser greeting and returns to Home.
+The visitor **Logout** button in Challenges ends the browser visit and returns to the entry screen.
 For an authenticated player, **Sign out** in My account revokes the server session. Account deletion
 requires recent sign-in and the literal confirmation `DELETE`; it removes the GeoQuest profile,
 identities, sessions, and results, while preserving the Google/GitHub account itself.
@@ -261,7 +262,7 @@ The front end separates structure, presentation, and interaction:
 
 | Frontend part | Responsibility |
 | :--- | :--- |
-| `index.html` | The application shell and six views: welcome, hub, game, result, ranking, and account. |
+| `index.html` | The entry screen plus Home (welcome), hub, game, result, ranking, and account views. |
 | `styles.css` and `styles/` | Semantic dark tokens, shared layout/components, and page-specific styles. |
 | `src/app.js` | Initializes game and account controllers and connects their availability updates. |
 | `controller/` | Owns browser state, request sequencing, retries, identity changes, and navigation. |
@@ -270,10 +271,10 @@ The front end separates structure, presentation, and interaction:
 | `service/` | Handles game requests and shared HTTP/CSRF communication without accessing the DOM. |
 | `i18n.js` | Applies EN/PT-BR interface translations; question data is localized on the server. |
 
-The main play flow remains **welcome → hub → game → result**. Ranking and account management are
+The main play flow remains **login → Home → hub → game → result**. Ranking and account management are
 accessible through the shared shell. Returning to the hub or another navigation area leaves the
 current round and stops its client timer; selecting a mode starts a new round. Screen changes
-preserve the current player unless Logout, account sign-out/deletion, or a page reload clears it.
+preserve the current identity unless Logout, account sign-out/deletion, or a page reload clears it.
 After reload, an existing authenticated account can be restored from its server session.
 
 Java rounds use random `gameId` values and contain no visitor display name. Active rounds stay in
@@ -409,12 +410,12 @@ and real Google/GitHub consent still require manual verification. See the
 | `frontend/index.html` not found | Run from the directory containing `pom.xml`. |
 | Google reports `redirect_uri_mismatch` | Match the provider callback exactly to `APP_URL` plus `/login/oauth2/code/google`; see the deployment guide. |
 | Ranking is empty after changing filters | Click View ranking to load the selected category. An empty category is a valid result. |
-| Visitor name is requested after reload | Visitor names are held only in browser memory; sign in to restore an account identity across visits. |
+| Visitor entry is required after reload | Guests re-enter with one click; sign in to restore a named account identity across visits. |
 
 ## Roadmap
 
 - [x] Browser MVP with real country data and Java-controlled scoring.
-- [x] Display names used only for browser greetings.
+- [x] Anonymous guest entry and provider names for signed-in greetings.
 - [x] Separate controllers, views, API service, and styles.
 - [x] Responsive dark application shell, keyboard access, and reduced-motion support.
 - [x] Accessible mobile/tablet drawer and dedicated Ranking / My account views.

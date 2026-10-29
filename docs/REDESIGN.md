@@ -11,12 +11,13 @@ There are no new data endpoints, authentication mechanisms, dependencies, or gam
 - `styles/pages/hub.css` separates challenge cards from entry-screen styles.
 - `view/shell-view.js` owns active navigation, drawer focus, Escape, outside click, and inert backgrounds.
 - `view/pages/account-view.js` renders account and ranking data without HTTP calls.
-- Controllers keep the original services and screen flow: welcome → hub → game → result.
+- Controllers keep the original services and screen flow: login → Home → hub → game → result.
 
 Ranking and account are additional views of the same document, separated from the challenge hub.
-Home in the sidebar opens the entry view while preserving the player; Return to challenges resumes
-the hub. The existing logo button retains its behavior of returning to the hub when a player exists.
-Changing a visitor still clears the greeting. Entering Challenges without a player opens the name form.
+Home in the sidebar opens How to play after entry. The separate login screen has Google/GitHub
+and Continue as a guest, with no name form or application sidebar. Guests are greeted as Guest /
+Visitante; personal names come from providers only. Guest Logout and account sign-out return to
+login. Restoring an authenticated session opens Home automatically.
 Leaving a round stops its client timer, as before. Navigation is blocked during mutations; drawer
 open/close controls remain available. Language remains fixed during game and result views.
 

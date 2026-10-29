@@ -14,9 +14,10 @@ export const shellView = {
     const toggle = element("menu-toggle");
     const desktop = window.matchMedia("(min-width: 1100px)");
     let open = desktop.matches;
+    let currentScreen = "login";
 
     function setOpen(value, restoreFocus = false) {
-      open = value;
+      open = value && currentScreen !== "login";
       const modal = open && !desktop.matches;
       element("app-shell").dataset.sidebar = open ? "open" : "closed";
       sidebar.hidden = !open;
@@ -65,20 +66,28 @@ export const shellView = {
       element(`nav-${next}`).addEventListener("click", () => navigate(next));
     }
     element("header-account").addEventListener("click", () => navigate("account"));
-    element("account-sign-in").addEventListener("click", () => navigate("welcome"));
+    element("account-sign-in").addEventListener("click", () => navigate("login"));
     element("resume-player").addEventListener("click", () => navigate("hub"));
-    setOpen(open);
-    this.showScreen("welcome");
+    this.syncNavigation = next => {
+      const entering = currentScreen === "login" && next !== "login";
+      currentScreen = next;
+      if (next === "login") setOpen(false);
+      else if (entering) setOpen(desktop.matches);
+    };
+    this.showScreen("login");
   },
 
   showScreen(next) {
-    for (const id of ["welcome", "hub", "game", "result", "ranking", "account"]) element(id).hidden = id !== next;
+    for (const id of ["login", "welcome", "hub", "game", "result", "ranking", "account"]) element(id).hidden = id !== next;
+    this.syncNavigation(next);
+    element("menu-toggle").hidden = next === "login";
+    element("header-account").hidden = next === "login";
     element("app-shell").dataset.screen = next;
     const active = next === "game" || next === "result" ? "hub" : next;
     for (const id of ["welcome", "hub", "ranking", "account"]) {
       element(`nav-${id}`).setAttribute("aria-current", id === active ? "page" : "false");
     }
-    element("section-label").textContent = t({ welcome: "Geographic challenges", hub: "Challenges",
+    element("section-label").textContent = t({ login: "Welcome", welcome: "How to play", hub: "Challenges",
       ranking: "Ranking", account: "My account", game: "Challenge in progress", result: "Round complete" }[next]);
   },
 
@@ -102,7 +111,6 @@ export const shellView = {
       if ("shellControl" in button.dataset) continue;
       button.disabled = busy || (button.classList.contains("alternative") && answersLocked);
     }
-    element("player-name").disabled = busy;
     element("app").setAttribute("aria-busy", String(busy));
     element("loading").hidden = !busy;
   },
@@ -116,5 +124,6 @@ export const shellView = {
     else if (screen === "ranking") element("leaderboard-title").focus();
     else if (screen === "account") element("account-title").focus();
     else if (screen === "welcome") element("welcome-title").focus();
+    else if (screen === "login") element("login-title").focus();
   }
 };

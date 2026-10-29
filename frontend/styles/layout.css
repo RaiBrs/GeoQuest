@@ -64,3 +64,8 @@ main { width: 100%; }
   .brand-mark { width: 24px; height: 24px; }
   .header-actions { gap: 4px; }
 }
+
+/* Entry is a separate, distraction-free screen; navigation starts after entry. */
+.app-shell[data-screen="login"] { grid-template-columns: 0 minmax(0, 1fr); }
+.app-shell[data-screen="login"] .section-label,
+.app-shell[data-screen="login"] .header-divider { display: none; }

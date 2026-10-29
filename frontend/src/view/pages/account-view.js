@@ -5,15 +5,13 @@ export const accountView = {
   render({ account, pending, gameBusy, screen, errorKey }) {
     const unavailable = pending || gameBusy || screen === "game";
     const user = account.user;
-    element("entry-card").hidden = Boolean(user);
-    element("account-access").hidden = screen !== "welcome";
+    element("account-access").hidden = screen !== "login";
     element("login-options").hidden = !account.enabled || Boolean(user);
     element("login-google").hidden = !account.providers.includes("google");
     element("login-github").hidden = !account.providers.includes("github");
     element("account-status").textContent = user ? t("Signed in as {name}", { name: user.displayName })
       : t(account.enabled ? "Sign in to save results, or play as a guest."
         : "Online accounts are unavailable. You can still play as a guest.");
-    element("guest-entry").hidden = Boolean(user);
     element("account-guest").hidden = Boolean(user);
     element("profile-panel").hidden = !user;
     element("profile-name").textContent = user ? t("Signed in as {name}", { name: user.displayName }) : "";

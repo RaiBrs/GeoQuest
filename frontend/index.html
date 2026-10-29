@@ -53,7 +53,7 @@
     <a class="skip-link" href="#app" data-i18n="Skip to content">
       Skip to content
     </a>
-    <div id="app-shell" class="app-shell" data-sidebar="closed" data-screen="welcome">
+    <div id="app-shell" class="app-shell" data-sidebar="closed" data-screen="login">
       <header id="app-header" class="app-header">
         <button id="menu-toggle" class="icon-button" type="button" data-shell-control aria-controls="sidebar" aria-expanded="false" aria-label="Toggle navigation" data-i18n-aria="Toggle navigation">
           <svg class="icon" aria-hidden="true">
@@ -192,102 +192,33 @@
       </aside>
       <div id="main-content" class="main-content">
         <main id="app" aria-busy="false" tabindex="-1">
-          <section id="welcome" class="screen welcome-layout" aria-labelledby="welcome-title">
-            <div class="intro">
-              <div class="welcome-identity">
-                <img src="./assets/geoquest-icon.svg" width="80" height="80" alt="" aria-hidden="true">
-                <span class="badge accent" data-i18n="Geographic challenges">
-                  Geographic challenges
-                </span>
-              </div>
-              <h1 id="welcome-title" tabindex="-1">
-                <span data-i18n="Explore the world.">
-                  Explore the world.
-                </span>
-                <br>
-                <span class="muted" data-i18n="Make your mark.">
-                  Make your mark.
-                </span>
-              </h1>
-              <p class="intro-copy" data-i18n="Test your knowledge of countries and capitals, one challenge at a time.">
-                Test your knowledge of countries and capitals, one challenge at a time.
-              </p>
-              <div class="welcome-modes">
-                <span>
-                  <svg class="icon" aria-hidden="true">
-                    <use href="#icon-target"/>
-                  </svg>
-                  <span data-i18n="Capitals">
-                    Capitals
-                  </span>
-                </span>
-                <span>
-                  <svg class="icon" aria-hidden="true">
-                    <use href="#icon-heart"/>
-                  </svg>
-                  <span data-i18n="Survival">
-                    Survival
-                  </span>
-                </span>
-                <span>
-                  <svg class="icon" aria-hidden="true">
-                    <use href="#icon-clock"/>
-                  </svg>
-                  <span data-i18n="Against the clock">
-                    Against the clock
-                  </span>
-                </span>
-              </div>
-            </div>
-            <div id="entry-card" class="card entry-card">
-              <div class="panel-heading">
-                <h2 data-i18n="Start your journey">
-                  Start your journey
-                </h2>
-                <p class="muted" data-i18n="Choose how to continue.">
-                  Choose how to continue.
-                </p>
-              </div>
+          <section id="login" class="screen login-layout" aria-labelledby="login-title">
+            <div class="card login-card">
+              <img class="login-logo" src="./assets/geoquest-icon.svg" width="80" height="80" alt="" aria-hidden="true">
+              <h1 id="login-title" tabindex="-1" data-i18n="Welcome to GeoQuest">Welcome to GeoQuest</h1>
+              <p class="muted" data-i18n="Sign in with Google or GitHub, or jump in as a guest.">Sign in with Google or GitHub, or jump in as a guest.</p>
               <div id="account-access" class="account-access">
-                <p id="account-status" class="muted" role="status">
-                </p>
+                <p id="account-status" class="muted" role="status"></p>
                 <div id="login-options" class="login-options" hidden>
-                  <a id="login-google" class="button secondary" href="/oauth2/authorization/google" data-i18n="Continue with Google">
-                    Continue with Google
-                  </a>
-                  <a id="login-github" class="button secondary" href="/oauth2/authorization/github" data-i18n="Continue with GitHub">
-                    Continue with GitHub
-                  </a>
+                  <a id="login-google" class="button secondary" href="/oauth2/authorization/google" data-i18n="Continue with Google">Continue with Google</a>
+                  <a id="login-github" class="button secondary" href="/oauth2/authorization/github" data-i18n="Continue with GitHub">Continue with GitHub</a>
                 </div>
               </div>
-              <button id="resume-player" class="button primary" type="button" hidden data-i18n="Return to challenges">
-                Return to challenges
-              </button>
-              <div id="guest-entry">
-                <p class="form-divider" data-i18n="or play as a guest">
-                  or play as a guest
-                </p>
-                <form id="player-form" novalidate>
-                  <label for="player-name" data-i18n="Your name">
-                    Your name
-                  </label>
-                  <input id="player-name" type="text" autocomplete="nickname" enterkeyhint="go" autocapitalize="words" spellcheck="false" placeholder="What should we call you?" data-i18n-placeholder="What should we call you?" aria-describedby="name-help" required>
-                  <small id="name-help" class="muted" data-i18n="Up to 80 characters. Used only to greet you.">
-                    Up to 80 characters. Used only to greet you.
-                  </small>
-                  <button class="button primary" type="submit">
-                    <span data-i18n="Choose your challenge">
-                      Choose your challenge
-                    </span>
-                    <span aria-hidden="true">
-                      →
-                    </span>
-                  </button>
-                </form>
-              </div>
+              <p class="form-divider" data-i18n="or play as a guest">or play as a guest</p>
+              <button id="continue-guest" class="button primary" type="button" data-i18n="Continue as a guest">Continue as a guest</button>
+              <p class="login-note muted" data-i18n="No name required. Guest results are not saved to the ranking.">No name required. Guest results are not saved to the ranking.</p>
             </div>
-            <section class="welcome-guide" aria-labelledby="guide-title">
-              <h2 id="guide-title" data-i18n="How to play">How to play</h2>
+          </section>
+          <section id="welcome" class="screen welcome-layout" aria-labelledby="welcome-title" hidden>
+            <div class="home-heading">
+              <div>
+                <p class="eyebrow" data-i18n="Geographic challenges">Geographic challenges</p>
+                <h1 id="welcome-title" tabindex="-1" data-i18n="How to play">How to play</h1>
+                <p class="muted" data-i18n="Three ways to explore. Start with the challenge that suits you.">Three ways to explore. Start with the challenge that suits you.</p>
+              </div>
+              <button id="resume-player" class="button primary" type="button" data-i18n="Go to challenges">Go to challenges</button>
+            </div>
+            <section class="welcome-guide" aria-labelledby="welcome-title">
               <ol class="guide-steps">
                 <li>
                   <span class="guide-number" aria-hidden="true">1</span>
@@ -514,11 +445,11 @@
               <h2 data-i18n="You are playing as a guest">
                 You are playing as a guest
               </h2>
-              <p class="muted" data-i18n="Sign in from Home to save completed rounds and join the ranking.">
-                Sign in from Home to save completed rounds and join the ranking.
+              <p class="muted" data-i18n="Sign in to save completed rounds and join the ranking.">
+                Sign in to save completed rounds and join the ranking.
               </p>
-              <button id="account-sign-in" class="button primary" type="button" data-i18n="Go to Home">
-                Go to Home
+              <button id="account-sign-in" class="button primary" type="button" data-i18n="Go to sign-in">
+                Go to sign-in
               </button>
             </div>
             <section id="profile-panel" class="card profile-panel" aria-labelledby="profile-title" hidden>
@@ -642,8 +573,8 @@
           </div>
         </div>
         <footer class="app-footer">
-          <span data-i18n="Your name. Your journey. Your mark on the world.">
-            Your name. Your journey. Your mark on the world.
+          <span data-i18n="Geography, one challenge at a time.">
+            Geography, one challenge at a time.
           </span>
           <a class="privacy-link" href="/privacy.html" data-i18n="Account data and privacy">
             Account data and privacy

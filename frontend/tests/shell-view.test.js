@@ -23,7 +23,7 @@ test("drawer traps focus, closes with Escape/outside click, and remains closable
   const original = { document: globalThis.document, window: globalThis.window };
   const ids = ["home", "retry", "sidebar", "menu-toggle", "menu-close", "sidebar-overlay", "app-shell", "app-header",
     "main-content", "header-account", "account-sign-in", "resume-player", "section-label", "nav-welcome", "nav-hub",
-    "nav-ranking", "nav-account", "welcome", "hub", "game", "result", "ranking", "account", "player-name", "app", "loading",
+    "nav-ranking", "nav-account", "welcome", "hub", "game", "result", "ranking", "account", "login", "login-title", "app", "loading",
     "hub-title", "leaderboard-title", "account-title", "welcome-title"];
   const ui = Object.fromEntries(ids.map(id => [id, new Element()]));
   const buttons = ["home", "retry", "menu-toggle", "menu-close", "sidebar-overlay", "header-account", "account-sign-in",
@@ -37,6 +37,13 @@ test("drawer traps focus, closes with Escape/outside click, and remains closable
   try {
     shellView.bind({ onHome() {}, onRetry() {}, onNavigate(next) { navigated.push(next); ui["hub-title"].focus(); } });
     assert.equal(ui.sidebar.hidden, true);
+    assert.equal(ui["menu-toggle"].hidden, true);
+    media.matches = true;
+    media.change();
+    assert.equal(ui.sidebar.hidden, true, "Login never opens navigation on desktop");
+    media.matches = false;
+    shellView.showScreen("welcome");
+    assert.equal(ui["menu-toggle"].hidden, false);
     ui["menu-toggle"].click();
     assert.equal(ui.sidebar.hidden, false);
     assert.equal(ui["main-content"].inert, true);

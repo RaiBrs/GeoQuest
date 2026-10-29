@@ -27,7 +27,7 @@ class Element {
 }
 
 
-test("uses names only for safe greetings and preserves keyboard flow and answer retries", async () => {
+test("supports anonymous entry, safe provider names, keyboard flow and answer retries", async () => {
   const original = { document: globalThis.document, window: globalThis.window, fetch: globalThis.fetch,
     setInterval: globalThis.setInterval, clearInterval: globalThis.clearInterval };
   const originalNow = Date.now;
@@ -36,14 +36,14 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
   globalThis.setInterval = callback => { tick = callback; return 1; };
   globalThis.clearInterval = () => { tick = undefined; };
   const ids = ["mistake-review", "mistake-list", "review-note","language", "question-type", "time-warning","hub", "hub-title", "mode-capitals", "mode-survival", "mode-timed", "change-player", "mode-label", "timer",
-    "app", "home", "welcome", "game", "result", "player-form", "player-name",
+    "app", "home", "welcome", "game", "result", "login", "login-title", "continue-guest", "test-input",
     "error", "error-panel", "retry", "progress", "round-progress", "score", "player-label", "question",
     "feedback", "next", "restart-round", "keyboard-hint", "alternatives", "summary", "result-title", "result-score", "result-total",
     "restart", "back-to-home", "loading", "loading-text", "sidebar", "menu-toggle", "menu-close", "sidebar-overlay",
     "app-shell", "app-header", "main-content", "header-account", "account-sign-in", "resume-player", "section-label",
     "nav-welcome", "nav-hub", "nav-ranking", "nav-account", "ranking", "account", "leaderboard-title", "account-title", "welcome-title", "hub-greeting"];
   const ui = Object.fromEntries(ids.map(id => [id, new Element(id)]));
-  ui["player-name"].tagName = "INPUT";
+  ui["test-input"].tagName = "INPUT";
   ui.home.tagName = "BUTTON";
   ui.next.tagName = "BUTTON";
   for (const id of ["game", "result", "error-panel", "loading", "next", "restart-round"]) ui[id].hidden = true;
@@ -57,7 +57,6 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
   };
   globalThis.window = { addEventListener: (name, fn) => { windowHandlers[name] = fn; },
     matchMedia: () => ({ matches: true, addEventListener() {} }) };
-  ui["player-form"].onReset = () => { ui["player-name"].value = ""; };
   const requests = [];
   let starts = 0, answers = 0;
   let failNextStart = false;
@@ -109,19 +108,24 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
   const name = "Rai <script>text</script>";
   try {
     const { initializeGameController } = await import("../src/controller/game-controller.js");
-    initializeGameController();
-    for (const invalid of ["   ", "😀".repeat(81), "Rai\n"]) {
-      ui["player-name"].value = invalid;
-      ui["player-name"].emit("input");
-      ui["player-form"].emit("submit");
-      assert.equal(starts, 0);
-      assert.match(ui["player-name"].validationMessage, /^Enter a name/);
-    }
-    ui["player-name"].value = name;
-    ui["player-name"].emit("input");
-    ui["player-form"].emit("submit");
-    ui["player-form"].emit("submit");
-    assert.equal(starts, 0, "Entering the hub must not start a round");
+    const game = initializeGameController();
+    assert.equal(ui.login.hidden, false);
+    assert.equal(ui.sidebar.hidden, true);
+    game.useAccount(name);
+    assert.equal(ui.welcome.hidden, false, "A restored provider identity enters Home automatically");
+    game.clearAccount();
+    assert.equal(ui.login.hidden, false);
+    ui["nav-hub"].click();
+    assert.equal(ui.login.hidden, false, "A challenge requires entry first");
+    ui["continue-guest"].click();
+    assert.equal(ui.welcome.hidden, false);
+    assert.equal(ui.login.hidden, true);
+    ui["resume-player"].click();
+    assert.equal(ui["hub-greeting"].textContent, "Hello, Guest!");
+    assert.equal(starts, 0, "Guest entry does not start a round or send a name");
+    game.useAccount(name);
+    assert.equal(ui.welcome.hidden, false);
+    ui["resume-player"].click();
     assert.equal(ui.hub.hidden, false);
     assert.equal(ui["hub-greeting"].textContent, `Hello, ${name}!`);
     const beforeNavigation = requests.length;
@@ -145,7 +149,7 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
     assert.equal(document.activeElement, ui.question);
     assert.equal(ui["player-label"].textContent, `Your turn, ${name}.`);
     assert.equal(press(" "), false);
-    assert.equal(press("b", ui["player-name"]), false);
+    assert.equal(press("b", ui["test-input"]), false);
     assert.equal(press("b", ui.question, { repeat: true }), false);
     assert.equal(press("b", ui.question, { ctrlKey: true }), false);
     assert.equal(press("b"), true);
@@ -177,7 +181,7 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
     assert.match(ui["keyboard-hint"].textContent, /Press R to play again/);
     assert.equal(press("r", ui.question, { repeat: true }), false);
     assert.equal(press("r", ui.question, { ctrlKey: true }), false);
-    assert.equal(press("r", ui["player-name"]), false);
+    assert.equal(press("r", ui["test-input"]), false);
     failNextStart = true;
     assert.equal(press("r"), true, "Restart directly after a wrong answer without opening the result");
     assert.equal(press("r"), false, "Do not create a second round while restarting");
@@ -240,7 +244,7 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
     press(" ", ui.next);
     assert.equal(ui.progress.textContent, "QUESTION 2 OF 2");
     assert.equal(ui["round-progress"].value, 1, "Progress counts answers, not correct answers");
-    ui.home.click();
+    ui["nav-hub"].click();
     assert.equal(ui.hub.hidden, false);
     expectedMode = "TIMED";
     ui["mode-timed"].click();
@@ -266,19 +270,18 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
     ui["back-to-home"].click();
     ui["mode-timed"].click();
     await settle();
-    ui.home.click();
+    ui["nav-hub"].click();
     assert.equal(tick, undefined, "Leaving a timed round cancels its timer");
-    ui["change-player"].click();
-    assert.equal(ui.welcome.hidden, false);
-    assert.equal(ui["player-name"].value, "");
-    assert.equal(document.activeElement, ui["player-name"]);
+    game.clearAccount();
+    assert.equal(ui.login.hidden, false);
+    assert.equal(document.activeElement, ui["continue-guest"]);
     assert.ok(requests.every(request => !JSON.stringify(request.body).includes(name)));
     ui.language.value = "PT_BR";
     ui.language.emit("change");
     assert.equal(document.documentElement.lang, "pt-BR");
-    ui["player-name"].value = "Rai";
-    ui["player-form"].emit("submit");
-    assert.equal(ui["hub-greeting"].textContent, "Olá, Rai!");
+    ui["continue-guest"].click();
+    ui["resume-player"].click();
+    assert.equal(ui["hub-greeting"].textContent, "Olá, Visitante!");
     ui["question-type"].value = "COUNTRY";
     expectedType = "COUNTRY";
     expectedLanguage = "PT_BR";
@@ -290,8 +293,11 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
     assert.equal(ui["time-warning"].textContent, "Restam apenas 9 segundos!");
     assert.match(ui.timer.textContent, /09s/, "Keep the countdown width stable in the final seconds");
     assert.equal(ui.timer.dataset.urgent, "true");
-    ui.home.click();
+    ui["nav-hub"].click();
     assert.equal(tick, undefined);
     assert.equal(ui.language.disabled, false);
+    ui["change-player"].click();
+    assert.equal(ui.login.hidden, false);
+    assert.equal(ui.sidebar.hidden, true);
   } finally { Object.assign(globalThis, original); Date.now = originalNow; }
 });

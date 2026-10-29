@@ -14,7 +14,7 @@ class Element {
 }
 const ids = ["account-access","login-options","login-google","login-github","account-status","profile-panel","profile-name",
   "load-ranking","logout","ranking-mode","ranking-type","delete-confirmation","delete-account-form","ranking-status","ranking-list","account-error",
-  "guest-entry","account-guest","user-label","user-initial","ranking-table","entry-card"];
+  "account-guest","user-label","user-initial","ranking-table"];
 test("account UI restores identity, renders ranking safely and deletes only after confirmation", async () => {
   const original = { document: globalThis.document, window: globalThis.window, fetch: globalThis.fetch };
   const ui = Object.fromEntries(ids.map(id => [id, new Element()]));
@@ -37,7 +37,6 @@ test("account UI restores identity, renders ranking safely and deletes only afte
     assert.equal(busy, false);
     assert.equal(ui["login-github"].hidden, true);
     assert.equal(ui["profile-name"].textContent, "Conectado como Rai<script>");
-    assert.equal(ui["entry-card"].hidden, true, "Authenticated players do not see the entry card");
     controller.updateAvailability({ screen: "hub", busy: false });
     ui["ranking-mode"].value = "CAPITALS"; ui["ranking-type"].value = "CAPITAL";
     ui["load-ranking"].emit("click"); await settle();
@@ -95,7 +94,6 @@ test("account mutations are blocked during a round and sign-out restores guest p
     assert.equal(cleared, 1);
     assert.equal(ui["profile-panel"].hidden, true);
     assert.equal(ui["account-guest"].hidden, false);
-    assert.equal(ui["entry-card"].hidden, false, "Signing out restores visitor entry");
     assert.equal(ui["user-label"].textContent, "Guest");
   } finally { Object.assign(globalThis, original); }
 });
