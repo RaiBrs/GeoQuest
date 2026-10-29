@@ -1,30 +1,33 @@
-:root {
-  font-family: "Segoe UI", system-ui, sans-serif;
-  color: #193451;
-  background: #f2f7ff;
-  line-height: 1.6;
-  --blue: #2766b3;
-  --blue-dark: #1b4e8d;
-  --blue-light: #e9f2ff;
-  --muted: #5d7187;
-  --border: #d8e5f3;
-  --radius: 24px;
-}
+:root { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--geo-text-primary); background: var(--geo-bg-primary); line-height: 1.5; font-size: 14px; }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 body {
   margin: 0;
   min-height: 100svh;
-  background: radial-gradient(ellipse at 85% 5%, #d8eaff 0, transparent 48%);
+  background: var(--geo-bg-primary);
 }
-button, input { font: inherit; }
+button, input, select { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: default; }
 h1, h2, p { margin-top: 0; }
-h1 { line-height: 1.15; letter-spacing: -1.4px; }
+h1 { font-size: 28px; line-height: 1.25; letter-spacing: -.6px; font-weight: 650; }
+h2 { font-size: 18px; line-height: 1.4; font-weight: 600; }
+a { color: var(--geo-accent); text-underline-offset: 3px; }
+main, .screen { min-width: 0; }
+h1, h2, p, summary { overflow-wrap: anywhere; }
+button, a, input, select, summary { -webkit-tap-highlight-color: transparent; }
+button, a.button, summary { touch-action: manipulation; }
 small { font-size: 12px; }
-:focus-visible { outline: 3px solid #397dc7; outline-offset: 4px; }
-h1:focus-visible { outline: none; }
+:focus-visible { outline: 2px solid var(--geo-accent); outline-offset: 3px; }
+[tabindex="-1"]:focus { outline: none; }
+:where(button, input, select, [tabindex]) { scroll-margin-top: calc(var(--geo-header-height) + 24px); scroll-margin-bottom: 24px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.icon { width: 20px; height: 20px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.icon-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+hr { border: 0; border-top: 1px solid var(--geo-border); margin: 24px 0; }
+@media (pointer: coarse), (max-width: 599px) {
+  input, select { font-size: 16px; }
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

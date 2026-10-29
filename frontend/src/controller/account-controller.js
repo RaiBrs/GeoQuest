@@ -1,6 +1,7 @@
 import { request } from "../service/http-client.js";
-import { element, span } from "../view/dom.js";
+import { element } from "../view/dom.js";
 import { t } from "../i18n.js";
+import { accountView } from "../view/pages/account-view.js";
 
 export function initializeAccounts(game) {
   let account = { enabled: false, user: null, providers: [] };
@@ -8,30 +9,8 @@ export function initializeAccounts(game) {
   let pending = false, screen = "welcome", gameBusy = false;
 
   function render() {
-    const unavailable = pending || gameBusy || screen === "game";
-    element("account-access").hidden = screen !== "welcome";
-    element("login-options").hidden = !account.enabled || Boolean(account.user);
-    element("login-google").hidden = !account.providers.includes("google");
-    element("login-github").hidden = !account.providers.includes("github");
-    element("account-status").textContent = t(account.enabled
-      ? "Sign in to save results, or play as a guest." : "Online accounts are unavailable. You can still play as a guest.");
-    element("profile-panel").hidden = !account.user;
-    element("profile-name").textContent = account.user ? t("Signed in as {name}", { name: account.user.displayName }) : "";
-    element("load-ranking").disabled = unavailable || !account.enabled;
-    element("logout").disabled = unavailable;
-    element("ranking-mode").disabled = unavailable;
-    element("ranking-type").disabled = unavailable;
-    element("delete-confirmation").disabled = unavailable;
-    for (const button of element("delete-account-form").querySelectorAll("button")) button.disabled = unavailable;
-    element("account-error").textContent = errorKey ? t(errorKey) : "";
-    element("ranking-list").replaceChildren();
-    element("ranking-status").textContent = !account.enabled ? t("Online ranking is unavailable.")
-      : rankingLoaded ? t(leaders.length ? "Top 20 players" : "No completed ranked rounds yet.") : "";
-    for (const leader of leaders) {
-      const row = document.createElement("li");
-      row.append(span("ranking-name", t("{name} — {score} correct answers", { name: leader.displayName, score: leader.score })));
-      element("ranking-list").append(row);
-    }
+    accountView.render({ account, pending, gameBusy, screen, errorKey });
+    accountView.renderRanking(account, leaders, rankingLoaded);
   }
   async function perform(action) {
     if (pending || gameBusy || screen === "game") return;
@@ -48,6 +27,13 @@ export function initializeAccounts(game) {
     leaders = await request(`/api/leaderboard?mode=${encodeURIComponent(mode)}&questionType=${encodeURIComponent(type)}`);
     rankingLoaded = true;
   }));
+  for (const id of ["ranking-mode", "ranking-type"]) {
+    element(id).addEventListener("change", () => {
+      leaders = [];
+      rankingLoaded = false;
+      render();
+    });
+  }
   element("logout").addEventListener("click", () => perform(async () => {
     await request("/api/logout", {});
     account.user = null;

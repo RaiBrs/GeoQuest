@@ -1,27 +1,59 @@
-.game-meta { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
-.score-pill { padding: 5px 12px; border-radius: 999px; background: var(--blue-light); color: #245b9a; font-size: 13px; font-weight: 650; }
-progress { display: block; width: 100%; height: 5px; margin: 20px 0 28px; border: 0; border-radius: 999px; overflow: hidden; background: #e9f1fb; accent-color: var(--blue); }
-progress::-webkit-progress-bar { background: #e9f1fb; border-radius: 999px; }
-progress::-webkit-progress-value { background: #397dc7; border-radius: 999px; }
-progress::-moz-progress-bar { background: #397dc7; border-radius: 999px; }
+.play-card { max-width: 780px; margin: 0 auto; padding: 28px; }
+.round-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-bottom: 20px; margin-bottom: 20px; border-bottom: 1px solid var(--geo-border); }
+.round-header p { margin: 0; }
+.round-header .card-label { min-width: 0; }
+.timer { flex-shrink: 0; padding: 6px 10px; border: 1px solid var(--geo-warning); border-radius: var(--geo-radius); color: var(--geo-warning); background: var(--geo-warning-bg); font-size: 12px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+#timer[data-urgent="true"] { border-color: var(--geo-danger); color: var(--geo-danger); background: var(--geo-danger-bg); }
+#time-warning:empty { display: none; }
+.play-card[data-mode="TIMED"] #time-warning { display: block; min-height: 1.5em; margin: -8px 0 12px; font-size: 12px; color: var(--geo-warning); }
+.game-meta { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.score-pill { color: var(--geo-success); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+progress { display: block; width: 100%; height: 5px; margin: 16px 0 24px; border: 0; border-radius: 3px; overflow: hidden; background: var(--geo-bg-hover); accent-color: var(--geo-success); }
+progress::-webkit-progress-bar { background: var(--geo-bg-hover); border-radius: 3px; }
+progress::-webkit-progress-value { background: var(--geo-success); border-radius: 3px; }
+progress::-moz-progress-bar { background: var(--geo-success); border-radius: 3px; }
 .player-label { margin-bottom: 8px; font-size: 13px; overflow-wrap: anywhere; }
-.play-card h1 { margin-bottom: 28px; font-size: clamp(24px, 3.2vw, 32px); overflow-wrap: anywhere; }
+.play-card h1 { margin-bottom: 24px; font-size: 26px; line-height: 1.4; }
 .alternatives { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.alternative { display: grid; grid-template-columns: 32px 1fr; align-items: center; gap: 12px; min-height: 76px; padding: 15px; text-align: left; color: #284967; background: #fff; border: 1px solid var(--border); border-radius: 14px; transition: background-color 140ms ease, border-color 140ms ease; }
-.alternative:hover:not(:disabled) { border-color: #7eacdf; background: #f5f9ff; }
-.option-key { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; background: #edf4fd; color: #426b99; font-size: 12px; font-weight: 750; }
+.alternative { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; gap: 12px; min-height: 68px; padding: 14px; text-align: left; color: var(--geo-text-primary); background: var(--geo-bg-primary); border: 1px solid var(--geo-border); border-radius: var(--geo-radius); transition: background-color 120ms ease, border-color 120ms ease; }
+@media (hover: hover) { .alternative:hover:not(:disabled) { border-color: var(--geo-accent); background: var(--geo-accent-subtle); } }
+.option-key { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid var(--geo-border); border-radius: 4px; color: var(--geo-text-secondary); font-size: 12px; font-weight: 600; }
 .option-label { min-width: 0; overflow-wrap: anywhere; }
-.option-state { grid-column: 2; color: inherit; font-size: 11px; font-weight: 650; }
+.option-state { grid-column: 2; color: inherit; font-size: 12px; }
 .option-state:empty { display: none; }
-.alternative[data-outcome="correct"] { color: #215c4c; border-color: #88bdab; background: #f0f9f5; }
-.alternative[data-outcome="wrong"] { color: #923d42; border-color: #d39ca0; background: #fff4f4; }
-.keyboard-hint { margin: 16px 0 0; font-size: 12px; color: var(--muted); }
-.answer-feedback { min-height: 26px; margin: 24px 0 14px; font-size: 14px; font-weight: 650; }
-.answer-feedback[data-tone="correct"] { color: #215c4c; }
-.answer-feedback[data-tone="wrong"] { color: #923d42; }
+.alternative:disabled { opacity: 1; }
+.alternative[data-outcome="correct"] { color: var(--geo-success); border-color: var(--geo-success); background: var(--geo-success-bg); }
+.alternative[data-outcome="wrong"] { color: var(--geo-danger); border-color: var(--geo-danger); background: var(--geo-danger-bg); }
+.keyboard-hint { margin: 16px 0 0; font-size: 12px; color: var(--geo-text-secondary); }
+.answer-feedback { min-height: 24px; margin: 24px 0 16px; font-size: 14px; }
+.answer-feedback:empty { display: none; }
+.answer-feedback[data-tone="correct"] { color: var(--geo-success); }
+.answer-feedback[data-tone="wrong"] { color: var(--geo-danger); }
 .round-actions { display: flex; gap: 12px; }
 .round-actions .button { flex: 1; min-width: 0; }
-@media (max-width: 760px) {
-  .alternatives { grid-template-columns: 1fr; }
+@media (max-width: 699px) { .alternatives { grid-template-columns: 1fr; } }
+@media (max-width: 599px) {
+  .play-card { padding: 20px; }
+  .round-header { gap: 10px; padding-bottom: 16px; margin-bottom: 16px; }
+  .round-header .card-label, .game-meta .card-label { font-size: 11px; }
+  .timer { padding: 6px 8px; font-size: 11px; }
+  .score-pill { font-size: 12px; }
+  progress { margin: 12px 0 20px; }
+  .play-card h1 { font-size: 22px; margin-bottom: 20px; }
+  .alternatives { gap: 10px; }
+  .alternative { min-height: 60px; padding: 12px; gap: 10px; }
+  .keyboard-hint { display: none; }
+  .answer-feedback { margin: 20px 0 16px; }
   .round-actions { flex-direction: column; }
+}
+@media (pointer: coarse) { .keyboard-hint { display: none; } }
+@media (max-height: 500px) and (min-width: 600px) {
+  .alternatives { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .main-content { padding-top: 20px; }
+  .play-card { padding: 20px; }
+  .round-header { padding-bottom: 12px; margin-bottom: 12px; }
+  progress { margin: 10px 0 16px; }
+  .play-card h1 { margin-bottom: 16px; font-size: 24px; }
+  .alternative { min-height: 56px; padding: 10px 12px; }
+  .keyboard-hint { display: none; }
 }

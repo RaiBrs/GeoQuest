@@ -35,7 +35,7 @@ The name is a display preference used for messages such as **“Your turn, Rai.�
 
 - Any player can choose the same name; no uniqueness or name ownership is enforced.
 - The visitor name stays in the browser's current JavaScript state. It is not sent to the API or stored in a database, cookie, or browser storage by the application.
-- Play again keeps the name and selected mode. Back to hub and the header's Home button keep the name; Change player or reloading the page clears it.
+- Play again keeps the name and selected mode. Back to hub and the header's Home button keep the name; the visitor Logout button or reloading the page clears it.
 - The form accepts up to 80 Unicode code points after trimming surrounding whitespace, and rejects blank names and control characters.
 - User-entered names are rendered with `textContent` so they remain plain text.
 
@@ -87,8 +87,35 @@ Timed rounds show their result when the deadline is reached, even without submit
 - On the answer screen, **R** restarts a finished round with the same greeting name, while **Space** opens its result.
 - Rounds stay in server memory: idle rounds expire after 30 minutes, and finished rounds are retained for 5 minutes to support network retries. Completed signed-in results are persisted; visitor scores are not.
 
-The interface supports English and Brazilian Portuguese, uses a responsive blue design, supports **A–D to answer** and
+The interface supports English and Brazilian Portuguese, uses a responsive dark design, supports **A–D to answer** and
 **Space to continue**, restores keyboard focus after requests, and respects reduced-motion preferences.
+
+### Mobile and tablet browsers
+
+The same web application adapts to phones, tablets, and desktop browsers. On narrow screens,
+mode cards and answer buttons stack vertically; tablets use three mode cards and two answer
+columns when space permits. Short landscape screens retain two answer columns.
+Controls have touch targets of at least 44 px, inputs use a readable 16 px font on touch devices,
+and page padding accounts for display cutouts. Keyboard shortcuts remain available; their visual
+hint is hidden on phones and touch devices. The timed warning has reserved space so it does not
+move the answers when the final ten seconds begin.
+
+This is a responsive browser interface. See [responsive verification](docs/RESPONSIVE_QA.md)
+for tested viewports and remaining device checks.
+
+### Application interface
+
+GeoQuest uses a GitHub Dark-inspired application shell with its own blue identity: a fixed header,
+collapsible desktop sidebar, and an accessible mobile/tablet drawer. Home, Challenges, Ranking,
+and My account share the same document; the existing controller switches views without a router.
+Ranking and account management have dedicated areas, leaving the challenge hub focused on play.
+Learn and Explore are disabled **Coming soon** entries; they have no pages, data, or API calls.
+
+![GeoQuest challenge hub in the dark application shell](docs/assets/redesign/desktop-hub.png)
+
+Semantic color tokens live in `frontend/styles/tokens.css`. The shell owns navigation and drawer
+focus; account views render profile/ranking data as plain text; controllers keep orchestration and
+the existing HTTP service retains CSRF handling. See [redesign decisions and validation](docs/REDESIGN.md).
 
 ### Optional accounts and ranking
 
@@ -337,7 +364,7 @@ Front-end behavior tests use a minimal DOM adapter; visual and native keyboard c
 - [x] Browser MVP with real country data and Java-controlled scoring.
 - [x] Display names used only for browser greetings.
 - [x] Separate controllers, views, API service, and styles.
-- [x] Responsive blue interface, keyboard access, and reduced-motion support.
+- [x] Responsive dark application shell, keyboard access, and reduced-motion support.
 - [x] Visitor rounds without a database dependency.
 - [x] Optional Google/GitHub accounts, PostgreSQL ranking, and account deletion.
 - [x] Refine feedback, transitions, and question types.

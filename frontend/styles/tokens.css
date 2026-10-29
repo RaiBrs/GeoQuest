@@ -1,0 +1,29 @@
+:root {
+  color-scheme: dark;
+  --geo-bg-primary: #0d1117;
+  --geo-bg-secondary: #161b22;
+  --geo-bg-inset: #010409;
+  --geo-bg-hover: #21262d;
+  --geo-text-primary: #e6edf3;
+  --geo-text-secondary: #9da7b3;
+  --geo-text-disabled: #818b98;
+  --geo-border: #30363d;
+  --geo-border-muted: #21262d;
+  --geo-accent: #58a6ff;
+  --geo-accent-emphasis: #1f6feb;
+  --geo-accent-hover: #2a70d7;
+  --geo-on-emphasis: #ffffff;
+  --geo-accent-subtle: #1f6feb1a;
+  --geo-success: #3fb950;
+  --geo-success-bg: #12261e;
+  --geo-warning: #e3b341;
+  --geo-warning-bg: #2b2315;
+  --geo-danger: #ff7b72;
+  --geo-danger-emphasis: #b62324;
+  --geo-danger-hover: #da3633;
+  --geo-danger-bg: #301b20;
+  --geo-overlay: #010409b3;
+  --geo-radius: 6px;
+  --geo-header-height: 72px;
+  --geo-sidebar-width: 248px;
+}

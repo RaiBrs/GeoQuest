@@ -1,13 +1,23 @@
-.result-card h1 { margin-bottom: 12px; font-size: 32px; }
-.result-score { display: flex; align-items: baseline; gap: 6px; color: var(--blue); font-weight: 750; }
-#result-score { font-size: 64px; letter-spacing: -3px; line-height: 1.2; }
-#result-total { color: #6a82a0; font-size: 24px; }
-.mistake-review { margin: 24px 0; text-align: left; border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
-.mistake-review summary { cursor: pointer; font-weight: 700; }
-.mistake-list { padding-left: 24px; }
-.mistake-list li { padding: 16px 0; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
-.mistake-list li:last-child { border-bottom: 0; }
+.result-card { max-width: 780px; margin: 0 auto; padding: 28px; }
+.result-card h1 { margin-bottom: 16px; }
+.result-score { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; color: var(--geo-accent); font-weight: 650; font-variant-numeric: tabular-nums; }
+#result-score { font-size: 64px; letter-spacing: -2px; line-height: 1.2; }
+#result-total { color: var(--geo-text-secondary); font-size: 24px; font-weight: 400; }
+.result-card .actions { margin: 28px 0; }
+#review-note { margin: 24px 0 12px; font-size: 13px; }
+.mistake-review { border: 1px solid var(--geo-border); border-radius: var(--geo-radius); background: var(--geo-bg-primary); }
+.mistake-review summary { cursor: pointer; min-height: 44px; padding: 14px 16px; font-weight: 600; }
+.mistake-list { list-style: none; margin: 0; padding: 0 16px; }
+.mistake-list li { padding: 20px 0; border-top: 1px solid var(--geo-border); overflow-wrap: anywhere; }
 .mistake-list span { display: block; }
-.review-question { font-weight: 650; }
-.review-selected { color: #963322; }
-.review-correct { color: #20623f; }
+.review-question { font-weight: 600; margin-bottom: 12px; }
+.review-selected, .review-correct { font-size: 13px; padding: 6px 0; }
+.review-selected { color: var(--geo-danger); }
+.review-correct { color: var(--geo-success); }
+@media (max-width: 599px) {
+  .result-card { padding: 20px; }
+  .result-card h1 { font-size: 24px; }
+  #result-score { font-size: 56px; }
+  .mistake-review summary { padding: 14px; }
+  .mistake-list { padding-inline: 14px; }
+}

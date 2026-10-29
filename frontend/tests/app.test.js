@@ -16,9 +16,12 @@ class Element {
   replaceChildren() { this.children = []; this._text = ""; }
   focus() { document.activeElement = this; }
   setAttribute(name, value) { this.attributes[name] = value; }
+  removeAttribute(name) { delete this.attributes[name]; }
   setCustomValidity(message) { this.validationMessage = message; }
   reportValidity() {}
   reset() { this.onReset?.(); }
+  contains(node) { return this.children.includes(node); }
+  querySelectorAll() { return this.children; }
   emit(name, extra = {}) { this.handlers[name]?.({ preventDefault() {}, target: this, ...extra }); }
   click() { if (!this.disabled) this.emit("click"); }
 }
@@ -36,7 +39,9 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
     "app", "home", "welcome", "game", "result", "player-form", "player-name",
     "error", "error-panel", "retry", "progress", "round-progress", "score", "player-label", "question",
     "feedback", "next", "restart-round", "keyboard-hint", "alternatives", "summary", "result-title", "result-score", "result-total",
-    "restart", "back-to-home", "loading", "loading-text"];
+    "restart", "back-to-home", "loading", "loading-text", "sidebar", "menu-toggle", "menu-close", "sidebar-overlay",
+    "app-shell", "app-header", "main-content", "header-account", "account-sign-in", "resume-player", "section-label",
+    "nav-welcome", "nav-hub", "nav-ranking", "nav-account", "ranking", "account", "leaderboard-title", "account-title", "welcome-title", "hub-greeting"];
   const ui = Object.fromEntries(ids.map(id => [id, new Element(id)]));
   ui["player-name"].tagName = "INPUT";
   ui.home.tagName = "BUTTON";
@@ -50,7 +55,8 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
     querySelectorAll: () => [...staticButtons, ...ui.alternatives.children],
     addEventListener: (name, fn) => { documentHandlers[name] = fn; }
   };
-  globalThis.window = { addEventListener: (name, fn) => { windowHandlers[name] = fn; } };
+  globalThis.window = { addEventListener: (name, fn) => { windowHandlers[name] = fn; },
+    matchMedia: () => ({ matches: true, addEventListener() {} }) };
   ui["player-form"].onReset = () => { ui["player-name"].value = ""; };
   const requests = [];
   let starts = 0, answers = 0;
@@ -117,7 +123,19 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
     ui["player-form"].emit("submit");
     assert.equal(starts, 0, "Entering the hub must not start a round");
     assert.equal(ui.hub.hidden, false);
-    assert.equal(ui["hub-title"].textContent, `Hello, ${name}!`);
+    assert.equal(ui["hub-greeting"].textContent, `Hello, ${name}!`);
+    const beforeNavigation = requests.length;
+    ui["nav-ranking"].click();
+    assert.equal(ui.ranking.hidden, false);
+    assert.equal(document.activeElement, ui["leaderboard-title"]);
+    ui["header-account"].click();
+    assert.equal(ui.account.hidden, false);
+    ui["nav-welcome"].click();
+    assert.equal(ui.welcome.hidden, false);
+    assert.equal(ui["resume-player"].hidden, false);
+    ui["resume-player"].click();
+    assert.equal(ui.hub.hidden, false);
+    assert.equal(requests.length, beforeNavigation, "Section navigation does not create API requests");
     ui["mode-survival"].click();
     await settle();
     assert.equal(starts, 1);
@@ -212,7 +230,7 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
     press(" ", ui.next);
     ui["back-to-home"].click();
     assert.equal(ui.hub.hidden, false, "Returning home preserves the player");
-    assert.equal(ui["hub-title"].textContent, `Hello, ${name}!`);
+    assert.equal(ui["hub-greeting"].textContent, `Hello, ${name}!`);
     expectedMode = "CAPITALS";
     ui["mode-capitals"].click();
     await settle();
@@ -260,7 +278,7 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
     assert.equal(document.documentElement.lang, "pt-BR");
     ui["player-name"].value = "Rai";
     ui["player-form"].emit("submit");
-    assert.equal(ui["hub-title"].textContent, "Olá, Rai!");
+    assert.equal(ui["hub-greeting"].textContent, "Olá, Rai!");
     ui["question-type"].value = "COUNTRY";
     expectedType = "COUNTRY";
     expectedLanguage = "PT_BR";
@@ -270,6 +288,7 @@ test("uses names only for safe greetings and preserves keyboard flow and answer 
     now += 51000;
     tick();
     assert.equal(ui["time-warning"].textContent, "Restam apenas 9 segundos!");
+    assert.match(ui.timer.textContent, /09s/, "Keep the countdown width stable in the final seconds");
     assert.equal(ui.timer.dataset.urgent, "true");
     ui.home.click();
     assert.equal(tick, undefined);
