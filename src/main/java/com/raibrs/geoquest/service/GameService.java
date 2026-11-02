@@ -23,8 +23,10 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-/** Coordinates local rounds; scoring remains in the Java domain model. */
+/** Coordinates rounds using local memory or transactional shared storage; Java owns scoring. */
 public final class GameService {
     private final CountriesClient countriesClient;
     private final QuestionService questionService;
@@ -34,15 +36,23 @@ public final class GameService {
     private static final Duration IDLE_TTL = Duration.ofMinutes(30);
     private static final Duration FINISHED_TTL = Duration.ofMinutes(5);
     private final Clock clock;
+    private final PostgresRoundStorage storage;
+    private final ObjectMapper json = new ObjectMapper();
 
     public GameService(CountriesClient countriesClient, QuestionService questionService) {
         this(countriesClient, questionService, Clock.systemUTC());
     }
 
     public GameService(CountriesClient countriesClient, QuestionService questionService, Clock clock) {
+        this(countriesClient, questionService, clock, null);
+    }
+
+    public GameService(CountriesClient countriesClient, QuestionService questionService, Clock clock,
+                       PostgresRoundStorage storage) {
         this.clock = Objects.requireNonNull(clock);
         this.countriesClient = Objects.requireNonNull(countriesClient);
         this.questionService = Objects.requireNonNull(questionService);
+        this.storage = storage;
     }
 
     public GameView start() throws IOException, InterruptedException {
@@ -72,10 +82,12 @@ public final class GameService {
             throw new IOException("Country catalog cannot produce a round.", exception);
         }
         Round round = new Round(new GameSession(questions, mode, clock,
-                () -> questionService.createQuestions(catalog, 10, type, language)), clock.instant(), owner, type);
+                () -> questionService.createQuestions(catalog, 10, type, language)), clock.instant(), owner, type, language);
         synchronized (round) {
-            rounds.put(round.id, round);
-            return view(round);
+            GameView result = view(round);
+            if (storage == null) rounds.put(round.id, round);
+            else storage.create(round.id, owner, save(round), expiry(round));
+            return result;
         }
     }
 
@@ -85,13 +97,11 @@ public final class GameService {
         if (request == null) {
             throw new IllegalArgumentException("Provide an answer.");
         }
-        Round round = findRound(request.gameId());
-        synchronized (round) {
-            requireActive(round);
+        return withRound(request.gameId(), round -> {
             requireOwner(round, owner);
             round.lastActivity = clock.instant();
             return answer(round, request);
-        }
+        });
     }
 
     private AnswerView answer(Round round, AnswerRequest request) {
@@ -130,16 +140,57 @@ public final class GameService {
     public GameView status(UUID gameId) { return status(gameId, null); }
 
     public GameView status(UUID gameId, UUID owner) {
-        Round round = findRound(gameId);
-        synchronized (round) {
-            requireActive(round);
+        return withRound(gameId, round -> {
             requireOwner(round, owner);
             round.lastActivity = clock.instant();
             return view(round);
+        });
+    }
+
+    public QuestionType questionType(UUID gameId) { return withRound(gameId, round -> round.type); }
+
+    private <T> T withRound(UUID id, Function<Round, T> action) {
+        if (storage != null) return storage.update(id, clock.instant(), data -> {
+            Round round = restore(data);
+            if (expired(round)) throw new NoSuchElementException("Round not found. Start a new game.");
+            T result = action.apply(round);
+            return new PostgresRoundStorage.Change<>(save(round), expiry(round), result);
+        });
+        Round round = findRound(id);
+        synchronized (round) {
+            requireActive(round);
+            return action.apply(round);
         }
     }
 
-    public QuestionType questionType(UUID gameId) { return findRound(gameId).type; }
+    private byte[] save(Round round) {
+        try {
+            return json.writeValueAsBytes(new SavedRound(round.id, round.session.snapshot(), round.owner,
+                    round.type, round.language, round.lastRequest, round.lastAnswer,
+                    round.lastActivity.toEpochMilli(), round.finishedAt == null ? null : round.finishedAt.toEpochMilli()));
+        } catch (IOException error) { throw new RoundStorageUnavailable(); }
+    }
+
+    private Round restore(byte[] data) {
+        try {
+            SavedRound saved = json.readValue(data, SavedRound.class);
+            var session = GameSession.restore(saved.session(), clock, () -> {
+                try { return questionService.createQuestions(catalog(), 10, saved.type(), saved.language()); }
+                catch (IOException error) { throw new RoundStorageUnavailable(); }
+                catch (InterruptedException error) { Thread.currentThread().interrupt(); throw new RoundStorageUnavailable(); }
+            });
+            var round = new Round(saved.id(), session, Instant.ofEpochMilli(saved.lastActivity()),
+                    saved.owner(), saved.type(), saved.language());
+            round.lastRequest = saved.lastRequest();
+            round.lastAnswer = saved.lastAnswer();
+            round.finishedAt = saved.finishedAt() == null ? null : Instant.ofEpochMilli(saved.finishedAt());
+            return round;
+        } catch (IOException | IllegalArgumentException error) { throw new RoundStorageUnavailable(); }
+    }
+
+    private record SavedRound(UUID id, GameSession.Snapshot session, UUID owner, QuestionType type,
+                              GameLanguage language, AnswerRequest lastRequest, AnswerView lastAnswer,
+                              long lastActivity, Long finishedAt) {}
 
     private void requireOwner(Round round, UUID owner) {
         if (!Objects.equals(round.owner, owner)) throw new NoSuchElementException("Round not found. Start a new game.");
@@ -179,9 +230,11 @@ public final class GameService {
             round.finishedAt = round.session.isTimedOut() && deadline != null
                     ? Instant.ofEpochMilli(deadline) : now;
         }
-        Instant expiry = round.finishedAt == null ? round.lastActivity.plus(IDLE_TTL)
-                : round.finishedAt.plus(FINISHED_TTL);
-        return !now.isBefore(expiry);
+        return !now.isBefore(expiry(round));
+    }
+
+    private Instant expiry(Round round) {
+        return round.finishedAt == null ? round.lastActivity.plus(IDLE_TTL) : round.finishedAt.plus(FINISHED_TTL);
     }
 
     private void requireActive(Round round) {
@@ -192,12 +245,14 @@ public final class GameService {
     }
 
     public void removePlayerRounds(UUID owner) {
+        if (storage != null) { storage.removePlayer(owner); return; }
         rounds.forEach((id, round) -> {
             if (owner.equals(round.owner)) synchronized (round) { rounds.remove(id, round); }
         });
     }
 
     public int cleanupExpiredRounds() {
+        if (storage != null) return storage.cleanup(clock.instant());
         int removed = 0;
         for (Round round : rounds.values()) {
             synchronized (round) {
@@ -208,20 +263,27 @@ public final class GameService {
     }
 
     private static final class Round {
-        private final UUID id = UUID.randomUUID();
+        private final UUID id;
         private final GameSession session;
         private final UUID owner;
         private final QuestionType type;
+        private final GameLanguage language;
         private AnswerRequest lastRequest;
         private AnswerView lastAnswer;
 
         private Instant lastActivity;
         private Instant finishedAt;
 
-        private Round(GameSession session, Instant now, UUID owner, QuestionType type) {
+        private Round(GameSession session, Instant now, UUID owner, QuestionType type, GameLanguage language) {
+            this(UUID.randomUUID(), session, now, owner, type, language);
+        }
+
+        private Round(UUID id, GameSession session, Instant now, UUID owner, QuestionType type, GameLanguage language) {
+            this.id = id;
             this.session = session;
             this.owner = owner;
             this.type = type;
+            this.language = language;
             this.lastActivity = now;
         }
     }

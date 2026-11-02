@@ -33,8 +33,9 @@ public class WebApp {
     @Bean CountriesClient countries(@org.springframework.beans.factory.annotation.Value("${API_KEY}") String key) {
         return new CountriesClient(key);
     }
-    @Bean GameService games(Clock clock, CountriesClient countries) {
-        return new GameService(countries, new QuestionService(), clock);
+    @Bean GameService games(Clock clock, CountriesClient countries,
+                           org.springframework.beans.factory.ObjectProvider<PostgresRoundStorage> storage) {
+        return new GameService(countries, new QuestionService(), clock, storage.getIfAvailable());
     }
     @Bean AccountSessions accountSessions(org.springframework.core.env.Environment environment) throws java.io.IOException {
         var values = new HashMap<String, String>();

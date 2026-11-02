@@ -55,6 +55,8 @@ public final class ApiErrors {
         LOG.log(System.Logger.Level.WARNING, "External operation failed: " + error.getClass().getSimpleName());
         return response(503, "Unable to complete the operation. Please try again.");
     }
+    @ExceptionHandler(com.raibrs.geoquest.service.RoundStorageUnavailable.class)
+    ResponseEntity<?> roundStorage() { return response(503, "Unable to complete the operation. Please try again."); }
     @ExceptionHandler(InterruptedException.class)
     ResponseEntity<?> interrupted() { Thread.currentThread().interrupt(); return response(503, "The operation was interrupted. Please try again."); }
     @ExceptionHandler(Exception.class)

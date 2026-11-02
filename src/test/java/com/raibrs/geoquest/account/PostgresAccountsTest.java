@@ -15,14 +15,16 @@ class PostgresAccountsTest {
     private Connection db;
     @BeforeEach void prepare() throws Exception {
         String url = System.getenv("TEST_DATABASE_URL");
-        db = DriverManager.getConnection(url, "geoquest_test", "test-only-password");
+        String user = System.getenv().getOrDefault("TEST_DATABASE_USER", "geoquest_test");
+        String password = System.getenv().getOrDefault("TEST_DATABASE_PASSWORD", "test-only-password");
+        db = DriverManager.getConnection(url, user, password);
         assertEquals("geoquest_test", db.getCatalog(), "Integration tests require the dedicated disposable database");
         try (var statement = db.createStatement()) {
             statement.execute(Files.readString(Path.of("database/001_accounts.sql")));
             statement.execute(Files.readString(Path.of("database/002_oauth_profile.sql")));
             statement.execute("truncate player_profiles cascade");
         }
-        var config = new AccountConfig("http://localhost:8080", url, "geoquest_test", "test-only-password", "fake", "fake", "fake", "fake");
+        var config = new AccountConfig("http://localhost:8080", url, user, password, "fake", "fake", "fake", "fake");
         accounts = new PostgresAccounts(config);
     }
     @AfterEach void close() throws Exception { if (db != null) db.close(); }

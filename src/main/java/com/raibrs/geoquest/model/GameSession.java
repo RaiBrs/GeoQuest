@@ -115,6 +115,51 @@ public final class GameSession {
 
     public List<Mistake> getMistakes() { return List.copyOf(mistakes); }
 
+    /** Internal persistence state; never use this as an HTTP response (it contains answer keys). */
+    public Snapshot snapshot() {
+        isFinished();
+        return new Snapshot(questions.stream().map(q -> new StoredQuestion(q.getText(),
+                q.getCorrectAnswer(), q.getAlternatives())).toList(), batchIndex,
+                currentQuestionIndex, finished, score, mode, getExpiresAt(), timedOut, getMistakes());
+    }
+
+    public static GameSession restore(Snapshot state, Clock clock, Supplier<List<Question>> nextQuestions) {
+        return new GameSession(state, clock, nextQuestions);
+    }
+
+    private GameSession(Snapshot state, Clock clock, Supplier<List<Question>> nextQuestions) {
+        this.questions = state.questions().stream()
+                .map(q -> new Question(q.text(), q.correctAnswer(), q.alternatives())).toList();
+        this.mode = Objects.requireNonNull(state.mode());
+        this.clock = Objects.requireNonNull(clock);
+        this.nextQuestions = Objects.requireNonNull(nextQuestions);
+        this.expiresAt = state.expiresAt() == null ? null : Instant.ofEpochMilli(state.expiresAt());
+        this.batchIndex = state.batchIndex();
+        this.currentQuestionIndex = state.answered();
+        this.finished = state.finished();
+        this.score = state.score();
+        this.timedOut = state.timedOut();
+        this.mistakes.addAll(state.mistakes());
+        if (questions.isEmpty() || batchIndex < 0 || batchIndex > questions.size()
+                || currentQuestionIndex < 0 || score < 0 || score > currentQuestionIndex
+                || (mode == GameMode.TIMED) != (expiresAt != null)) {
+            throw new IllegalArgumentException("Invalid saved game session.");
+        }
+    }
+
+    public record StoredQuestion(String text, String correctAnswer, List<String> alternatives) {
+        public StoredQuestion { alternatives = List.copyOf(alternatives); }
+    }
+
+    public record Snapshot(List<StoredQuestion> questions, int batchIndex, int answered,
+                           boolean finished, int score, GameMode mode, Long expiresAt,
+                           boolean timedOut, List<Mistake> mistakes) {
+        public Snapshot {
+            questions = List.copyOf(questions);
+            mistakes = List.copyOf(mistakes);
+        }
+    }
+
     private static Supplier<List<Question>> repeatQuestions(List<Question> questions) {
         List<Question> snapshot = questions == null ? List.of() : List.copyOf(questions);
         return () -> snapshot;
