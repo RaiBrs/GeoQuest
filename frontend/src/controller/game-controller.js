@@ -1,4 +1,4 @@
-import { getLanguage, setLanguage, t } from "../i18n.js";
+import { getLanguage, initializeLanguage, setLanguage, t } from "../i18n.js";
 import { element } from "../view/dom.js";
 import { gameService } from "../service/game-service.js";
 import { gameView } from "../view/pages/game-view.js";
@@ -216,7 +216,7 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
     clearError();
     updateControls();
   });
-  setLanguage("EN");
+  initializeLanguage();
   hubView.bind({
     onSelectMode(mode) {
       if (busy || accountBusy || !entered) return;

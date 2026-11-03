@@ -30,7 +30,10 @@ class Element {
 test("supports anonymous entry, safe provider names, keyboard flow and answer retries", async () => {
   const original = { document: globalThis.document, window: globalThis.window, fetch: globalThis.fetch,
     setInterval: globalThis.setInterval, clearInterval: globalThis.clearInterval,
-    setTimeout: globalThis.setTimeout, clearTimeout: globalThis.clearTimeout };
+    setTimeout: globalThis.setTimeout, clearTimeout: globalThis.clearTimeout, localStorage: globalThis.localStorage };
+  const preferences = new Map();
+  globalThis.localStorage = { getItem: key => preferences.get(key) ?? null,
+    setItem: (key, value) => preferences.set(key, value) };
   const originalNow = Date.now;
   let now = 100000, tick;
   Date.now = () => now;
@@ -370,5 +373,10 @@ test("supports anonymous entry, safe provider names, keyboard flow and answer re
     ui["change-player"].click();
     assert.equal(ui.login.hidden, false);
     assert.equal(ui.sidebar.hidden, true);
+    const restoredGame = initializeGameController();
+    assert.equal(ui.language.value, "PT_BR", "A fresh page restores the saved selection");
+    assert.equal(document.documentElement.lang, "pt-BR");
+    restoredGame.useAccount(name);
+    assert.equal(document.documentElement.lang, "pt-BR", "Restoring OAuth identity keeps the language");
   } finally { Object.assign(globalThis, original); Date.now = originalNow; }
 });
