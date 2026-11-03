@@ -7,10 +7,11 @@ As regras do jogo, os modos, a localização, a revisão de erros e o cálculo d
 existente. Os dados e as sessões persistentes usam o mesmo PostgreSQL. Não foram adicionados JWT,
 Basic Auth, JPA, Supabase ou uma segunda estrutura de usuários.
 
-A implementação usa a branch `feat/spring-security-oauth2` e é integrada na branch de publicação
-`feat/render-neon-accounts`. As migrações 001/002 foram aplicadas no Neon após validação isolada,
-e as credenciais OAuth foram configuradas diretamente no Render. Confirme o consentimento e o
-retorno dos provedores com uma conta real após cada atualização da autenticação.
+Este documento registra a migração original para Spring. Situação atual em 2 de novembro de 2026:
+a publicação acompanha `main` na Vercel; o Render foi desativado e seu serviço excluído. As migrações
+001 a 004 estão aplicadas no Neon. Google e GitHub completaram login real no novo domínio.
+Consulte [DEPLOYMENT.md](DEPLOYMENT.md) para operação e [VERCEL_MIGRATION.md](VERCEL_MIGRATION.md)
+para o estado compartilhado de partidas e sessões temporárias OAuth.
 
 ## Análise inicial
 
@@ -152,12 +153,12 @@ quando as contas são habilitadas.
 Os passos para obter credenciais no Google Auth Platform e em GitHub Settings → Developer settings →
 OAuth Apps estão em [DEPLOYMENT.md](DEPLOYMENT.md). Não envie segredos pelo chat.
 
-| Provedor | Callback local, porta padrão | Callback no Render existente |
+| Provedor | Callback local, porta padrão | Callback na Vercel |
 |---|---|---|
-| Google | `http://localhost:8080/login/oauth2/code/google` | `https://geoquest-raibrs.onrender.com/login/oauth2/code/google` |
-| GitHub | `http://localhost:8080/login/oauth2/code/github` | `https://geoquest-raibrs.onrender.com/login/oauth2/code/github` |
+| Google | `http://localhost:8080/login/oauth2/code/google` | `https://geoquest-raibrs.vercel.app/login/oauth2/code/google` |
+| GitHub | `http://localhost:8080/login/oauth2/code/github` | `https://geoquest-raibrs.vercel.app/login/oauth2/code/github` |
 
-## Validação executada
+## Validação original da migração Spring — 28 de outubro de 2026
 
 - `mvn verify` com PostgreSQL local descartável: **130 testes Java, zero falhas, zero testes pulados**, incluindo HEAD no Tomcat real.
 - `node --test frontend/tests/*.test.js`: **8 testes aprovados**.
@@ -170,8 +171,9 @@ OAuth Apps estão em [DEPLOYMENT.md](DEPLOYMENT.md). Não envie segredos pelo ch
 - Banco: identidade estável, oito logins simultâneos com um único perfil, migração sem perder sessão
   ou score, email opcional preservado, expiração, idempotência de resultados e exclusão em cascata.
 
-As credenciais foram configuradas no Render. Os testes com identidades controladas não substituem
-o consentimento e o retorno com uma conta real, que devem ser validados após a publicação.
+A validação posterior da migração para a Vercel registrou 140 testes Java aprovados com PostgreSQL
+local descartável e login real dos dois provedores. A correção de idioma registrou 14 testes frontend
+aprovados. Os números acima pertencem à etapa original e não representam a suíte atual.
 
 ## Como testar
 
@@ -183,9 +185,9 @@ sem token CSRF devem responder 403. O guia de publicação descreve todos os pas
 
 ## Pendências e aprendizado
 
-- Testar consentimento e retorno reais com os clientes Google/GitHub configurados, incluindo GitHub sem email público.
-- Confirmar os callbacks externos. A migração 002 já foi testada em branch isolada e aplicada no banco da aplicação.
-- Revisar a integração pelo pull request; o serviço mantém a branch de publicação `feat/render-neon-accounts`.
+- Revalidar os logins após mudanças de autenticação; os dois callbacks atuais já foram confirmados na Vercel.
+- Repetir o caso específico de GitHub sem email público quando houver uma conta de teste adequada.
+- A publicação atual acompanha `main`; as antigas branches citadas no histórico não controlam produção.
 - Vinculação entre provedores requer um fluxo explícito de prova de posse, fora desta mudança.
 - Rate limiting, prevenção de automação e limites de recursos continuam como evolução para uma
   publicação maior; não foram adicionados como parte desta migração de autenticação.

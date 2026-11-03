@@ -56,7 +56,8 @@ learning screens later; no content model, account progress, router, or learning 
 See [responsive checks](RESPONSIVE_QA.md). Frontend tests cover safe text rendering, keyboard flow,
 retries, scoring requests with CSRF, error review, navigation, modal drawer behavior, translations,
 unique IDs, and ranking invalidation. Java tests retain HTTP, game, OAuth/security, and database
-coverage. Real provider consent and physical mobile-device testing require a separate manual check.
+coverage. This report records the original redesign checks; real Google/GitHub login
+was subsequently verified on Vercel on 2026-11-02. Physical mobile-device testing remains pending.
 
 ## Files involved
 
@@ -75,6 +76,15 @@ New files: `frontend/styles/tokens.css`, `frontend/styles/pages/hub.css`,
 `frontend/tests/i18n.test.js`, this document, `docs/RESPONSIVE_QA.md`, and the two
 screenshots under `docs/assets/redesign/`. Responsive changes from the preceding work are retained.
 
-Test results: **12 frontend tests passed; 130 Java tests passed**, including the five PostgreSQL
+Original redesign test results (2026-10-28): **12 frontend tests passed; 130 Java tests passed**, including the five PostgreSQL
 integration tests run separately against a disposable local database. The first sandboxed Java run
 could not open loopback sockets; the same suite passed with local networking available.
+
+## Language preference follow-up — 2026-11-02
+
+`i18n.js` stores the user's selected language in browser localStorage and restores
+it before the account UI is initialized. The preference survives page reloads,
+new tabs and OAuth returns on the same origin. It is independent of account data
+and is not synchronized across devices. The selector stays aligned with the
+translated page; round/result language locking remains unchanged. The frontend
+suite now has 14 passing tests, including persistence and blocked storage.

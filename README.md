@@ -52,6 +52,10 @@ selected language. A personal display name is used only after Google/GitHub auth
 
 ### Languages and question types
 
+Language selection is saved in browser localStorage and restored after reload, a new tab and social
+login on the same origin. It does not synchronize across devices. English remains the default for a
+first visit or invalid preference; blocked storage limits persistence to the current page.
+
 Use the header selector to choose English or Brazilian Portuguese before a round. The choice
 applies to interface text, greetings, feedback, and Java-generated prompts, and stays fixed during
 the round. Country names use Portuguese API translations with an ISO/Java locale fallback. Capital names
@@ -64,7 +68,7 @@ The hub offers **Find the capital** (default) and **Find the country** in all th
 Country questions exclude shared capitals to avoid ambiguous correct answers.
 At the end of a round, **See where I went wrong / Veja onde eu errei** lists each incorrect
 question, the submitted answer, and the correct answer. Review data is provided only for finished
-rounds and is kept in session memory. Retries do not duplicate errors; unanswered questions are
+rounds and is retained with the round state until expiry. Retries do not duplicate errors; unanswered questions are
 not counted as mistakes. A round without mistakes displays a clear empty state.
 
 The final ten seconds show a warning; results distinguish perfect rounds, survival endings, and timeouts.
@@ -97,7 +101,7 @@ Timed rounds show their result when the deadline is reached, even without submit
 - Retrying the same answer returns its original response without counting it twice.
 - When a round ends, choose **Play again** directly from the answer screen or **View result**.
 - On the answer screen, **R** restarts a finished round with the same greeting name, while **Space** opens its result.
-- Rounds stay in server memory: idle rounds expire after 30 minutes, and finished rounds are retained for 5 minutes to support network retries. Completed signed-in results are persisted; visitor scores are not.
+- Production rounds use shared PostgreSQL storage (`SHARED_STATE_ENABLED=true`); local play defaults to server memory. Idle rounds expire after 30 minutes, and finished rounds are retained for 5 minutes for retries. Completed signed-in results are persisted; visitor scores are not.
 
 The interface supports English and Brazilian Portuguese, uses a responsive dark design, supports **A–D to answer** and
 **Space to continue** in Capitals and Survival (timed rounds advance automatically), restores keyboard focus after requests, and respects reduced-motion preferences.
@@ -130,7 +134,7 @@ identities, sessions, and results, while preserving the Google/GitHub account it
 Accounts are opt-in with `ACCOUNTS_ENABLED=true`; only configured providers are shown.
 Apply `database/001_accounts.sql` and `database/002_oauth_profile.sql` before enabling them. Existing
 profiles, scores and seven-day database sessions are preserved. See
-[Render + Neon deployment](docs/DEPLOYMENT.md) for credentials, provider callbacks, security behavior,
+[Vercel + Neon deployment](docs/DEPLOYMENT.md) for credentials, provider callbacks, security behavior,
 local database tests and the public deployment checklist. All identity secrets remain on the Java server.
 
 ## Run locally
@@ -216,9 +220,9 @@ docker run --rm --name geoquest -p 127.0.0.1:8081:10000 --mount "type=bind,sourc
 Without Docker, the defaults remain `HOST=127.0.0.1` and `PORT=8080`. Invalid ports fail at startup.
 The image runs frontend and API together. On a hosting platform, configure the listening port and
 `API_KEY`; no local `.env` is needed. PostgreSQL and OAuth settings are required only when enabling
-accounts. Keep one instance while active rounds are in memory: round state is not shared between
-containers. Restarts discard active rounds while PostgreSQL-backed profiles, results, and account
-sessions persist. See the [Render + Neon guide](docs/DEPLOYMENT.md) for public hosting and OAuth setup.
+accounts. With `SHARED_STATE_ENABLED=false`, use one instance and expect active rounds to be lost on restart.
+Production on Vercel sets `SHARED_STATE_ENABLED=true`: rounds and temporary OAuth sessions use PostgreSQL
+and can be restored across instances until expiry. Apply migrations 003 and 004 before enabling this flag. See the [Vercel + Neon guide](docs/DEPLOYMENT.md) for public hosting and OAuth setup.
 
 ## Architecture
 
@@ -278,8 +282,9 @@ current round and stops its client timer; selecting a mode starts a new round. S
 preserve the current identity unless Logout, account sign-out/deletion, or a page reload clears it.
 After reload, an existing authenticated account can be restored from its server session.
 
-Java rounds use random `gameId` values and contain no visitor display name. Active rounds stay in
-process memory; account sessions, profiles, and completed signed-in results live in PostgreSQL.
+Java rounds use random `gameId` values and contain no visitor display name. Active rounds use
+PostgreSQL when shared state is enabled, otherwise process memory. Account sessions, profiles,
+and completed signed-in results live in PostgreSQL.
 The static-file allowlist explicitly includes each public module and stylesheet; test files and
 local configuration stay inaccessible through HTTP.
 
@@ -392,10 +397,11 @@ modes, keyboard shortcuts, results, error review, navigation, drawer focus/Escap
 logout/deletion, ranking filter invalidation, static translations, and unique document IDs.
 They use small DOM adapters; browser checks separately exercise layout and native keyboard behavior.
 
-Recorded validation on **2026-10-28**: **12 frontend tests and 130 Java tests passed**. The five
-PostgreSQL tests ran against a disposable local database. Visual checks covered 1440, 1024, 768,
-480, and 375 px widths, with extra small-phone and landscape checks. Physical iOS/Android behavior
-and real Google/GitHub consent still require manual verification. See the
+Recorded validation on **2026-11-02**: **140 Java tests passed** against disposable local PostgreSQL
+during the Vercel migration; **14 frontend tests passed** after the language persistence fix. Real Google
+and GitHub logins completed on Vercel. Portuguese remained selected after reload, a new tab and Google
+login. The earlier visual checks covered 1440, 1024, 768, 480 and 375 px, plus small-phone and landscape
+checks. Physical iOS/Android behavior still needs manual verification. See the
 [responsive check report](docs/RESPONSIVE_QA.md) and [redesign report](docs/REDESIGN.md).
 
 ## Troubleshooting

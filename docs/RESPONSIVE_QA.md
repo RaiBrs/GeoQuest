@@ -61,3 +61,16 @@ Home without an input field or a name request. A local visitor round used Visita
 answer, continued with Space, and returned to login on Logout. Browser console contained no errors.
 Frontend tests also cover restored provider identity, guest-name translation, re-entry, and drawer
 behavior across login and application views. Actual provider consent was not repeated.
+
+## Follow-up verification — 2026-11-02
+
+The public host is now https://geoquest-raibrs.vercel.app/. Both Google and GitHub
+completed real login callbacks there. Render was retired after the migration.
+These checks supplement the dated redesign report above; they do not represent
+new physical-device or viewport testing.
+
+The language preference now persists in browser localStorage (`geoquest.language`).
+On the published site, Portuguese was preserved after reload, opening a new tab
+and returning from Google login. The selector, document title, HTML language and
+translated interface stayed consistent. All 14 frontend tests passed, including
+stored-language restoration, invalid values and blocked-storage behavior.

@@ -1,5 +1,7 @@
 # Docker Desktop startup: inaccessible Secrets Engine socket
 
+Incident verified on 2026-11-02.
+
 Observed on Docker Desktop 4.97.0 for Windows / WSL2:
 the CLI was installed but the Linux engine pipe did not exist.
 The backend log showed `initializing Secrets Engine` failing to rename
@@ -21,3 +23,8 @@ the affected runtime directory before starting Docker again. Do not apply this
 workaround to unrelated paths or use a factory reset as the first response.
 
 Upstream report: https://github.com/docker/for-win/issues/15064
+
+The same root Dockerfile is used by the current Vercel deployment. Docker Desktop
+is needed for local container work; it does not need to stay open on the developer's
+computer for the published application to run. See [DEPLOYMENT.md](DEPLOYMENT.md)
+for the current hosting and environment configuration.

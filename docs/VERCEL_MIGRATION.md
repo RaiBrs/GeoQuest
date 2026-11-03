@@ -1,7 +1,11 @@
 # Vercel migration
 
-Status: application adapted and tested; production cutover is pending deployment verification.
-Render remains available until the new deployment and OAuth callbacks are verified.
+Status on 2026-11-02: production cutover completed. The public application runs on
+Vercel, using the existing Neon database. Google and GitHub logins completed on the
+new domain. The former Render service was permanently deleted after verification;
+it is no longer a rollback destination.
+
+For current deployment steps, use [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Confirmed access and destination
 
@@ -53,11 +57,14 @@ identities, persistent player sessions, or ranking results.
 Validation: 140 Java tests passed with the disposable local PostgreSQL database,
 including round restoration, concurrent duplicate answers, ownership, timed batches,
 deadline expiry, OAuth request restoration, and secure session-cookie configuration.
-The 12 frontend tests also passed. The Docker image builds successfully.
+The migration-era 12 frontend tests also passed. After the language persistence fix,
+all 14 frontend tests passed. The Docker image built successfully. These are recorded
+validation results, not a new test run for this documentation update.
 
 ## Account and environment setup
 
-1. Authenticate with the official Vercel CLI or the connected integration.
+1. Open the authenticated Vercel dashboard for the existing project. CLI/integration
+   access is optional and must be checked separately; do not create duplicate projects.
 2. Confirm the intended team and GeoQuest project before linking or deploying.
 3. Keep `.vercel/` ignored: environment pulls can contain secrets.
 4. Configure the existing variable names from `.env.example` directly in the
@@ -71,17 +78,27 @@ The eight existing API/Neon/Google/GitHub variables were copied individually to
 Vercel as Production Secrets, with user authorization. Other Render variables
 were not exported. Config variables are configured separately for Production.
 
-## Cutover checklist
+## Completed cutover and verification
 
-- Validate the Docker build and backend/frontend tests.
-- Validate all three game modes, language selection, retry behavior, guest entry,
-  login, logout, ranking, and account deletion in an isolated environment.
-- Test shared state across instances, including concurrent and duplicate answers.
-- Check container startup, port routing, resource limits and the intended plan.
-- Stage and verify a production deployment before moving traffic.
-- Keep Render available for rollback until the Vercel deployment is verified.
-- Coordinate the final OAuth callback switch; GitHub OAuth configuration must
-  match the public origin being used.
+- Commit `60293da` introduced shared round storage and temporary OAuth sessions.
+- The production deployment reached Ready on the stable Vercel domain.
+- Browser checks covered guest entry, a complete Capitals round, Survival ending
+  on an error, and 12 answers with automatic advancement in the 60-second mode.
+- The timer ended the round at its deadline, and the public ranking loaded.
+- Both Google and GitHub returned to the Vercel domain with authenticated profiles.
+- Render service `srv-dbh2tcks728c73anvrk0` was deleted with user confirmation.
+  The Render workspace then showed no services; Vercel remained accessible.
+- Commit `5a122aa` fixed language persistence. Portuguese remained selected after
+  reload, a new tab and a real Google OAuth return on the published application.
+- Account deletion and concurrency have automated coverage. No real production
+  account was deleted for QA, and physical mobile-device checks remain separate.
+
+## Updating and rolling back
+
+Push reviewed changes to `main` and check the production deployment in Vercel.
+For rollback, select a previously verified Vercel deployment compatible with the
+current database schema. The old Render host is retired. Do not assume a code
+rollback also reverses database migrations or provider configuration.
 
 The isolated Neon test branch is `vercel-migration-check`
 (`br-square-hat-b7l65d3j`); tests used its empty `geoquest_test` database rather
