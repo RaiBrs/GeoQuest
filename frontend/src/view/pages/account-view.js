@@ -17,7 +17,7 @@ export const accountView = {
     element("profile-name").textContent = user ? t("Signed in as {name}", { name: user.displayName }) : "";
     element("user-label").textContent = user ? user.displayName : t("Guest");
     element("user-initial").textContent = [...(user?.displayName || t("Guest"))][0].toLocaleUpperCase();
-    for (const id of ["logout", "ranking-mode", "ranking-type", "delete-confirmation"]) element(id).disabled = unavailable;
+    for (const id of ["logout", "ranking-type", "delete-confirmation"]) element(id).disabled = unavailable;
     element("load-ranking").disabled = unavailable || !account.enabled;
     for (const button of element("delete-account-form").querySelectorAll("button")) button.disabled = unavailable;
     element("account-error").textContent = errorKey ? t(errorKey) : "";
@@ -28,7 +28,7 @@ export const accountView = {
     element("ranking-table").hidden = leaders.length === 0;
     element("ranking-status").textContent = !account.enabled ? t("Online ranking is unavailable.")
       : loaded ? t(leaders.length ? "Top 20 players" : "No completed ranked rounds yet.")
-        : t("Choose a mode and question type to view the ranking.");
+        : t("Choose a question type to view the Against the clock ranking.");
     for (const [index, leader] of leaders.entries()) {
       const row = document.createElement("tr");
       const position = document.createElement("td");

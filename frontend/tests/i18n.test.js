@@ -75,3 +75,13 @@ test("document IDs are unique and every label targets an existing control", asyn
   assert.equal(new Set(ids).size, ids.length, "Duplicate IDs break screen controls and accessible labels");
   for (const [, id] of html.matchAll(/\bfor="([^"]+)"/g)) assert.ok(ids.includes(id), `Missing label target: ${id}`);
 });
+
+test("the hub explains practice modes and ranking has no practice-mode selector", async () => {
+  const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
+  assert.ok(html.includes('data-i18n="Full catalog"'));
+  assert.ok(html.includes('data-i18n="Keep playing after mistakes. Not ranked."'));
+  assert.ok(html.includes('data-i18n="Keep answering until your first mistake or the catalog ends. Not ranked."'));
+  assert.ok(html.includes('data-i18n="Unlimited questions. Ranked when signed in."'));
+  assert.ok(!html.includes('id="ranking-mode"'));
+  assert.ok(!html.includes("Up to 10 questions"));
+});

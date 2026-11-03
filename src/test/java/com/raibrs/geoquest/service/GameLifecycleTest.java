@@ -93,13 +93,13 @@ class GameLifecycleTest {
         var release = new CountDownLatch(1);
         var questions = new QuestionService() {
             int calls;
-            @Override public List<Question> createQuestions(List<Country> countries, int count, QuestionType type, GameLanguage language) {
+            @Override public List<Question> createSurvivalQuestions(List<Country> countries, QuestionType type, GameLanguage language) {
                 if (++calls == 2) {
                     entered.countDown();
                     try { if (!release.await(5, TimeUnit.SECONDS)) throw new AssertionError("Release timed out"); }
                     catch (InterruptedException e) { Thread.currentThread().interrupt(); throw new AssertionError(e); }
                 }
-                return super.createQuestions(countries, count, type, language);
+                return super.createSurvivalQuestions(countries, type, language);
             }
         };
         var games = new GameService(new TestCountriesClient(), questions);

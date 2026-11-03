@@ -27,7 +27,7 @@ class SharedStateConfigTest {
         String password = System.getenv().getOrDefault("TEST_DATABASE_PASSWORD", "test-only-password");
         try (var db = DriverManager.getConnection(url, user, password); var sql = db.createStatement()) {
             assertThat(db.getCatalog()).isEqualTo("geoquest_test");
-            for (String migration : List.of("001_accounts", "002_oauth_profile", "003_shared_rounds", "004_shared_oauth_sessions"))
+            for (String migration : List.of("001_accounts", "002_oauth_profile", "003_shared_rounds", "004_shared_oauth_sessions", "005_timed_rankings"))
                 sql.execute(Files.readString(Path.of("database/" + migration + ".sql")));
         }
         new WebApplicationContextRunner().withUserConfiguration(SharedStateConfig.class).withPropertyValues(

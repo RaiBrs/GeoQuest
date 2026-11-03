@@ -54,7 +54,7 @@ public final class AccountSessions {
         cookie(response, "geoquest_pkce", "", 0, "/auth/callback");
     }
     public void save(AccountsBackend.User user, GameView state, QuestionType type) throws IOException {
-        if (user != null && state.finished()) backend.saveResult(user, state, type);
+        if (user != null && state.finished() && state.mode().isRanked()) backend.saveResult(user, state, type);
     }
     private void cookie(HttpServletResponse response, String name, String value, long seconds, String path) {
         response.addHeader("Set-Cookie", ResponseCookie.from(name, value).path(path).maxAge(seconds)

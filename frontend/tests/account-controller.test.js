@@ -5,7 +5,7 @@ import { setLanguage } from "../src/i18n.js";
 
 import { Element } from "./support/dom-fixture.js";
 const ids = ["account-access","login-options","login-google","login-github","account-status","profile-panel","profile-name",
-  "load-ranking","logout","ranking-mode","ranking-type","delete-confirmation","delete-account-form","ranking-status","ranking-list","account-error",
+  "load-ranking","logout","ranking-type","delete-confirmation","delete-account-form","ranking-status","ranking-list","account-error",
   "account-guest","user-label","user-initial","ranking-table"];
 test("account UI restores identity, renders ranking safely and deletes only after confirmation", async () => {
   const original = { document: globalThis.document, window: globalThis.window, fetch: globalThis.fetch };
@@ -30,8 +30,9 @@ test("account UI restores identity, renders ranking safely and deletes only afte
     assert.equal(ui["login-github"].hidden, true);
     assert.equal(ui["profile-name"].textContent, "Conectado como Rai<script>");
     controller.updateAvailability({ screen: "hub", busy: false });
-    ui["ranking-mode"].value = "CAPITALS"; ui["ranking-type"].value = "CAPITAL";
+    ui["ranking-type"].value = "CAPITAL";
     ui["load-ranking"].emit("click"); await settle();
+    assert.ok(calls.some(call => call.path === "/api/leaderboard?mode=TIMED&questionType=CAPITAL"));
     const row = ui["ranking-list"].children[0];
     assert.equal(row.children[0].textContent, "1");
     assert.equal(row.children[1].textContent, "Other<script>");
@@ -45,8 +46,8 @@ test("account UI restores identity, renders ranking safely and deletes only afte
     controller.updateAvailability({ screen: "ranking", busy: false });
     assert.notEqual(ui["ranking-list"].children[0], row, "Dynamic ranking text follows the language");
     assert.equal(ui["ranking-list"].children[0].children[2].children[1].textContent, "10 answered");
-    ui["ranking-mode"].value = "TIMED";
-    ui["ranking-mode"].emit("change");
+    ui["ranking-type"].value = "COUNTRY";
+    ui["ranking-type"].emit("change");
     assert.equal(ui["ranking-list"].children.length, 0, "Do not display results belonging to the previous filters");
     assert.equal(ui["ranking-table"].hidden, true);
     assert.equal(ui["user-label"].textContent, "Rai<script>");

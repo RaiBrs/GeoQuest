@@ -33,13 +33,15 @@ class AccountControllerTest {
         User user;
         int logins, deleted, lookups;
         String hash;
+        final List<GameMode> savedModes = new ArrayList<>();
+        final List<GameMode> rankingModes = new ArrayList<>();
         public User login(SocialIdentity identity) { logins++; return user; }
         public void createSession(User user, String hash) { this.hash = hash; }
         public User findSession(String hash) { lookups++; return AccountSessions.hash(TOKEN).equals(hash) || Objects.equals(this.hash, hash) ? user : null; }
         public void logout(String hash) { user = null; }
         public void delete(User user) { deleted++; this.user = null; }
-        public void saveResult(User user, GameView state, QuestionType type) {}
-        public List<Leader> leaderboard(GameMode mode, QuestionType type) { return List.of(new Leader("Rai", 10, 10)); }
+        public void saveResult(User user, GameView state, QuestionType type) { savedModes.add(state.mode()); }
+        public List<Leader> leaderboard(GameMode mode, QuestionType type) { rankingModes.add(mode); return List.of(new Leader("Rai", 10, 10)); }
     }
     static AccountConfig config() { return new AccountConfig("https://game.example", "jdbc:postgresql://localhost/g", "u", "p", "id", "secret", "id2", "secret2"); }
     @Configuration @EnableWebMvc
@@ -72,6 +74,28 @@ class AccountControllerTest {
         mvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
         backend.user = new AccountsBackend.User(UUID.randomUUID(), "Rai", Instant.now(), null, "github", "123", "https://example.test/avatar");
         backend.deleted = backend.logins = backend.lookups = 0;
+        backend.savedModes.clear(); backend.rankingModes.clear();
+    }
+
+    @Test void onlyCompletedTimedRoundsFromSignedInPlayersCanBeRanked() throws Exception {
+        var sessions = context.getBean(AccountSessions.class);
+        for (var mode : GameMode.values()) {
+            var finished = new GameView(UUID.randomUUID(), 10, 10, 5, true, null, mode, null, false, List.of(), 10);
+            sessions.save(backend.user, finished, QuestionType.CAPITAL);
+            sessions.save(null, finished, QuestionType.CAPITAL);
+            var active = new GameView(UUID.randomUUID(), 1, 10, 0, false, null, mode, null, false, List.of(), 0);
+            sessions.save(backend.user, active, QuestionType.CAPITAL);
+        }
+        assertEquals(List.of(GameMode.TIMED), backend.savedModes);
+    }
+
+    @Test void leaderboardDefaultsToTimedAndPracticeCategoriesStayEmpty() throws Exception {
+        mvc.perform(get("/api/leaderboard")).andExpect(status().isOk()).andExpect(jsonPath("$[0].score").value(10));
+        for (var mode : List.of(GameMode.CAPITALS, GameMode.SURVIVAL)) {
+            mvc.perform(get("/api/leaderboard").param("mode", mode.name()))
+                    .andExpect(status().isOk()).andExpect(content().json("[]"));
+        }
+        assertEquals(List.of(GameMode.TIMED), backend.rankingModes);
     }
     @Test void anonymousVisitorsCanPlayButCannotAccessPrivateAccountEndpoints() throws Exception {
         mvc.perform(get("/")).andExpect(status().isOk());

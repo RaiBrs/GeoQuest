@@ -66,6 +66,36 @@ public class QuestionService {
         return questions;
     }
 
+    public synchronized List<Question> createSurvivalQuestions(List<Country> countries,
+                                                              QuestionType type, GameLanguage language) {
+        Objects.requireNonNull(type);
+        Objects.requireNonNull(language);
+        if (countries == null || countries.isEmpty()) {
+            throw new IllegalArgumentException("At least one country is required to create questions.");
+        }
+        List<Candidate> candidates = candidates(countries, type, language);
+        Set<String> answers = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        candidates.forEach(candidate -> answers.add(candidate.answer()));
+        if (answers.size() < ALTERNATIVES_PER_QUESTION) {
+            throw new IllegalArgumentException("At least four distinct answers are required.");
+        }
+        Collections.shuffle(candidates, random);
+        Set<String> subjects = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        List<Question> questions = new ArrayList<>();
+        for (Candidate candidate : candidates) {
+            if (!subjects.add(candidate.subject())) continue;
+            // Ask each subject once; distractors may appear again in other questions.
+            List<String> distractors = new ArrayList<>(answers);
+            distractors.removeIf(answer -> answer.equalsIgnoreCase(candidate.answer()));
+            Collections.shuffle(distractors, random);
+            List<String> alternatives = new ArrayList<>(distractors.subList(0, ALTERNATIVES_PER_QUESTION - 1));
+            alternatives.add(candidate.answer());
+            Collections.shuffle(alternatives, random);
+            questions.add(new Question(language.prompt(type, candidate.subject()), candidate.answer(), alternatives));
+        }
+        return questions;
+    }
+
     private List<Candidate> candidates(List<Country> countries, QuestionType type, GameLanguage language) {
         countries = countries.stream().filter(country -> country.supports(language)).toList();
         Map<String, Integer> capitalCounts = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);

@@ -37,9 +37,11 @@ public final class AccountController {
     @GetMapping("/api/csrf")
     public Map<String, String> csrf(CsrfToken token) { return Map.of("token", token.getToken(), "headerName", token.getHeaderName()); }
     @GetMapping("/api/leaderboard")
-    public ResponseEntity<?> leaderboard(@RequestParam(defaultValue = "CAPITALS") GameMode mode,
+    public ResponseEntity<?> leaderboard(@RequestParam(defaultValue = "TIMED") GameMode mode,
                                           @RequestParam(defaultValue = "CAPITAL") QuestionType questionType) throws IOException {
         if (!accounts.enabled()) return ApiErrors.response(503, "Accounts are not configured yet.");
+        // Older clients may still request practice categories; they have no ranked results.
+        if (!mode.isRanked()) return ResponseEntity.ok(List.of());
         return ResponseEntity.ok(accounts.backend().leaderboard(mode, questionType));
     }
     @PostMapping(value = "/api/logout", consumes = "application/json")

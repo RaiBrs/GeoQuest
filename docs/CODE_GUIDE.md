@@ -49,7 +49,7 @@ Pastas da IDE e arquivos `.env` são locais e não fazem parte do funcionamento 
 3. O Spring verifica CSRF; a sessão persistente identifica o jogador quando existe.
 4. `GameController` pede a operação ao `GameService`, que valida dono e validade da partida.
 5. `GameSession` calcula acerto, pontos e término. A operação guarda o resultado do último envio.
-6. O controller salva resultados de contas quando a rodada terminou. A API retorna o mesmo JSON de antes.
+6. O controller salva resultados de contas somente quando uma rodada contra o tempo terminou. A API retorna o mesmo JSON de antes.
 7. A view mostra a correção. No modo cronometrado, o próximo enunciado aparece após 700 ms.
 
 Repetir o último envio retorna a mesma correção sem pontuar duas vezes. Enquanto a correção
@@ -64,8 +64,14 @@ de outras funcionalidades. Abrir e fechar o menu permanece possível durante req
 Navegar para outra seção cancela os temporizadores e limpa a rodada local. A rodada no servidor
 segue sua política de expiração. O relógio do navegador exibe o tempo; o servidor decide o término.
 
+Somente o modo contra o tempo participa do ranking, separado por tipo de pergunta.
 O ranking mantém suas linhas durante mudanças de disponibilidade. Dados novos, troca de filtros,
 exclusão da conta ou troca de idioma atualizam a tabela. Nomes externos entram como texto.
+
+Normal mantém dez perguntas; sobrevivência percorre o catálogo elegível até o primeiro erro ou o fim.
+Na sobrevivência, cada assunto aparece uma vez; alternativas podem reaparecer em perguntas diferentes.
+A migração `005_timed_rankings.sql` remove os resultados antigos de prática e ignora novos envios
+desses modos por versões antigas, sem mexer em perfis, sessões ou resultados cronometrados.
 
 ## Duas sessões com propósitos diferentes
 
@@ -104,3 +110,15 @@ O consentimento real de Google/GitHub depende dos provedores e complementa os te
 - Em 360 px: sem rolagem horizontal no ranking; menu modal, Escape e retorno de foco conferidos.
 - Segurança: testes de CSRF, acesso entre jogadores, logout, cookies, `state`, PKCE e descarte de tokens passaram.
 - `git diff --check` passou. O consentimento real dos provedores não foi repetido nesta revisão.
+
+## Atualização dos modos — 3 de novembro de 2026
+
+Normal mantém dez perguntas; sobrevivência usa todos os assuntos elegíveis até o primeiro erro;
+somente rodadas cronometradas concluídas por contas autenticadas entram no ranking.
+Passaram 153 testes Java com PostgreSQL e 23 testes frontend, além do `mvn verify`.
+No navegador com catálogo fictício, a sobrevivência passou da décima pergunta e terminou ao errar;
+o ranking em 360 px mostrou apenas o filtro de tipo de pergunta, sem rolagem horizontal.
+A migração de limpeza foi testada numa branch Neon isolada e aplicada ao banco publicado após
+aprovação explícita: removeu 16 resultados de prática, preservou os sete cronometrados com o mesmo
+checksum e ativou o trigger contra novas gravações de prática. A interface e a sobrevivência ampliada
+dependem da publicação do código atualizado.

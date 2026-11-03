@@ -43,7 +43,7 @@ input[aria-invalid="true"] { border-color: var(--geo-danger); }
 #delete-account-form { display: grid; gap: 12px; max-width: 400px; }
 .leaderboard-panel { overflow: hidden; }
 /* Filters and the table share this panel; long names wrap without widening the page. */
-.ranking-filters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; align-items: end; gap: 16px; padding: 20px; border-bottom: 1px solid var(--geo-border); }
+.ranking-filters { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 16px; padding: 20px; border-bottom: 1px solid var(--geo-border); }
 .filter-field { display: grid; min-width: 0; gap: 8px; }
 .filter-field select { width: 100%; }
 .empty-state { padding: 24px 20px; margin: 0; }

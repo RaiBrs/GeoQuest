@@ -90,13 +90,14 @@ public final class PostgresAccounts implements AccountsBackend {
     }
     @Override public void saveResult(User user, GameView state, QuestionType type) throws IOException {
         // The round ID prevents duplicate results during retries or status checks.
-        if (!state.finished()) return;
+        if (!state.finished() || !state.mode().isRanked()) return;
         try (var db = connect(); var insert = db.prepareStatement("insert into player_results(game_id,user_id,mode,question_type,score,answered) values (?,?,?,?,?,?) on conflict(game_id) do nothing")) {
             insert.setObject(1, state.gameId()); insert.setObject(2, user.id()); insert.setString(3, state.mode().name());
             insert.setString(4, type.name()); insert.setInt(5, state.score()); insert.setInt(6, state.answered()); insert.executeUpdate();
         } catch (SQLException exception) { throw unavailable(exception); }
     }
     @Override public List<Leader> leaderboard(GameMode mode, QuestionType type) throws IOException {
+        if (!mode.isRanked()) return List.of();
         // First select each player's best round, then sort the top twenty players.
         String sql = "select display_name,score,answered from (select distinct on (r.user_id) p.display_name,r.score,r.answered,r.created_at,r.user_id from player_results r join player_profiles p on p.id=r.user_id where r.mode=? and r.question_type=? order by r.user_id,r.score desc,r.created_at) best order by score desc,created_at,user_id limit 20";
         try (var db = connect(); var query = db.prepareStatement(sql)) {

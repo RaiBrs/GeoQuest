@@ -24,7 +24,7 @@
 ## The game
 
 GeoQuest is a geography challenge application built with Java/Spring Boot and modular HTML, CSS,
-and vanilla JavaScript. Play as a visitor, or sign in with Google or GitHub to save completed results
+and vanilla JavaScript. Play as a visitor, or sign in with Google or GitHub to save completed Against the clock results
 and participate in the ranking. The interface and questions support English and Brazilian Portuguese.
 
 | Choose how to enter | Take the challenge | See your result |
@@ -80,9 +80,9 @@ The hub offers three modes, all using world-capital questions:
 
 | Mode | Rules |
 | :--- | :--- |
-| Capitals (`CAPITALS`) | Answer all 10 questions, continuing after mistakes. |
-| Survival (`SURVIVAL`) | Up to 10 questions; the first mistake ends the round. |
-| Against the clock (`TIMED`) | Unlimited questions for 60 seconds, continuing after mistakes. The Java server enforces the deadline. |
+| Capitals (`CAPITALS`) | Answer all 10 questions, continuing after mistakes. Not ranked. |
+| Survival (`SURVIVAL`) | Keep answering until the first mistake or the eligible catalog ends. Not ranked. |
+| Against the clock (`TIMED`) | Unlimited questions for 60 seconds, continuing after mistakes. The Java server enforces the deadline. Ranked for signed-in players. |
 
 Timed rounds load fresh batches as needed, keep the original deadline, and have no question limit.
 After each answer, timed rounds show the correction for 700 ms and advance automatically, without a Next question button.
@@ -95,13 +95,14 @@ Returning to the hub leaves the current round; choosing a mode starts a new roun
 Timed rounds show their result when the deadline is reached, even without submitting an answer.
 
 - Country and capital data comes from REST Countries.
-- Answer labels are unique within each generated batch, including distractors. Timed rounds can reuse labels across batches.
+- Capitals and timed batches keep answer labels unique within each batch. Timed rounds can reuse labels across batches.
+- Survival asks each eligible subject once, reusing distractors between questions. Its limit follows the selected language and question direction, not a fixed country count.
 - Java validates answers and calculates the score; the browser submits only the selected answer.
 - The correct answer is returned only after a choice is submitted.
 - Retrying the same answer returns its original response without counting it twice.
 - When a round ends, choose **Play again** directly from the answer screen or **View result**.
 - On the answer screen, **R** restarts a finished round with the same greeting name, while **Space** opens its result.
-- Production rounds use shared PostgreSQL storage (`SHARED_STATE_ENABLED=true`); local play defaults to server memory. Idle rounds expire after 30 minutes, and finished rounds are retained for 5 minutes for retries. Completed signed-in results are persisted; visitor scores are not.
+- Production rounds use shared PostgreSQL storage (`SHARED_STATE_ENABLED=true`); local play defaults to server memory. Idle rounds expire after 30 minutes, and finished rounds are retained for 5 minutes for retries. Only completed, signed-in timed results enter the ranking; visitor and practice scores do not.
 
 The interface supports English and Brazilian Portuguese, uses a responsive dark design, supports **A–D to answer** and
 **Space to continue** in Capitals and Survival (timed rounds advance automatically), restores keyboard focus after requests, and respects reduced-motion preferences.
@@ -121,8 +122,8 @@ for tested viewports and remaining device checks.
 
 ### Optional accounts and ranking
 
-Sign in with Google or GitHub through Spring Security OAuth2 Client to keep a profile and completed results in PostgreSQL.
-Open **Ranking** from the sidebar to compare each player's best result by mode and question type.
+Sign in with Google or GitHub through Spring Security OAuth2 Client to keep a profile and completed Against the clock results in PostgreSQL.
+Open **Ranking** from the sidebar to compare each player's best Against the clock result by question type. Capitals and Survival are practice modes.
 A recently signed-in player can delete their GeoQuest account, sessions and results using the
 confirmation form. Visitor rounds remain available and do not enter the ranking.
 
@@ -133,7 +134,8 @@ identities, sessions, and results, while preserving the Google/GitHub account it
 
 Accounts are opt-in with `ACCOUNTS_ENABLED=true`; only configured providers are shown.
 Apply `database/001_accounts.sql` and `database/002_oauth_profile.sql` before enabling them. Existing
-profiles, scores and seven-day database sessions are preserved. See
+profiles and seven-day database sessions are preserved. Apply `database/005_timed_rankings.sql`
+to remove old Capitals/Survival results while preserving timed results. See
 [Vercel + Neon deployment](docs/DEPLOYMENT.md) for credentials, provider callbacks, security behavior,
 local database tests and the public deployment checklist. All identity secrets remain on the Java server.
 
@@ -356,7 +358,7 @@ All POST requests also require the CSRF cookie and the `X-XSRF-TOKEN` header obt
 | `GET` | `/api/csrf` | — | Returns the CSRF token/header for subsequent mutations. |
 | `POST` | `/api/logout` | `{}` | Revokes the current session. |
 | `POST` | `/api/account/delete` | `confirmation: "DELETE"` | Deletes account data after recent sign-in. |
-| `GET` | `/api/leaderboard` | mode, questionType query parameters | Returns the top 20 best results. |
+| `GET` | `/api/leaderboard` | mode, questionType query parameters | Returns the top 20 timed results by question type; omitted mode defaults to `TIMED`. Practice modes return an empty list. |
 | `POST` | `/api/games` | `mode`, `questionType`, `language` | Creates a round in `CAPITALS`, `SURVIVAL`, or `TIMED`; omitted mode defaults to `SURVIVAL`. |
 | `POST` | `/api/answers` | `gameId`, `number`, `choice` | Checks the answer and returns updated state. |
 | `POST` | `/api/games/status` | `gameId` | Returns current state, checking whether the server deadline has passed. |

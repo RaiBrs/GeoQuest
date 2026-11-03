@@ -86,7 +86,7 @@ class GameServiceTest {
         var second = games.start();
         assertNotEquals(first.gameId(), second.gameId());
         assertEquals(1, client.calls);
-        assertEquals(10, first.total());
+        assertEquals(40, first.total());
         assertEquals(0, first.score());
         assertEquals(4, first.question().alternatives().size());
         var json = new ObjectMapper().readTree(new ObjectMapper().writeValueAsBytes(first));
@@ -98,7 +98,7 @@ class GameServiceTest {
 
     @Test
     void completesTenQuestionsAndReplaysTheFinalAnswer() throws Exception {
-        var state = games.start();
+        var state = games.start(GameMode.CAPITALS);
         GameDtos.AnswerRequest last = null;
         GameDtos.AnswerView response = null;
         for (int number = 1; number <= 10; number++) {

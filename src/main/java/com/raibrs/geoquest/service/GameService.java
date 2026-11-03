@@ -74,7 +74,9 @@ public final class GameService {
         List<Country> catalog = catalog();
         List<Question> questions;
         try {
-            questions = questionService.createQuestions(catalog, 10, type, language);
+            questions = mode == GameMode.SURVIVAL
+                    ? questionService.createSurvivalQuestions(catalog, type, language)
+                    : questionService.createQuestions(catalog, 10, type, language);
         } catch (IllegalArgumentException exception) {
             synchronized (catalogLock) { countryCatalog = null; }
             throw new IOException("Country catalog cannot produce a round.", exception);

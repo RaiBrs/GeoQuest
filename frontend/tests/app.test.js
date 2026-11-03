@@ -12,7 +12,7 @@ test("game and account controls keep their own rules across navigation and accou
   const app = setupGame(t, { onStateChange: state => accounts?.updateAvailability(state) });
   const { ui, game, settle } = app;
   for (const id of ["account-access", "login-options", "login-google", "login-github", "account-status",
-    "profile-panel", "profile-name", "load-ranking", "logout", "ranking-mode", "ranking-type",
+    "profile-panel", "profile-name", "load-ranking", "logout",  "ranking-type",
     "delete-confirmation", "delete-account-form", "ranking-status", "ranking-list", "account-error",
     "account-guest", "user-label", "user-initial", "ranking-table"]) ui[id] = new Element(id);
   const gameFetch = globalThis.fetch;
@@ -29,13 +29,13 @@ test("game and account controls keep their own rules across navigation and accou
   assert.equal(ui["continue-guest"].disabled, false);
   assert.equal(ui["load-ranking"].disabled, true, "Unavailable accounts must keep ranking disabled");
   await app.start("TIMED");
-  assert.equal(ui["ranking-mode"].disabled, true);
+  assert.equal(ui["ranking-type"].disabled, true);
   assert.equal(ui["logout"].disabled, true);
   assert.equal(ui.language.disabled, true);
   ui["nav-hub"].click();
   assert.equal(ui.language.disabled, false);
   assert.equal(ui["load-ranking"].disabled, true);
-  assert.equal(ui["ranking-mode"].disabled, false);
+  assert.equal(ui["ranking-type"].disabled, false);
 });
 
 test("entry, restored identity and navigation preserve safe names", async t => {

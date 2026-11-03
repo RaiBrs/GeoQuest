@@ -36,14 +36,12 @@ export function initializeAccounts(game) {
     finally { pending = false; game.setAccountBusy(false); render(); }
   }
   element("load-ranking").addEventListener("click", () => perform(async () => {
-    const mode = element("ranking-mode").value, type = element("ranking-type").value;
-    leaders = await request(`/api/leaderboard?mode=${encodeURIComponent(mode)}&questionType=${encodeURIComponent(type)}`);
+    const type = element("ranking-type").value;
+    leaders = await request(`/api/leaderboard?mode=TIMED&questionType=${encodeURIComponent(type)}`);
     rankingLoaded = true;
     renderRanking();
   }));
-  for (const id of ["ranking-mode", "ranking-type"]) {
-    element(id).addEventListener("change", resetRanking);
-  }
+  element("ranking-type").addEventListener("change", resetRanking);
   element("logout").addEventListener("click", () => perform(async () => {
     await request("/api/logout", {});
     account.user = null;

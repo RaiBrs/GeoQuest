@@ -30,7 +30,7 @@ class SharedStateTest {
         source.setPassword(System.getenv().getOrDefault("TEST_DATABASE_PASSWORD", "test-only-password"));
         try (var db = source.getConnection(); var sql = db.createStatement()) {
             assertEquals("geoquest_test", db.getCatalog(), "Only the disposable test database is allowed");
-            for (String migration : List.of("001_accounts", "002_oauth_profile", "003_shared_rounds", "004_shared_oauth_sessions"))
+            for (String migration : List.of("001_accounts", "002_oauth_profile", "003_shared_rounds", "004_shared_oauth_sessions", "005_timed_rankings"))
                 sql.execute(Files.readString(Path.of("database/" + migration + ".sql")));
             sql.execute("truncate player_profiles,game_rounds,geoquest_http_session cascade");
         }
@@ -88,6 +88,24 @@ class SharedStateTest {
         }
         assertEquals(1, first.status(state.gameId()).score());
         assertEquals(1, second.status(state.gameId()).answered());
+    }
+
+    @Test void survivalContinuesPastTenQuestionsAcrossInstancesAndStopsOnAMistake() throws Exception {
+        var state = first.start(GameMode.SURVIVAL);
+        assertEquals(40, state.total());
+        for (int number = 1; number <= 13; number++) {
+            var request = new AnswerRequest(state.gameId(), number, TestCountriesClient.answerFor(state.question().text()));
+            state = (number % 2 == 0 ? first : second).answer(request).state();
+        }
+        assertFalse(state.finished());
+        assertEquals(13, instance().status(state.gameId()).score());
+        String correct = TestCountriesClient.answerFor(state.question().text());
+        String wrong = state.question().alternatives().stream().filter(choice -> !choice.equals(correct)).findFirst().orElseThrow();
+        var request = new AnswerRequest(state.gameId(), 14, wrong);
+        var answer = second.answer(request);
+        assertTrue(answer.state().finished());
+        assertEquals(13, answer.state().score());
+        assertEquals(answer, first.answer(request));
     }
 
     @Test void timedBatchRefillsAndExpiryKeepTheOriginalDeadline() throws Exception {

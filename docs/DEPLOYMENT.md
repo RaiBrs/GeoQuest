@@ -22,12 +22,27 @@ Para uma instalação nova, aplique os arquivos nesta ordem:
 2. `database/002_oauth_profile.sql`
 3. `database/003_shared_rounds.sql`
 4. `database/004_shared_oauth_sessions.sql`
+5. `database/005_timed_rankings.sql`
 
 Em um banco existente com a migração 001, aplique apenas a 002. Ela adiciona email/avatar opcionais ao
 perfil e o provedor à sessão, sem excluir perfis, identidades, sessões ou resultados. Para sessões antigas,
 o provedor é preenchido somente quando o perfil tem uma identidade inequívoca. As migrações 003 e 004
 adicionam partidas compartilhadas e sessões temporárias OAuth. Aplique as migrações ausentes em ordem,
 sem recriar o banco. Teste em ambiente isolado antes de alterar o banco publicado.
+
+A migração 005 remove somente resultados de `CAPITALS` e `SURVIVAL`. O trigger ignora gravações
+desses modos por versões antigas durante a atualização, sem provocar falha ao concluir uma partida.
+Resultados `TIMED`, perfis e sessões são preservados. Normal continua com dez perguntas; sobrevivência
+passa a usar o catálogo elegível completo nos novos jogos criados após publicar o código atualizado.
+Partidas já iniciadas mantêm as perguntas com que foram criadas.
+
+Validação da migração 005 em 3 de novembro de 2026: os testes locais passaram e a cópia Neon
+`timed-ranking-migration-check-20261103` preservou os sete resultados cronometrados com o mesmo
+checksum. Essa branch de teste expira em 4 de novembro de 2026 às 12h de São Paulo.
+Após aprovação explícita, a migração 005 foi aplicada no banco publicado em 3 de novembro de 2026:
+foram removidos quatro resultados de normal e doze de sobrevivência. Os sete cronometrados
+mantiveram o mesmo checksum, e o trigger `player_results_timed_only` está ativo.
+A nova interface e as regras de sobrevivência entram em vigor com a publicação do código atualizado.
 
 Forneça a conexão JDBC, usuário e senha separadamente nas variáveis do servidor:
 
@@ -107,7 +122,7 @@ Para falhas do Docker Desktop, consulte [DOCKER_TROUBLESHOOTING.md](DOCKER_TROUB
 Na Vercel, `vercel.json` seleciona o framework `container`, que usa o `Dockerfile` da raiz. Frontend e API
 continuam juntos no Java. Antes do primeiro deploy:
 
-1. Aplique as quatro migrações no Neon.
+1. Aplique as cinco migrações no Neon.
 2. No projeto `geoquest-migration`, abra **Environment Variables** e selecione **Production**.
 3. Cadastre como **Secrets**: `API_KEY`, `JDBC_DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`,
    `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`.
