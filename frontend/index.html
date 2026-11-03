@@ -202,8 +202,22 @@
               <div id="account-access" class="account-access">
                 <p id="account-status" class="muted" role="status"></p>
                 <div id="login-options" class="login-options" hidden>
-                  <a id="login-google" class="button secondary" href="/oauth2/authorization/google" data-i18n="Continue with Google">Continue with Google</a>
-                  <a id="login-github" class="button secondary" href="/oauth2/authorization/github" data-i18n="Continue with GitHub">Continue with GitHub</a>
+                  <!-- Translate only the label so language changes preserve each provider icon. -->
+                  <a id="login-google" class="button secondary" href="/oauth2/authorization/google">
+                    <svg class="provider-icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+                      <path fill="#4285f4" d="M43.61 24.46c0-1.36-.12-2.66-.35-3.92H24v7.42h11a9.4 9.4 0 0 1-4.08 6.18v5.13h6.61c3.87-3.56 6.08-8.8 6.08-14.81Z"/>
+                      <path fill="#34a853" d="M24 44c5.51 0 10.13-1.83 13.51-4.73l-6.61-5.13c-1.83 1.23-4.17 1.96-6.9 1.96-5.32 0-9.82-3.59-11.43-8.41H5.74v5.29A20 20 0 0 0 24 44Z"/>
+                      <path fill="#fbbc05" d="M12.57 27.69A12 12 0 0 1 11.94 24c0-1.28.22-2.52.63-3.69v-5.29H5.74A20 20 0 0 0 4 24c0 3.23.77 6.29 2.14 8.99Z"/>
+                      <path fill="#ea4335" d="M24 11.9c3 0 5.69 1.03 7.81 3.05l5.86-5.86C34.12 5.77 29.51 4 24 4A20 20 0 0 0 5.74 15.02l6.83 5.29C14.18 15.49 18.68 11.9 24 11.9Z"/>
+                    </svg>
+                    <span data-i18n="Continue with Google">Continue with Google</span>
+                  </a>
+                  <a id="login-github" class="button secondary" href="/oauth2/authorization/github">
+                    <svg class="provider-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+                      <path d="M12 .297a12 12 0 0 0-3.793 23.385c.6.111.82-.261.82-.577v-2.234c-3.338.726-4.043-1.416-4.043-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.835 2.807 1.305 3.492.998.108-.776.419-1.305.762-1.605-2.665-.304-5.467-1.334-5.467-5.931 0-1.31.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.323 3.301 1.23a11.52 11.52 0 0 1 6.006 0c2.291-1.553 3.297-1.23 3.297-1.23.654 1.652.243 2.873.119 3.176.769.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.216.694.825.576A12 12 0 0 0 12 .297Z"/>
+                    </svg>
+                    <span data-i18n="Continue with GitHub">Continue with GitHub</span>
+                  </a>
                 </div>
               </div>
               <p class="form-divider" data-i18n="or play as a guest">or play as a guest</p>
@@ -324,9 +338,10 @@
                 <h2 data-i18n="Against the clock">
                   Against the clock
                 </h2>
-                <span class="badge" data-i18n="60 seconds">
-                  60 seconds
-                </span>
+                <div class="mode-badges">
+                  <span class="badge" data-i18n="60 seconds">60 seconds</span>
+                  <span class="badge badge-ranked" data-i18n="Ranked">Ranked</span>
+                </div>
                 <p class="muted" data-i18n="Unlimited questions. Ranked when signed in.">
                   Unlimited questions. Ranked when signed in.
                 </p>

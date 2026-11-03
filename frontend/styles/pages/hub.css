@@ -11,6 +11,8 @@
 .mode-card .button:active:not(:disabled) { background: var(--geo-accent-emphasis); color: var(--geo-on-emphasis); }
 .mode-icon { display: grid; place-items: center; width: 40px; height: 40px; margin-bottom: 20px; border: 1px solid var(--geo-border); border-radius: var(--geo-radius); background: var(--geo-bg-primary); }
 .mode-card h2 { margin: 0 0 12px; }
+.mode-badges { display: flex; flex-wrap: wrap; gap: 8px; }
+.badge-ranked { color: var(--geo-accent); border-color: var(--geo-accent); background: var(--geo-accent-subtle); }
 .mode-card p { flex: 1; margin: 16px 0 24px; font-size: 13px; line-height: 1.6; }
 .mode-card .button { width: 100%; padding-inline: 12px; }
 .hub-footer { display: flex; align-items: center; justify-content: space-between; gap: 20px; border-top: 1px solid var(--geo-border-muted); margin-top: 24px; padding-top: 20px; }
@@ -22,6 +24,7 @@
   .mode-icon { grid-row: 1 / 3; margin-bottom: 0; }
   .mode-card h2 { margin-bottom: 8px; }
   .mode-card .badge { grid-column: 2; }
+  .mode-badges { grid-column: 2; }
   .mode-card p { grid-column: 1 / -1; margin: 16px 0; }
   .mode-card .button { grid-column: 1 / -1; }
 }

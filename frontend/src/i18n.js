@@ -40,6 +40,7 @@ const portuguese = {
   "10 questions": "10 perguntas",
   "Full catalog": "Catálogo completo",
   "60 seconds": "60 segundos",
+  "Ranked": "Ranqueado",
   "Keep playing after mistakes. Not ranked.": "Continue mesmo após errar. Sem ranking.",
   "Keep answering until your first mistake or the catalog ends. Not ranked.": "Continue até o primeiro erro ou o fim do catálogo. Sem ranking.",
   "Unlimited questions. Ranked when signed in.": "Perguntas ilimitadas. Vale ranking para quem está conectado.",

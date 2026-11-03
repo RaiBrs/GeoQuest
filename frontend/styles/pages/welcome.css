@@ -8,6 +8,7 @@
 .account-access { margin-top: 24px; }
 .account-access p { font-size: 13px; }
 .login-options { display: grid; gap: 12px; }
+.provider-icon { width: 20px; height: 20px; flex: 0 0 20px; }
 .form-divider { display: flex; align-items: center; gap: 12px; margin: 24px 0; color: var(--geo-text-secondary); font-size: 12px; }
 .form-divider::before, .form-divider::after { content: ""; height: 1px; background: var(--geo-border); flex: 1; }
 .welcome-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; max-width: 1000px; margin: 0 auto; }
