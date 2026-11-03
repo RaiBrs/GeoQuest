@@ -11,7 +11,7 @@ public class Country {
     }
 
     public Country(String name, String capital, String portugueseName, String portugueseCapital) {
-        // Normalize data at the boundary so every Country instance is usable by the game.
+        // Validate incoming names so every country can be used in the game.
         this.name = requireNonBlank(name, "Country name");
         this.capital = requireNonBlank(capital, "Country capital");
         this.portugueseName = optionalName(portugueseName);
@@ -27,6 +27,7 @@ public class Country {
     }
 
     public boolean supports(GameLanguage language) {
+        // A Portuguese question needs both country and capital names translated.
         return language == GameLanguage.EN || (portugueseName != null && portugueseCapital != null);
     }
 

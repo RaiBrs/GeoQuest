@@ -53,6 +53,7 @@ public final class AccountController {
                                      HttpServletRequest request, HttpServletResponse response) throws IOException {
         var user = requireUser(principal);
         if (!"DELETE".equals(confirmation.confirmation())) throw new IllegalArgumentException("Type DELETE to confirm account deletion.");
+        // A seven-day session is not enough for deletion; login must be within the last ten minutes.
         if (clock.instant().isAfter(user.authenticatedAt().plusSeconds(600))) return ApiErrors.response(403, "Sign in again before deleting your account.");
         accounts.backend().delete(user);
         games.removePlayerRounds(user.id());

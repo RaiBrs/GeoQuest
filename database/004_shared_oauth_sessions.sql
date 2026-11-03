@@ -1,4 +1,4 @@
--- Spring Session JDBC schema (PostgreSQL). Only the temporary OAuth handshake uses these sessions.
+-- Temporary OAuth login session; it does not replace the seven-day player session.
 create table if not exists geoquest_http_session (
   primary_id char(36) not null primary key,
   session_id char(36) not null,

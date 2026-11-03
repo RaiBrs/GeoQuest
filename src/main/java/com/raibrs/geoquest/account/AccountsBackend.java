@@ -8,6 +8,7 @@ import com.raibrs.geoquest.dto.GameDtos.GameView;
 import com.raibrs.geoquest.model.GameMode;
 import com.raibrs.geoquest.model.QuestionType;
 
+/** Account storage contract; display names do not replace player identity. */
 public interface AccountsBackend {
     record User(UUID id, String displayName, Instant authenticatedAt, String email,
                 String provider, String providerId, String avatarUrl) implements java.security.Principal {

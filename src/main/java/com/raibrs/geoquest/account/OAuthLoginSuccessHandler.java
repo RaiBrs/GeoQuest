@@ -7,7 +7,7 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import java.io.IOException;
 
-/** Bridges a Spring-verified identity to the existing profile and persistent session. */
+/** Turn a Spring-verified login into a GeoQuest profile and session. */
 public final class OAuthLoginSuccessHandler implements AuthenticationSuccessHandler {
     private final AccountSessions accounts;
     private final OAuth2AuthorizedClientService clients;
@@ -24,7 +24,7 @@ public final class OAuthLoginSuccessHandler implements AuthenticationSuccessHand
                     "Login could not be completed: " + error.getClass().getSimpleName());
             response.sendRedirect("/?login=failed");
         } finally {
-            // The game needs the verified identity, with no later provider API calls.
+            // The game keeps the identity; provider access tokens are discarded.
             clients.removeAuthorizedClient(oauth.getAuthorizedClientRegistrationId(), oauth.getName());
         }
     }

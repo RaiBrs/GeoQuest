@@ -10,7 +10,7 @@ import java.nio.file.*;
 public final class StaticFileHandler {
     private final Path frontend;
     public StaticFileHandler(Path frontend) { this.frontend = frontend; }
-    // The MVC mappings are the allowlist; unmapped requests retain normal 404/405 behavior.
+    // Only listed files are public; other paths return 404/405.
     @GetMapping({"/", "/index.html", "/privacy.html", "/styles.css", "/assets/geoquest-icon.svg",
             "/styles/tokens.css", "/styles/base.css", "/styles/layout.css", "/styles/components.css",
             "/styles/pages/hub.css", "/src/view/pages/account-view.js",

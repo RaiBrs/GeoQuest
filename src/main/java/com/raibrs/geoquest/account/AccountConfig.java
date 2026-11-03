@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.ArrayList;
 import com.raibrs.geoquest.config.EnvironmentConfig;
 
-/** Explicit opt-in: visitor mode needs no database or OAuth credentials. */
+/** Accounts are optional; guests play without a database or OAuth credentials. */
 public record AccountConfig(String appOrigin, String databaseUrl, String databaseUser, String databasePassword,
                             String googleId, String googleSecret, String githubId, String githubSecret) {
     public static AccountConfig from(Map<String, String> env) {

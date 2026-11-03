@@ -1,11 +1,12 @@
 # Documentação do GeoQuest
 
-Atualizada em 2 de novembro de 2026. Aplicação publicada em
+Atualizada em 3 de novembro de 2026. Aplicação publicada em
 [geoquest-raibrs.vercel.app](https://geoquest-raibrs.vercel.app/), com PostgreSQL no Neon.
 O serviço antigo do Render foi excluído.
 
 | Documento | Quando consultar |
 |---|---|
+| [CODE_GUIDE.md](CODE_GUIDE.md) | Localizar responsabilidades, acompanhar uma resposta e distinguir sessões e formatos internos. |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | Publicar na Vercel, configurar variáveis, banco, callbacks e executar testes. |
 | [VERCEL_MIGRATION.md](VERCEL_MIGRATION.md) | Entender a migração concluída, o estado compartilhado e as verificações registradas. |
 | [DOCKER_TROUBLESHOOTING.md](DOCKER_TROUBLESHOOTING.md) | Consultar o diagnóstico e a recuperação da falha do Docker Desktop. |

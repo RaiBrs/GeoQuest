@@ -3,15 +3,7 @@ import { test } from "node:test";
 import { initializeAccounts } from "../src/controller/account-controller.js";
 import { setLanguage } from "../src/i18n.js";
 
-class Element {
-  children = []; handlers = {}; value = ""; hidden = false; disabled = false; textContent = "";
-  addEventListener(event, handler) { this.handlers[event] = handler; }
-  append(...items) { this.children.push(...items); }
-  replaceChildren() { this.children = []; }
-  querySelectorAll() { return []; }
-  emit(name) { return this.handlers[name]?.({ preventDefault() {} }); }
-  set innerHTML(value) { throw new Error("Identity and ranking data must remain plain text"); }
-}
+import { Element } from "./support/dom-fixture.js";
 const ids = ["account-access","login-options","login-google","login-github","account-status","profile-panel","profile-name",
   "load-ranking","logout","ranking-mode","ranking-type","delete-confirmation","delete-account-form","ranking-status","ranking-list","account-error",
   "account-guest","user-label","user-initial","ranking-table"];
@@ -46,6 +38,13 @@ test("account UI restores identity, renders ranking safely and deletes only afte
     assert.equal(row.children[2].children[0].textContent, "9");
     assert.equal(row.children[2].children[1].textContent, "10 respondidas");
     assert.equal(ui["ranking-table"].hidden, false);
+    controller.updateAvailability({ screen: "ranking", busy: true });
+    controller.updateAvailability({ screen: "ranking", busy: false });
+    assert.equal(ui["ranking-list"].children[0], row, "Loading changes must preserve existing rows");
+    setLanguage("EN");
+    controller.updateAvailability({ screen: "ranking", busy: false });
+    assert.notEqual(ui["ranking-list"].children[0], row, "Dynamic ranking text follows the language");
+    assert.equal(ui["ranking-list"].children[0].children[2].children[1].textContent, "10 answered");
     ui["ranking-mode"].value = "TIMED";
     ui["ranking-mode"].emit("change");
     assert.equal(ui["ranking-list"].children.length, 0, "Do not display results belonging to the previous filters");

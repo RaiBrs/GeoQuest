@@ -2,22 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { shellView } from "../src/view/shell-view.js";
 
-class Element {
-  children = []; handlers = {}; dataset = {}; attributes = {}; hidden = false; disabled = false;
-  classList = { contains: () => false };
-  addEventListener(name, handler) { this.handlers[name] = handler; }
-  setAttribute(name, value) { this.attributes[name] = value; }
-  removeAttribute(name) { delete this.attributes[name]; }
-  querySelectorAll() { return this.children; }
-  contains(node) { return this.children.includes(node); }
-  focus() { document.activeElement = this; }
-  emit(name, extra = {}) {
-    let prevented = false;
-    this.handlers[name]?.({ preventDefault() { prevented = true; }, stopPropagation() {}, ...extra });
-    return prevented;
-  }
-  click() { if (!this.disabled) this.emit("click"); }
-}
+import { Element } from "./support/dom-fixture.js";
 
 test("drawer traps focus, closes with Escape/outside click, and remains closable while loading", () => {
   const original = { document: globalThis.document, window: globalThis.window };
@@ -28,7 +13,9 @@ test("drawer traps focus, closes with Escape/outside click, and remains closable
   const ui = Object.fromEntries(ids.map(id => [id, new Element()]));
   const buttons = ["home", "retry", "menu-toggle", "menu-close", "sidebar-overlay", "header-account", "account-sign-in",
     "resume-player", "nav-welcome", "nav-hub", "nav-ranking", "nav-account"].map(id => ui[id]);
-  for (const id of ["menu-toggle", "menu-close", "sidebar-overlay"]) ui[id].dataset.shellControl = "";
+  const unavailableFeature = new Element("future-feature", "BUTTON");
+  unavailableFeature.disabled = true;
+  buttons.push(unavailableFeature);
   ui.sidebar.children = [ui["menu-close"], ui["nav-welcome"], ui["nav-hub"], ui["nav-ranking"], ui["nav-account"]];
   const media = { matches: false, addEventListener(name, handler) { this.change = handler; } };
   globalThis.document = { getElementById: id => ui[id], querySelectorAll: () => buttons };
@@ -61,12 +48,13 @@ test("drawer traps focus, closes with Escape/outside click, and remains closable
     assert.equal(document.activeElement, ui["menu-toggle"]);
 
     ui["menu-toggle"].click();
-    shellView.updateControls(true, false);
+    shellView.updateControls(true);
     assert.equal(ui["nav-hub"].disabled, true);
     assert.equal(ui["menu-close"].disabled, false);
     ui["menu-close"].click();
     assert.equal(ui.sidebar.hidden, true, "Slow requests cannot trap the user in the drawer");
-    shellView.updateControls(false, false);
+    shellView.updateControls(false);
+    assert.equal(unavailableFeature.disabled, true, "Navigation must not enable unrelated feature buttons");
     ui["menu-toggle"].click();
     ui["sidebar-overlay"].click();
     assert.equal(ui.sidebar.hidden, true);

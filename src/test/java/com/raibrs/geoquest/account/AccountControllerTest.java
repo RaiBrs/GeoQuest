@@ -97,6 +97,19 @@ class AccountControllerTest {
         mvc.perform(post("/api/account/delete").cookie(cookie()).contentType("application/json").content("{\"confirmation\":\"DELETE\"}")).andExpect(status().isForbidden());
         assertEquals(0, backend.deleted);
     }
+
+    @Test void logoutRequiresCsrfAndRevokesThePersistentSession() throws Exception {
+        mvc.perform(post("/api/logout").cookie(cookie()).contentType("application/json").content("{}"))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/me").cookie(cookie())).andExpect(status().isOk());
+        mvc.perform(post("/api/logout").with(browserCsrf()).cookie(cookie()).contentType("application/json").content("{}"))
+                .andExpect(status().isOk())
+                .andExpect(header().stringValues("Set-Cookie", org.hamcrest.Matchers.hasItem(
+                        org.hamcrest.Matchers.containsString("geoquest_session=; Path=/; Max-Age=0"))));
+        mvc.perform(get("/api/me").cookie(cookie())).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/account").cookie(cookie())).andExpect(status().isOk())
+                .andExpect(jsonPath("$.user").isEmpty());
+    }
     @Test void deletionRequiresConfirmationAndRecentAuthenticationAndRevokesTheSession() throws Exception {
         mvc.perform(post("/api/account/delete").with(browserCsrf()).cookie(cookie()).contentType("application/json").content("{\"confirmation\":\"wrong\"}")).andExpect(status().isBadRequest());
         var fresh = backend.user;

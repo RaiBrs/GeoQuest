@@ -25,16 +25,16 @@ public final class GameController {
     @PostMapping(value = "/api/answers", consumes = "application/json")
     public AnswerView answer(@RequestBody AnswerRequest request, Principal principal) throws IOException, InterruptedException {
         var user = accounts.user(principal);
-        var answer = games.answer(request, user == null ? null : user.id());
-        accounts.save(user, answer.state(), games.questionType(request.gameId()));
-        return answer;
+        var result = games.answerWithType(request, user == null ? null : user.id());
+        accounts.save(user, result.value().state(), result.questionType());
+        return result.value();
     }
     @PostMapping(value = "/api/games/status", consumes = "application/json")
     public GameView status(@RequestBody StatusRequest request, Principal principal) throws IOException, InterruptedException {
         var user = accounts.user(principal);
-        var state = games.status(request.gameId(), user == null ? null : user.id());
-        accounts.save(user, state, games.questionType(state.gameId()));
-        return state;
+        var result = games.statusWithType(request.gameId(), user == null ? null : user.id());
+        accounts.save(user, result.value(), result.questionType());
+        return result.value();
     }
     private UUID owner(Principal principal) { var user = accounts.user(principal); return user == null ? null : user.id(); }
 }

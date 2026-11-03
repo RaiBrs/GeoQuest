@@ -5,7 +5,7 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.oauth2.client.web.*;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 
-/** Unknown providers fall through to MVC's 404 instead of Spring's redirect-filter error. */
+/** Unknown providers return 404 without starting OAuth login. */
 public final class ConfiguredOAuthRequestResolver implements OAuth2AuthorizationRequestResolver {
     private static final String BASE = "/oauth2/authorization";
     private final ClientRegistrationRepository registrations;

@@ -8,7 +8,7 @@ import java.sql.*;
 import java.time.*;
 import java.util.*;
 
-/** Persistent identities, hashed sessions and server-calculated scores. All SQL parameters are bound. */
+/** Store identities, session hashes and server scores with parameterized SQL. */
 public final class PostgresAccounts implements AccountsBackend {
     private final AccountConfig config;
     public PostgresAccounts(AccountConfig config) { this.config = config; }
@@ -30,6 +30,7 @@ public final class PostgresAccounts implements AccountsBackend {
         try (var db = connect()) {
             db.setAutoCommit(false);
             try {
+                // Concurrent logins for the same identity must create only one profile.
                 try (var lock = db.prepareStatement("select pg_advisory_xact_lock(hashtextextended(?, 0))")) {
                     lock.setString(1, verified.provider() + ":" + verified.subject()); lock.execute();
                 }
@@ -88,6 +89,7 @@ public final class PostgresAccounts implements AccountsBackend {
         } catch (SQLException exception) { throw unavailable(exception); }
     }
     @Override public void saveResult(User user, GameView state, QuestionType type) throws IOException {
+        // The round ID prevents duplicate results during retries or status checks.
         if (!state.finished()) return;
         try (var db = connect(); var insert = db.prepareStatement("insert into player_results(game_id,user_id,mode,question_type,score,answered) values (?,?,?,?,?,?) on conflict(game_id) do nothing")) {
             insert.setObject(1, state.gameId()); insert.setObject(2, user.id()); insert.setString(3, state.mode().name());
@@ -95,6 +97,7 @@ public final class PostgresAccounts implements AccountsBackend {
         } catch (SQLException exception) { throw unavailable(exception); }
     }
     @Override public List<Leader> leaderboard(GameMode mode, QuestionType type) throws IOException {
+        // First select each player's best round, then sort the top twenty players.
         String sql = "select display_name,score,answered from (select distinct on (r.user_id) p.display_name,r.score,r.answered,r.created_at,r.user_id from player_results r join player_profiles p on p.id=r.user_id where r.mode=? and r.question_type=? order by r.user_id,r.score desc,r.created_at) best order by score desc,created_at,user_id limit 20";
         try (var db = connect(); var query = db.prepareStatement(sql)) {
             query.setString(1, mode.name()); query.setString(2, type.name());

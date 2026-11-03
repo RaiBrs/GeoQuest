@@ -10,7 +10,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.List;
 
-/** Adapts the existing database session to Spring's request-scoped SecurityContext. */
+/** Read the database session and authenticate only the current request. */
 public final class PersistentSessionFilter extends OncePerRequestFilter {
     private final AccountSessions accounts;
     public PersistentSessionFilter(AccountSessions accounts) { this.accounts = accounts; }

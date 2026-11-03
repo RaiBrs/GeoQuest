@@ -34,7 +34,7 @@ public final class GameSession {
             throw new IllegalArgumentException("A game session needs at least one question.");
         }
 
-        // Keep the session stable even if the caller later changes its original list.
+        // The copy prevents external changes from modifying the round questions.
         this.questions = List.copyOf(questions);
         this.nextQuestions = Objects.requireNonNull(nextQuestions);
         this.mode = Objects.requireNonNull(mode);
@@ -61,7 +61,7 @@ public final class GameSession {
             if (next.isEmpty()) throw new IllegalStateException("A timed round needs more questions.");
             questions = next;
             batchIndex = 0;
-            // Generation uses the existing deadline; a new batch never grants more time.
+            // A new question batch keeps the round's original deadline.
             if (isFinished()) return null;
         }
         return questions.get(batchIndex);
@@ -77,7 +77,7 @@ public final class GameSession {
             mistakes.add(new Mistake(currentQuestionIndex + 1, question.getText(), choice,
                     question.getCorrectAnswer()));
         }
-        // One state transition owns both scoring and termination, independent of any UI.
+        // The same transition calculates points and decides when the round ends.
         if (correct) score++;
         currentQuestionIndex++;
         batchIndex++;
@@ -87,6 +87,7 @@ public final class GameSession {
     }
 
     public boolean isFinished() {
+        // Reading the state also detects expiry, even without a new answer.
         if (!finished && expiresAt != null && !clock.instant().isBefore(expiresAt)) {
             finished = true;
             timedOut = true;
@@ -115,7 +116,7 @@ public final class GameSession {
 
     public List<Mistake> getMistakes() { return List.copyOf(mistakes); }
 
-    /** Internal persistence state; never use this as an HTTP response (it contains answer keys). */
+    /** Internal state with answer keys; only for storage, never for HTTP responses. */
     public Snapshot snapshot() {
         isFinished();
         return new Snapshot(questions.stream().map(q -> new StoredQuestion(q.getText(),

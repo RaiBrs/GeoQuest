@@ -24,9 +24,8 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
-/** Coordinates rounds using local memory or transactional shared storage; Java owns scoring. */
+/** Coordinate rounds in memory or the database; the server calculates scores. */
 public final class GameService {
     private final CountriesClient countriesClient;
     private final QuestionService questionService;
@@ -37,7 +36,6 @@ public final class GameService {
     private static final Duration FINISHED_TTL = Duration.ofMinutes(5);
     private final Clock clock;
     private final PostgresRoundStorage storage;
-    private final ObjectMapper json = new ObjectMapper();
 
     public GameService(CountriesClient countriesClient, QuestionService questionService) {
         this(countriesClient, questionService, Clock.systemUTC());
@@ -94,18 +92,18 @@ public final class GameService {
     public AnswerView answer(AnswerRequest request) { return answer(request, null); }
 
     public AnswerView answer(AnswerRequest request, UUID owner) {
+        return answerWithType(request, owner).value();
+    }
+
+    public RoundResult<AnswerView> answerWithType(AnswerRequest request, UUID owner) {
         if (request == null) {
             throw new IllegalArgumentException("Provide an answer.");
         }
-        return withRound(request.gameId(), round -> {
-            requireOwner(round, owner);
-            round.lastActivity = clock.instant();
-            return answer(round, request);
-        });
+        return withOwnedRound(request.gameId(), owner, round -> answer(round, request));
     }
 
     private AnswerView answer(Round round, AnswerRequest request) {
-        // A network retry returns the original response without scoring twice.
+        // Repeating the same submission returns the previous result without scoring twice.
         if (request.equals(round.lastRequest)) {
             return round.lastAnswer;
         }
@@ -120,7 +118,7 @@ public final class GameService {
         try {
             result = round.session.answer(request.choice());
         } catch (IllegalStateException exception) {
-            // The deadline may pass between the checks above and accepting this answer.
+            // The deadline may pass between validation and accepting the answer.
             if (round.session.isTimedOut()) return new AnswerView(false, "", view(round));
             throw exception;
         }
@@ -140,16 +138,29 @@ public final class GameService {
     public GameView status(UUID gameId) { return status(gameId, null); }
 
     public GameView status(UUID gameId, UUID owner) {
-        return withRound(gameId, round -> {
+        return statusWithType(gameId, owner).value();
+    }
+
+    public RoundResult<GameView> statusWithType(UUID gameId, UUID owner) {
+        return withOwnedRound(gameId, owner, this::view);
+    }
+
+    // Read state and question type under the same lock, without a second transaction.
+    private <T> RoundResult<T> withOwnedRound(UUID id, UUID owner, Function<Round, T> action) {
+        return withRound(id, round -> {
             requireOwner(round, owner);
             round.lastActivity = clock.instant();
-            return view(round);
+            return new RoundResult<>(action.apply(round), round.type);
         });
     }
+
+    /** Internal metadata; only value() is sent to the browser. */
+    public record RoundResult<T>(T value, QuestionType questionType) {}
 
     public QuestionType questionType(UUID gameId) { return withRound(gameId, round -> round.type); }
 
     private <T> T withRound(UUID id, Function<Round, T> action) {
+        // The lock covers reading, validation and saving, in memory or across database instances.
         if (storage != null) return storage.update(id, clock.instant(), data -> {
             Round round = restore(data);
             if (expired(round)) throw new NoSuchElementException("Round not found. Start a new game.");
@@ -164,16 +175,14 @@ public final class GameService {
     }
 
     private byte[] save(Round round) {
-        try {
-            return json.writeValueAsBytes(new SavedRound(round.id, round.session.snapshot(), round.owner,
-                    round.type, round.language, round.lastRequest, round.lastAnswer,
-                    round.lastActivity.toEpochMilli(), round.finishedAt == null ? null : round.finishedAt.toEpochMilli()));
-        } catch (IOException error) { throw new RoundStorageUnavailable(); }
+        return new RoundSnapshot(round.id, round.session.snapshot(), round.owner,
+                round.type, round.language, round.lastRequest, round.lastAnswer,
+                round.lastActivity.toEpochMilli(), round.finishedAt == null ? null : round.finishedAt.toEpochMilli()).toBytes();
     }
 
     private Round restore(byte[] data) {
         try {
-            SavedRound saved = json.readValue(data, SavedRound.class);
+            RoundSnapshot saved = RoundSnapshot.fromBytes(data);
             var session = GameSession.restore(saved.session(), clock, () -> {
                 try { return questionService.createQuestions(catalog(), 10, saved.type(), saved.language()); }
                 catch (IOException error) { throw new RoundStorageUnavailable(); }
@@ -185,14 +194,11 @@ public final class GameService {
             round.lastAnswer = saved.lastAnswer();
             round.finishedAt = saved.finishedAt() == null ? null : Instant.ofEpochMilli(saved.finishedAt());
             return round;
-        } catch (IOException | IllegalArgumentException error) { throw new RoundStorageUnavailable(); }
+        } catch (IllegalArgumentException error) { throw new RoundStorageUnavailable(); }
     }
 
-    private record SavedRound(UUID id, GameSession.Snapshot session, UUID owner, QuestionType type,
-                              GameLanguage language, AnswerRequest lastRequest, AnswerView lastAnswer,
-                              long lastActivity, Long finishedAt) {}
-
     private void requireOwner(Round round, UUID owner) {
+        // The same missing-round response avoids revealing other players' rounds.
         if (!Objects.equals(round.owner, owner)) throw new NoSuchElementException("Round not found. Start a new game.");
     }
 
@@ -200,7 +206,7 @@ public final class GameService {
         QuestionView question = null;
         Question current = round.session.getCurrentQuestionOrNull();
         if (current != null) {
-            // Never serialize the domain Question, which contains the answer key.
+            // The browser receives text and choices, without the next question's answer key.
             question = new QuestionView(current.getText(), current.getAlternatives());
         }
         Integer total = round.session.getMode() == GameMode.TIMED ? null : round.session.getTotalQuestions();
@@ -217,6 +223,7 @@ public final class GameService {
     }
 
     private List<Country> catalog() throws IOException, InterruptedException {
+        // The first round loads the catalog; later rounds reuse its immutable copy.
         synchronized (catalogLock) {
             if (countryCatalog == null) countryCatalog = List.copyOf(countriesClient.fetchAllCountries(80));
             return countryCatalog;
@@ -234,6 +241,7 @@ public final class GameService {
     }
 
     private Instant expiry(Round round) {
+        // Reading a result does not extend its retention after the round ends.
         return round.finishedAt == null ? round.lastActivity.plus(IDLE_TTL) : round.finishedAt.plus(FINISHED_TTL);
     }
 

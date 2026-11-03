@@ -3,7 +3,7 @@ WORKDIR /build
 
 COPY pom.xml ./
 COPY src ./src
-# HTTP integration tests read the frontend assets from the project directory.
+# HTTP tests read the frontend files during the build.
 COPY frontend ./frontend
 RUN mvn -B -ntp verify
 

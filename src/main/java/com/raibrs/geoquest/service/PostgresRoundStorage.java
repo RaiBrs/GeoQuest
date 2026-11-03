@@ -7,7 +7,7 @@ import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.function.Function;
 
-/** One transaction and row lock own each transition, including retry responses. */
+/** Each transition locks one database round, including when checking retries. */
 public final class PostgresRoundStorage {
     private final DataSource source;
     public PostgresRoundStorage(DataSource source) { this.source = source; }

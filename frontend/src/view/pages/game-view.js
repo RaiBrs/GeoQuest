@@ -6,6 +6,11 @@ function renderScore(score) {
 }
 
 export const gameView = {
+  updateControls(busy, answersLocked) {
+    for (const id of ["next", "restart-round"]) element(id).disabled = busy;
+    for (const button of element("alternatives").children) button.disabled = busy || answersLocked;
+  },
+
   renderMode(mode, timed) {
     element("game").dataset.mode = mode;
     element("mode-label").textContent = {
@@ -43,7 +48,7 @@ export const gameView = {
       if (event.key === " ") {
         const next = element("next");
         if (event.shiftKey || !canContinue() || next.hidden || next.disabled) return;
-        // Other focused buttons retain their native keyboard behavior.
+        // Keep the native Space key action when another button has focus.
         if (event.target.tagName === "BUTTON" && event.target !== next) return;
         event.preventDefault();
         next.click();
@@ -88,6 +93,7 @@ export const gameView = {
   },
 
   renderAnswer(answer, choice, playerName) {
+    // Feedback uses the server response; the frontend does not decide scores or correctness.
     element("game").dataset.feedback = answer.correct ? "correct" : "wrong";
     const state = answer.state;
     renderScore(state.score);

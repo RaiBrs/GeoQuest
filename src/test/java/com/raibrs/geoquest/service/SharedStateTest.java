@@ -48,6 +48,26 @@ class SharedStateTest {
         return new GameService(new TestCountriesClient(), new QuestionService(), clock, storage);
     }
 
+    @Test void controllerReadsStateAndScoringMetadataInOneTransaction() throws Exception {
+        var counted = org.mockito.Mockito.mock(javax.sql.DataSource.class,
+                org.mockito.AdditionalAnswers.delegatesTo(source));
+        var games = new GameService(new TestCountriesClient(), new QuestionService(), clock,
+                new PostgresRoundStorage(counted));
+        var controller = new com.raibrs.geoquest.controller.GameController(games,
+                new com.raibrs.geoquest.account.AccountSessions(null, null));
+        var state = games.start(GameMode.CAPITALS, QuestionType.COUNTRY, GameLanguage.EN);
+        org.mockito.Mockito.clearInvocations(counted);
+        var answer = controller.answer(new AnswerRequest(state.gameId(), 1,
+                state.question().alternatives().getFirst()), null);
+        org.mockito.Mockito.verify(counted, org.mockito.Mockito.times(1)).getConnection();
+        assertEquals(1, answer.state().answered());
+        org.mockito.Mockito.clearInvocations(counted);
+        assertEquals(answer.state(), controller.status(
+                new com.raibrs.geoquest.dto.GameDtos.StatusRequest(state.gameId()), null));
+        org.mockito.Mockito.verify(counted, org.mockito.Mockito.times(1)).getConnection();
+        assertEquals(QuestionType.COUNTRY, games.statusWithType(state.gameId(), null).questionType());
+    }
+
     @Test void aRoundAndItsExactRetrySurviveAcrossInstances() throws Exception {
         var state = first.start(GameMode.CAPITALS, QuestionType.CAPITAL, GameLanguage.EN);
         var request = new AnswerRequest(state.gameId(), 1, TestCountriesClient.answerFor(state.question().text()));

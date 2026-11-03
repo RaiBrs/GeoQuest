@@ -11,7 +11,7 @@ import org.springframework.session.web.http.DefaultCookieSerializer;
 import org.springframework.transaction.PlatformTransactionManager;
 import javax.sql.DataSource;
 
-/** Explicit opt-in: local and existing single-instance deployments keep their current behavior. */
+/** Shared state is optional: rounds and temporary login can continue across instances. */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(name = "SHARED_STATE_ENABLED", havingValue = "true")
 @EnableJdbcHttpSession(tableName = "geoquest_http_session", maxInactiveIntervalInSeconds = 600)

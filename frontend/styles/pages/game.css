@@ -21,6 +21,7 @@ progress::-moz-progress-bar { background: var(--geo-success); border-radius: 3px
 .option-label { min-width: 0; overflow-wrap: anywhere; }
 .option-state { grid-column: 2; color: inherit; font-size: 12px; }
 .option-state:empty { display: none; }
+/* After an answer, locked choices stay readable so the correction remains clear. */
 .alternative:disabled { opacity: 1; }
 .alternative[data-outcome="correct"] { color: var(--geo-success); border-color: var(--geo-success); background: var(--geo-success-bg); }
 .alternative[data-outcome="wrong"] { color: var(--geo-danger); border-color: var(--geo-danger); background: var(--geo-danger-bg); }

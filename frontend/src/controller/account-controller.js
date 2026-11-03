@@ -1,16 +1,29 @@
 import { request } from "../service/http-client.js";
 import { element } from "../view/dom.js";
-import { t } from "../i18n.js";
+import { getLanguage } from "../i18n.js";
 import { accountView } from "../view/pages/account-view.js";
 
 export function initializeAccounts(game) {
   let account = { enabled: false, user: null, providers: [] };
   let leaders = [], rankingLoaded = false, errorKey = "";
   let pending = false, screen = "login", gameBusy = false;
+  let rankingLanguage;
 
   function render() {
     accountView.render({ account, pending, gameBusy, screen, errorKey });
+  }
+
+  // Control locks keep ranking rows intact; data and language changes update the table.
+  function renderRanking() {
     accountView.renderRanking(account, leaders, rankingLoaded);
+    rankingLanguage = getLanguage();
+  }
+
+  function resetRanking() {
+    // New filters must not show results from the previous query.
+    leaders = [];
+    rankingLoaded = false;
+    renderRanking();
   }
   async function perform(action) {
     if (pending || gameBusy || screen === "game") return;
@@ -26,13 +39,10 @@ export function initializeAccounts(game) {
     const mode = element("ranking-mode").value, type = element("ranking-type").value;
     leaders = await request(`/api/leaderboard?mode=${encodeURIComponent(mode)}&questionType=${encodeURIComponent(type)}`);
     rankingLoaded = true;
+    renderRanking();
   }));
   for (const id of ["ranking-mode", "ranking-type"]) {
-    element(id).addEventListener("change", () => {
-      leaders = [];
-      rankingLoaded = false;
-      render();
-    });
+    element(id).addEventListener("change", resetRanking);
   }
   element("logout").addEventListener("click", () => perform(async () => {
     await request("/api/logout", {});
@@ -46,12 +56,13 @@ export function initializeAccounts(game) {
       await request("/api/account/delete", { confirmation: "DELETE" });
       account.user = null;
       element("delete-confirmation").value = "";
-      leaders = [];
-      rankingLoaded = false;
+      resetRanking();
       game.clearAccount();
     });
   });
   render();
+  renderRanking();
+  // Restore the server identity before allowing entry or a new round.
   game.setAccountBusy(true);
   request("/api/account").then(data => {
     account = data;
@@ -59,8 +70,14 @@ export function initializeAccounts(game) {
     const query = new URLSearchParams(window.location.search);
     if (query.get("login") === "failed") errorKey = "Sign-in could not be completed. Please try again.";
     render();
+    renderRanking();
   }).catch(() => {
-    element("account-status").textContent = t("Online accounts are unavailable. You can still play as a guest.");
+    render();
   }).finally(() => game.setAccountBusy(false));
-  return { updateAvailability(state) { screen = state.screen; gameBusy = state.busy; render(); } };
+  return { updateAvailability(state) {
+    screen = state.screen;
+    gameBusy = state.busy;
+    render();
+    if (rankingLanguage !== getLanguage()) renderRanking();
+  } };
 }

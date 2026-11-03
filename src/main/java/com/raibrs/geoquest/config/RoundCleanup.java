@@ -3,6 +3,7 @@ import com.raibrs.geoquest.service.GameService;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+/** Remove expired rounds periodically; each access also checks their validity. */
 @Component
 public final class RoundCleanup {
     private final GameService games;

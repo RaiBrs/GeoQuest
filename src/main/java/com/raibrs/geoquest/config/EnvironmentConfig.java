@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.net.InetSocketAddress;
 
-/** Local .env defaults with explicit process environment overrides. Never evaluates file contents. */
+/** Read literal .env values; process environment variables take priority. */
 public final class EnvironmentConfig {
     private EnvironmentConfig() {}
 
@@ -42,14 +42,14 @@ public final class EnvironmentConfig {
                         }
                         value = value.substring(1, value.length() - 1);
                     }
-                    // Preserve passwords literally: $, #, =, quotes, and backslashes are not executed or expanded.
+                    // Passwords are literal; symbols do not run commands or expand variables.
                     values.put(name, value);
                 }
             } catch (IOException exception) {
                 throw new IllegalArgumentException("Could not read the local .env configuration.", exception);
             }
         }
-        // Local defaults must never override an explicit deployment or IDE environment setting.
+        // Deployment or IDE settings take priority over the local file.
         values.putAll(environment);
         return Map.copyOf(values);
     }
@@ -77,7 +77,7 @@ public final class EnvironmentConfig {
     }
 
     private static IllegalArgumentException invalidLine(int number) {
-        // Report only the location, never the potentially secret contents of a malformed line.
+        // Report the invalid line number without exposing content that may contain a password.
         return new IllegalArgumentException("Invalid .env entry at line " + number
                 + ". Use one NAME=value per line; quoted values must close on the same line.");
     }

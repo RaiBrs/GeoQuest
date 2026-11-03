@@ -12,7 +12,7 @@ import org.springframework.web.client.*;
 import java.net.http.HttpClient;
 import java.time.Duration;
 
-/** Preserve bounded provider calls while delegating protocol handling to Spring. */
+/** Limit provider request times; Spring validates the OAuth protocol. */
 @Configuration(proxyBeanMethods = false)
 public class OAuthClientConfig {
     private JdkClientHttpRequestFactory requestFactory() {

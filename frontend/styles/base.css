@@ -1,5 +1,6 @@
 :root { font-family: var(--geo-font-sans); color: var(--geo-text-primary); background: var(--geo-bg-primary); line-height: 1.5; font-size: 14px; }
 * { box-sizing: border-box; }
+/* hidden must take priority even when a page uses display: grid or flex. */
 [hidden] { display: none !important; }
 body {
   margin: 0;
@@ -30,5 +31,6 @@ hr { border: 0; border-top: 1px solid var(--geo-border); margin: 24px 0; }
   input, select { font-size: 16px; }
 }
 @media (prefers-reduced-motion: reduce) {
+  /* The accessibility preference takes priority over page animations. */
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

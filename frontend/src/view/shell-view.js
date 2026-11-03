@@ -19,6 +19,7 @@ export const shellView = {
     function setOpen(value, restoreFocus = false) {
       open = value && currentScreen !== "login";
       const modal = open && !desktop.matches;
+      // On mobile, the menu acts as a dialog and blocks interaction with the rest of the page.
       element("app-shell").dataset.sidebar = open ? "open" : "closed";
       sidebar.hidden = !open;
       toggle.setAttribute("aria-expanded", String(open));
@@ -105,12 +106,11 @@ export const shellView = {
 
   showLoading(operation) { element("loading-text").textContent = t(loadingMessages[operation]); },
 
-  updateControls(busy, answersLocked) {
-    for (const button of document.querySelectorAll("button")) {
-      // Drawer controls must remain usable while a request is pending.
-      if ("shellControl" in button.dataset) continue;
-      button.disabled = busy || (button.classList.contains("alternative") && answersLocked);
-    }
+  updateControls(busy) {
+    // The shell controls navigation; each page controls its own action buttons.
+    // The menu can still open and close during slow requests.
+    for (const id of ["home", "retry", "header-account", "account-sign-in", "resume-player",
+      "nav-welcome", "nav-hub", "nav-ranking", "nav-account"]) element(id).disabled = busy;
     element("app").setAttribute("aria-busy", String(busy));
     element("loading").hidden = !busy;
   },

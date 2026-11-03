@@ -3,13 +3,7 @@ import { test } from "node:test";
 import { resultView } from "../src/view/pages/result-view.js";
 import { setLanguage } from "../src/i18n.js";
 
-class Element {
-  children = [];
-  textContent = "";
-  replaceChildren() { this.children = []; }
-  append(...children) { this.children.push(...children); }
-  set innerHTML(value) { throw new Error("Player and API data must remain plain text"); }
-}
+import { Element } from "./support/dom-fixture.js";
 
 test("renders a localized mistake review safely and resets it for a perfect or unanswered round", () => {
   const originalDocument = globalThis.document;

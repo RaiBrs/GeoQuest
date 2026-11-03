@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.util.HashMap;
 
+/** Wires the game services; enabling accounts does not add password login. */
 @SpringBootApplication(exclude = UserDetailsServiceAutoConfiguration.class)
 @EnableScheduling
 public class WebApp {

@@ -14,6 +14,7 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
   let entered = false;
   let accountName;
   let state;
+  // state may already hold the next question while answer keeps the previous feedback.
   let answer;
   let pendingAnswer;
   let busy = false;
@@ -25,31 +26,33 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
   let selectedType = "CAPITAL";
 
   function playerName() { return accountName || t("Guest"); }
+  function isBusy() { return busy || accountBusy; }
 
   function stopTimer() { clearInterval(timer); timer = undefined; }
   function stopAutoAdvance() { clearTimeout(autoAdvance); autoAdvance = undefined; }
 
+  // Leaving or reaching the deadline cancels both the countdown and automatic advance.
+  function stopRoundTimers() { stopTimer(); stopAutoAdvance(); }
+
   function leaveRound() {
-    stopTimer();
-    stopAutoAdvance();
+    stopRoundTimers();
     state = answer = pendingAnswer = undefined;
   }
 
-  function showHub() {
+  function showSection(next) {
+    // Navigation clears the local round; the server round follows its own expiry policy.
     leaveRound();
-    hubView.render(playerName());
-    showScreen("hub");
-    updateControls();
-    focusCurrentStep();
+    if (next === "hub") hubView.render(playerName());
+    showScreen(next);
   }
 
   function updateTimer() {
     if (!state?.expiresAt || screen !== "game") return;
     const seconds = Math.max(0, Math.ceil((state.expiresAt - Date.now()) / 1000));
     gameView.renderTimer(seconds);
-    if (seconds === 0 && !busy && !shellView.hasError()) {
-      stopTimer();
-      stopAutoAdvance();
+    if (seconds === 0 && !isBusy() && !shellView.hasError()) {
+      stopRoundTimers();
+      // The browser clock shows the deadline; the server confirms when the round ends.
       run(async () => {
         state = await gameService.status(state.gameId);
         if (state.finished) showResult();
@@ -59,17 +62,16 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
   }
 
   function showResult() {
-    stopTimer();
-    stopAutoAdvance();
+    stopRoundTimers();
     resultView.renderSummary(state, playerName());
     showScreen("result");
-    focusCurrentStep();
   }
 
-  function showScreen(next) {
+  function showScreen(next, focus = true) {
     screen = next;
     shellView.showScreen(next);
-    element("language").disabled = next === "game" || next === "result";
+    updateControls();
+    if (focus) focusCurrentStep();
   }
 
   function clearError() {
@@ -78,18 +80,21 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
   }
 
   function updateControls() {
-    shellView.updateControls(busy || accountBusy, answer != null || pendingAnswer != null);
-    element("language").disabled = busy || accountBusy || screen === "game" || screen === "result";
-    element("question-type").disabled = busy || accountBusy;
-    element("change-player").hidden = Boolean(accountName);
+    const locked = isBusy();
+    shellView.updateControls(locked);
+    gameView.updateControls(locked, answer != null || pendingAnswer != null);
+    hubView.updateControls(locked, accountName);
+    welcomeView.updateControls(locked);
+    resultView.updateControls(locked);
+    element("language").disabled = locked || screen === "game" || screen === "result";
     element("resume-player").hidden = !entered;
-    onStateChange({ screen, busy: busy || accountBusy });
+    onStateChange({ screen, busy: locked });
   }
 
   function focusCurrentStep() { shellView.focusCurrentStep(screen, answer != null); }
 
   async function run(action, operation) {
-    if (busy || accountBusy) return;
+    if (isBusy()) return;
     clearError();
     busy = true;
     shellView.showLoading(operation);
@@ -102,7 +107,7 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
     } finally {
       busy = false;
       updateControls();
-      // Disabled buttons cannot receive focus; enable controls before restoring it.
+      // Enable buttons before restoring focus; disabled buttons cannot receive it.
       focusCurrentStep();
     }
   }
@@ -111,7 +116,8 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
     const nextState = await gameService.start(selectedMode, selectedType, getLanguage());
     state = nextState;
     pendingAnswer = undefined;
-    showScreen("game");
+    // Render the new question before run() restores focus.
+    showScreen("game", false);
     renderQuestion();
     stopTimer();
     gameView.renderMode(selectedMode, state.expiresAt != null);
@@ -126,10 +132,10 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
   }
 
   function chooseAnswer(choice) {
-    if (busy || pendingAnswer || answer) return;
+    if (isBusy() || pendingAnswer || answer) return;
     const submission = { gameId: state.gameId, number: state.number, choice };
     pendingAnswer = submission;
-    // Replay the exact submission after an ambiguous network failure.
+    // The server may save an answer before a network failure; retry sends the same submission.
     run(() => submitAnswer(submission), "answer");
   }
 
@@ -144,7 +150,7 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
   }
 
   function navigate(action) {
-    if (busy || accountBusy) return;
+    if (isBusy()) return;
     clearError();
     action();
   }
@@ -152,13 +158,12 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
   function resetPlayer() {
     leaveRound();
     entered = false;
-    showScreen("login");
-    updateControls();
+    showScreen("login", false);
     welcomeView.focus();
   }
 
   function continueRound() {
-    if (screen !== "game" || busy || accountBusy || !answer) return;
+    if (screen !== "game" || isBusy() || !answer) return;
     stopAutoAdvance();
     clearError();
     if (state.mode === "TIMED" && Date.now() >= state.expiresAt) { updateTimer(); return; }
@@ -166,24 +171,17 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
     showResult();
   }
 
-  function canUseShortcuts() { return screen === "game" && !busy && !accountBusy; }
+  function canUseShortcuts() { return screen === "game" && !isBusy(); }
 
   function restartRound() {
-    if (busy || !state?.finished) return;
+    if (isBusy() || !state?.finished) return;
     run(startGame, "start");
   }
 
-  function showHome() {
-    leaveRound();
-    showScreen("welcome");
-    updateControls();
-    focusCurrentStep();
-  }
-
   welcomeView.bind({ onContinue() {
-    if (busy || accountBusy || entered) return;
+    if (isBusy() || entered) return;
     entered = true;
-    showHome();
+    showSection("welcome");
   } });
   gameView.bind({
     onNext: continueRound,
@@ -194,22 +192,18 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
   });
   resultView.bind({
     onRestart: restartRound,
-    onBackToHome: () => navigate(() => entered ? showHub() : resetPlayer())
+    onBackToHome: () => navigate(() => entered ? showSection("hub") : resetPlayer())
   });
   shellView.bind({
-    onHome: () => navigate(() => entered ? showHome() : resetPlayer()),
+    onHome: () => navigate(() => entered ? showSection("welcome") : resetPlayer()),
     onNavigate: next => navigate(() => {
       if (next === "login" || !entered) { resetPlayer(); return; }
-      if (next === "hub") { showHub(); return; }
-      leaveRound();
-      showScreen(next);
-      updateControls();
-      focusCurrentStep();
+      showSection(next);
     }),
     onRetry: () => { if (retryTask) run(retryTask.action, retryTask.operation); }
   });
   element("language").addEventListener("change", () => {
-    if (busy || screen === "game" || screen === "result") return;
+    if (isBusy() || screen === "game" || screen === "result") return;
     setLanguage(element("language").value);
     shellView.showScreen(screen);
     if (screen === "hub") hubView.render(playerName());
@@ -219,7 +213,7 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
   initializeLanguage();
   hubView.bind({
     onSelectMode(mode) {
-      if (busy || accountBusy || !entered) return;
+      if (isBusy() || !entered) return;
       selectedMode = mode;
       selectedType = element("question-type").value || "CAPITAL";
       run(startGame, "start");
@@ -230,7 +224,7 @@ export function initializeGameController({ onStateChange = () => {} } = {}) {
     useAccount(name) {
       accountName = name;
       entered = true;
-      if (["login", "welcome", "hub"].includes(screen)) showHome();
+      if (["login", "welcome", "hub"].includes(screen)) showSection("welcome");
     },
     clearAccount() { accountName = undefined; resetPlayer(); },
     setAccountBusy(value) {

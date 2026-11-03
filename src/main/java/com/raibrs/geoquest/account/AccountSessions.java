@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.util.*;
 
-/** Keeps existing seven-day database sessions; Spring handles the OAuth handshake. */
+/** Manage the seven-day game session; Spring handles the initial provider exchange. */
 public final class AccountSessions {
     public static final String COOKIE = "geoquest_session";
     private final AccountConfig config;
@@ -30,6 +30,7 @@ public final class AccountSessions {
     }
     public void signIn(SocialIdentity identity, HttpServletRequest request, HttpServletResponse response) throws IOException {
         var user = backend.login(identity);
+        // The cookie gets a random token; the database stores only its hash.
         byte[] bytes = new byte[32]; random.nextBytes(bytes);
         String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
         backend.createSession(user, hash(token));
@@ -46,6 +47,7 @@ public final class AccountSessions {
     }
     public void clear(HttpServletResponse response) { cookie(response, COOKIE, "", 0, "/"); }
     public void clearHandshake(HttpServletRequest request, HttpServletResponse response) {
+        // The temporary login session must end after sign-in or sign-out.
         var session = request.getSession(false);
         if (session != null) session.invalidate();
         cookie(response, "JSESSIONID", "", 0, "/");

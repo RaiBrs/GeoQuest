@@ -6,11 +6,11 @@ import com.raibrs.geoquest.model.GameMode;
 import com.raibrs.geoquest.model.QuestionType;
 import com.raibrs.geoquest.model.GameLanguage;
 
-/** Plain API data, kept separate from HTTP handling and domain state. */
+/** API JSON contracts, separate from internal state and answer keys. */
 public final class GameDtos {
     private GameDtos() {}
 
-    // Display names belong to browser greetings and are never part of API requests.
+    // Names and scores do not come from the client; the session identifies the player.
     public record StartRequest(GameMode mode, QuestionType questionType, GameLanguage language) {}
     public record StatusRequest(UUID gameId) {}
     public record AnswerRequest(UUID gameId, int number, String choice) {}

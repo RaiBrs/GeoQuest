@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
 
+/** Turn failures into public messages; keep technical details out of HTTP responses. */
 @RestControllerAdvice
 public final class ApiErrors {
     private static final System.Logger LOG = System.getLogger(ApiErrors.class.getName());

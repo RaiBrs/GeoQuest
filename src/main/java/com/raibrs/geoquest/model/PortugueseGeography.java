@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-/** Offline place labels: country names from the JDK locale data, city labels from a versioned catalog. */
+/** Translate countries with Java locale data and capitals with the versioned local catalog. */
 public final class PortugueseGeography {
     private static final Locale PORTUGUESE = Locale.forLanguageTag("pt-BR");
     private static final Map<String, String> CAPITALS = loadCapitals();
@@ -26,6 +26,7 @@ public final class PortugueseGeography {
     public static String capital(String englishName) { return CAPITALS.get(key(englishName)); }
 
     private static String key(String text) {
+        // Accent and punctuation variations map to the same catalog entry.
         if (text == null) return "";
         return Normalizer.normalize(text, Normalizer.Form.NFD).replaceAll("\\p{M}", "")
                 .toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]", "");

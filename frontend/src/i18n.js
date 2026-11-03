@@ -146,7 +146,7 @@ let language = "EN";
 const LANGUAGE_KEY = "geoquest.language";
 export function initializeLanguage() {
   let saved;
-  try { saved = globalThis.localStorage?.getItem(LANGUAGE_KEY); } catch { /* Storage can be blocked by browser settings. */ }
+  try { saved = globalThis.localStorage?.getItem(LANGUAGE_KEY); } catch { /* Browser settings may block local storage. */ }
   setLanguage(saved === "PT_BR" ? "PT_BR" : "EN");
 }
 export function getLanguage() { return language; }
@@ -155,8 +155,9 @@ export function t(key, values = {}) {
   return template.replace(/\{(\w+)\}/g, (_, name) => String(values[name] ?? ""));
 }
 export function setLanguage(next) {
+  // Attributes translate static content; views update their dynamic text.
   language = next === "PT_BR" ? "PT_BR" : "EN";
-  try { globalThis.localStorage?.setItem(LANGUAGE_KEY, language); } catch { /* Keep the interface usable without storage. */ }
+  try { globalThis.localStorage?.setItem(LANGUAGE_KEY, language); } catch { /* The interface still works without saving the preference. */ }
   const selector = document.getElementById?.("language");
   if (selector) selector.value = language;
   document.title = language === "PT_BR" ? "GeoQuest — Explore o mundo" : "GeoQuest — Explore the world";

@@ -1,4 +1,4 @@
-/* Load shared styles before screen-specific rules. */
+/* Import order defines the cascade: shared styles come before page styles. */
 @import url("./styles/tokens.css");
 @import url("./styles/base.css");
 @import url("./styles/layout.css");

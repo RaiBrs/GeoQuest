@@ -18,6 +18,7 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.savedrequest.NullRequestCache;
 import java.util.ArrayList;
 
+/** Protect changes with CSRF and identify players through the persistent game session. */
 @Configuration(proxyBeanMethods = false)
 @Import(OAuthClientConfig.class)
 @EnableWebSecurity
@@ -51,6 +52,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/me", "/api/logout", "/api/account/delete").authenticated()
                         .anyRequest().permitAll())
                 .csrf(protection -> protection.csrfTokenRepository(csrf))
+                // The OAuth session is temporary; protected API calls reload the player session.
                 .securityContext(context -> context.securityContextRepository(new NullSecurityContextRepository()))
                 .requestCache(cache -> cache.requestCache(new NullRequestCache()))
                 .addFilterAfter(new PersistentSessionFilter(accounts), SecurityContextHolderFilter.class)

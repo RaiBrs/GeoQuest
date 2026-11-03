@@ -1,4 +1,4 @@
-/* Application frame. The drawer breakpoint matches shell-view.js. */
+/* The 1100px menu breakpoint must match shell-view.js. */
 .app-shell { min-height: 100svh; padding-top: calc(var(--geo-header-height) + env(safe-area-inset-top, 0px)); display: grid; grid-template-columns: 0 minmax(0, 1fr); }
 .app-shell[data-sidebar="open"] { grid-template-columns: var(--geo-sidebar-width) minmax(0, 1fr); }
 .app-header { position: fixed; inset: 0 0 auto; z-index: 30; min-height: calc(var(--geo-header-height) + env(safe-area-inset-top, 0px)); display: flex; align-items: center; gap: 16px; padding: calc(12px + env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-right, 0px)) 12px max(24px, env(safe-area-inset-left, 0px)); background: var(--geo-bg-inset); border-bottom: 1px solid var(--geo-border); }
@@ -65,7 +65,7 @@ main { width: 100%; }
   .header-actions { gap: 4px; }
 }
 
-/* Entry is a separate, distraction-free screen; navigation starts after entry. */
+/* Navigation appears only after entering the game. */
 .app-shell[data-screen="login"] { grid-template-columns: 0 minmax(0, 1fr); }
 .app-shell[data-screen="login"] .section-label,
 .app-shell[data-screen="login"] .header-divider { display: none; }

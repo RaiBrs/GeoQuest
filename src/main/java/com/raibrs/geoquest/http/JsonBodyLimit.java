@@ -13,6 +13,7 @@ public final class JsonBodyLimit extends RequestBodyAdviceAdapter {
     @Override public boolean supports(MethodParameter parameter, Type type, Class<? extends HttpMessageConverter<?>> converter) { return true; }
     @Override public HttpInputMessage beforeBodyRead(HttpInputMessage input, MethodParameter parameter, Type type,
                                                     Class<? extends HttpMessageConverter<?>> converter) throws IOException {
+        // Read one byte beyond the limit to reject oversized bodies without loading them fully.
         byte[] body = input.getBody().readNBytes(4097);
         if (body.length > 4096) throw new IllegalArgumentException("Request body is too large.");
         return new HttpInputMessage() {

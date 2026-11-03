@@ -1,3 +1,4 @@
+// Concurrent submissions share the token request; failures allow a new attempt.
 let csrfPromise;
 
 async function readResponse(response) {
@@ -19,6 +20,7 @@ async function send(path, options) {
 export function resetCsrf() { csrfPromise = undefined; }
 
 export async function request(path, data) {
+  // No payload means GET; a payload means POST with browser cookies and CSRF protection.
   if (data === undefined) return send(path, {});
   csrfPromise ??= send("/api/csrf", {}).catch(error => { resetCsrf(); throw error; });
   const csrf = await csrfPromise;

@@ -78,7 +78,7 @@ public class CountriesClient {
         }
 
         HttpRequest request = HttpRequest.newBuilder()
-                // Ask only for the fields we need to keep the response small.
+                // Request only the fields used by the game to reduce data transfer.
                 .uri(URI.create(baseUri + "?response_fields=names.common,names.translations.por,codes.alpha_2,capitals&limit=" + limit
                         + "&offset=" + offset))
                 .header("Authorization", "Bearer " + apiKey)
@@ -88,7 +88,7 @@ public class CountriesClient {
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-        // Never treat an error body (e.g. 401 for an invalid key) as country data.
+        // API errors must not be treated as a country list.
         if (response.statusCode() != 200) {
             throw new IOException(
                     "REST Countries API returned status " + response.statusCode());

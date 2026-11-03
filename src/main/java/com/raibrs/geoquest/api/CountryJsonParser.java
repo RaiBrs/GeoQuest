@@ -33,7 +33,7 @@ public class CountryJsonParser {
             throw new IllegalArgumentException("REST Countries pagination did not advance.");
         }
 
-        // Offsets count raw records, including countries discarded for invalid capital data.
+        // Pagination counts all received records, including discarded countries.
         return new CountryPage(List.copyOf(parsedCountries), countries.size(), more.booleanValue());
     }
 

@@ -1,4 +1,4 @@
--- PostgreSQL 14+. Run this migration once with the database owner before enabling accounts.
+-- PostgreSQL 14+. Apply as the database owner before enabling accounts.
 create table if not exists player_profiles (
   id uuid primary key,
   display_name text not null check (char_length(display_name) between 1 and 80),
@@ -27,5 +27,5 @@ create table if not exists player_results (
   created_at timestamptz not null default now()
 );
 create index if not exists player_results_ranking on player_results(mode, question_type, score desc);
--- Application queries are parameterized. Give the application role access only to these tables.
--- Profiles are identified by provider + subject, never by display name or unverified email.
+-- Queries use parameters. Limit the application user to the required tables.
+-- Identity uses provider + subject; names and emails do not identify an account.

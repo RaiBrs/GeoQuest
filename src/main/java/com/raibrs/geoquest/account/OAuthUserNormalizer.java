@@ -4,6 +4,7 @@ import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import java.net.URI;
 import java.util.Map;
 
+/** Normalize Google and GitHub fields after Spring validates the login. */
 public final class OAuthUserNormalizer {
     private record Fields(String id, String avatar, String fallbackName) {}
     private static final Map<String, Fields> PROVIDERS = Map.of(

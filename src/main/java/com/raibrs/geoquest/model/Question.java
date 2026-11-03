@@ -13,12 +13,12 @@ public class Question {
     private final List<String> alternatives;
 
     public Question(String text, String correctAnswer, List<String> alternatives) {
-        // A question must always be displayable and answerable by the game.
+        // Every question needs valid text, an answer key and choices.
         this.text = requireNonBlank(text, "Question text");
         this.correctAnswer = requireNonBlank(correctAnswer, "Correct answer");
         this.alternatives = normalizeAlternatives(alternatives);
 
-        // Multiple-choice input is always mapped from A-D, so the model requires four choices.
+        // The A–D shortcuts require exactly four choices.
         if (this.alternatives.size() != ALTERNATIVE_COUNT) {
             throw new IllegalArgumentException("A question must have exactly four alternatives.");
         }

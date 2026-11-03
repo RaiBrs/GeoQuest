@@ -42,7 +42,7 @@ public class QuestionService {
             throw new IllegalArgumentException("At least four distinct answers per question are required.");
         }
 
-        // Work with copies; one displayed answer is used only once within the round.
+        // Within this batch, an answer appears only once across questions and choices.
         Collections.shuffle(candidates, random);
         List<Candidate> selected = new ArrayList<>();
         Set<String> used = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
@@ -77,7 +77,7 @@ public class QuestionService {
             if (type == QuestionType.CAPITAL) {
                 result.add(new Candidate(country.getName(language), country.getCapital(language)));
             } else if (capitalCounts.get(country.getCapital(language)) == 1) {
-                // Shared capitals would make a country question ambiguous.
+                // Shared capitals cannot identify a single country.
                 result.add(new Candidate(country.getCapital(language), country.getName(language)));
             }
         }

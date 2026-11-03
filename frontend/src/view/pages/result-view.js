@@ -2,6 +2,10 @@ import { t } from "../../i18n.js";
 import { element, span } from "../dom.js";
 
 export const resultView = {
+  updateControls(busy) {
+    for (const id of ["restart", "back-to-home"]) element(id).disabled = busy;
+  },
+
   bind({ onRestart, onBackToHome }) {
     element("restart").addEventListener("click", onRestart);
     element("back-to-home").addEventListener("click", onBackToHome);
@@ -16,6 +20,7 @@ export const resultView = {
     element("result-title").textContent = t(state.timedOut ? "Time is up!" : !timed && state.score === state.total ? "Perfect round!"
       : state.mode === "SURVIVAL" ? "Survival ended" : "Round complete");
     const mistakes = state.mistakes || [];
+    // Each round starts with the review closed and no content from the previous result.
     element("mistake-list").replaceChildren();
     element("mistake-review").hidden = mistakes.length === 0;
     element("mistake-review").open = false;
